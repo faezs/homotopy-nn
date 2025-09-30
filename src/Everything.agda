@@ -40,3 +40,6 @@ import Neural.Information
 import Neural.Resources
 import Neural.Resources.Convertibility
 import Neural.Resources.Optimization
+
+-- Section 4: Networks with Computational Structures
+import Neural.Computational.TransitionSystems
