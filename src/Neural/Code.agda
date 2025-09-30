@@ -16,12 +16,13 @@ open import Data.Fin.Base
 open import Data.List.Base
 open import Data.Power
 
--- | Generate neural code from neural network responses
+-- TODO: Generate neural code from neural network responses
 -- Collects all possible activation patterns across stimuli
-generate-neural-code : {X : StimulusSpace} (N : NeuralNetwork X)
-                     → (stimuli : List X)
-                     → NeuralCode (vertices (NeuralNetwork.graph N))
-generate-neural-code N stimuli = map (neural-response N) stimuli
+-- Requires: NeuralNetwork type and neural-response function
+-- generate-neural-code : {X : StimulusSpace} (N : NeuralNetwork X)
+--                      → (stimuli : List X)
+--                      → NeuralCode (vertices (NeuralNetwork.graph N))
+-- generate-neural-code N stimuli = map (neural-response N) stimuli
 
 -- | Code words: individual binary response patterns
 CodeWord : (n : Nat) → Type
