@@ -39,3 +39,4 @@ import Neural.Network.Grafting
 import Neural.Information
 import Neural.Resources
 import Neural.Resources.Convertibility
+import Neural.Resources.Optimization
