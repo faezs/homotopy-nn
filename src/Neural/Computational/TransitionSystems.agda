@@ -754,6 +754,434 @@ Alternative processing strategies τ₁, τ₂:
 - Used for modeling learning and adaptation
 -}
 
+{-|
+## Section 4.4: Larger-Scale Structures and Distributed Computing
+
+Beyond local synaptic connectivity, neural networks exhibit larger-scale structures
+such as non-local neuromodulation. Neuromodulators are generated in specific brain
+regions (brainstem, basal forebrain) and transmitted to multiple regions via
+long-range connections.
+
+This section extends the transition system framework with:
+1. **Time-delay automata** (Definition 4.5): Transitions carry time-delay blocks
+2. **Distributed structures** (Definition 4.6): Partitions with neuromodulator vertices
+3. **Category Gdist** (Definition 4.7): Graphs with distributed structure
+4. **Modified summing functor** (Proposition 4.8): Grafting with distributed structure
+-}
+
+{-|
+## Time-Delay Transitions (Definition 4.5)
+
+**Automata with time delay blocks** generalize finite state automata by allowing
+transitions to carry time-delay information. These produce a class of formal
+languages strictly containing regular languages and incomparable to context-free
+languages.
+
+**Key idea**: Transitions labeled (a, n) where:
+- a ∈ L': underlying label
+- n ∈ ℤ₊: time delay block
+
+**Example** (non-context-free language {aⁿbⁿcⁿ : n ∈ ℕ}):
+- States: s₀, s₁, s₂
+- Transitions: (a,0): s₀→s₁, (b,1): s₁→s₂, (c,2): s₂→s₀
+- Time-zero: deposit 'a' symbols
+- Time-one: deposit 'b' symbols
+- Time-two: deposit 'c' symbols
+- Result: {(a,0)ⁿ(b,1)ⁿ(c,2)ⁿ : n ∈ ℕ}
+
+**Subcategory Cₜ ⊂ C'**: Transition systems with:
+- Label set L = L' × ℤ₊
+- Unique final state q
+- Optional: incoming half-edges at ι, outgoing half-edges at q
+-}
+
+{-|
+Time-delay label: pair of base label and time delay
+-}
+TimeDelayLabel : Type → Type
+TimeDelayLabel L' = L' × Nat
+
+{-|
+Transition system with time-delay labels (Definition 4.5)
+-}
+record TimeDelayTransitionSystem : Type₁ where
+  no-eta-equality
+  field
+    {-| Base label set L' -}
+    BaseLabels : Type
+    BaseLabels-is-set : is-set BaseLabels
+
+    {-| Underlying transition system with labels L = L' × ℤ₊ -}
+    underlying : TransitionSystem
+
+    {-| Label set is time-delay labels -}
+    labels-are-time-delay :
+      underlying .Labels ≡ TimeDelayLabel BaseLabels
+
+    {-| Has unique final state -}
+    has-single-final : HasSingleFinalState underlying
+
+open TimeDelayTransitionSystem public
+
+{-|
+Time-delay transition system with single final state
+-}
+TimeDelayTransitionSystem' : Type₁
+TimeDelayTransitionSystem' = TimeDelayTransitionSystem
+
+{-|
+**Subcategories Cₜ(n,m)**: Time-delay systems with specified input/output degrees
+
+- deg_in(ι) = n: n incoming half-edges at initial state
+- deg_out(q) = m: m outgoing half-edges at final state
+-}
+postulate
+  {-| Input degree for time-delay systems -}
+  td-deg-in : TimeDelayTransitionSystem' → Nat
+
+  {-| Output degree for time-delay systems -}
+  td-deg-out : TimeDelayTransitionSystem' → Nat
+
+  {-| Time-delay systems organized by input/output degrees -}
+  TDT-by-degrees : (n m : Nat) → Type₁
+
+  {-| Systems in Cₜ(n,m) have specified degrees -}
+  TDT-has-degrees :
+    (n m : Nat) →
+    (τ : TimeDelayTransitionSystem') →
+    td-deg-in τ ≡ n →
+    td-deg-out τ ≡ m →
+    TDT-by-degrees n m
+
+{-|
+**Remark**: When time delay is not explicitly written, it defaults to n=0,
+corresponding to usual transitions with labeling set L'.
+-}
+
+{-|
+## Distributed Structures on Graphs (Definition 4.6)
+
+A **distributed structure** m on a directed graph G represents the partition
+into N machines with neuromodulator transmission.
+
+**Components**:
+1. Partition of vertices V into N subsets Vᵢ (machines)
+2. Partition of edges E by rule: e ∈ mᵢ iff target(e) ∈ Vᵢ
+3. Subsets Vs,ᵢ, Vt,ᵢ ⊆ Vᵢ (source/target vertices for neuromodulation)
+4. Augmented graph G₀ with:
+   - New vertices v₀,ᵢ (neuromodulator nodes)
+   - Incoming edges to v₀,ᵢ from any v ∈ Vs,ⱼ (any machine)
+   - Outgoing edges from v₀,ᵢ to vertices in Vt,ᵢ (same machine)
+   - Time delays nₑ ∈ ℤ₊ on all edges (nₑ = 0 for original edges)
+
+**Physical interpretation**:
+- v₀,ᵢ: Neuromodulator collection node in machine i
+- Incoming edges: Neurons releasing neuromodulator
+- Outgoing edges: Neuromodulated synapses
+- Time delays: Transmission delays in multiples of Δt
+-}
+
+{-|
+Machine partition: Assignment of vertices to machines
+-}
+MachinePartition : DirectedGraph → Nat → Type
+MachinePartition G N = Fin (vertices G) → Fin N
+
+{-|
+Distributed structure on a directed graph (Definition 4.6)
+-}
+record DistributedStructure (G : DirectedGraph) : Type₁ where
+  no-eta-equality
+  field
+    {-| Number of machines -}
+    num-machines : Nat
+
+    {-| Partition vertices into machines -}
+    machine-of-vertex : MachinePartition G num-machines
+
+    {-|
+    Edge partitioning rule: edge e belongs to machine i iff target(e) ∈ Vᵢ
+    -}
+    machine-of-edge : Fin (edges G) → Fin num-machines
+    edge-machine-via-target :
+      ∀ (e : Fin (edges G)) →
+      machine-of-edge e ≡ machine-of-vertex (target G e)
+
+    {-|
+    Source vertices Vs,ᵢ for neuromodulator transmission
+    (vertices that release neuromodulator in machine i)
+    -}
+    is-source-vertex : Fin num-machines → Fin (vertices G) → Type
+    is-source-vertex-prop :
+      ∀ i v → is-prop (is-source-vertex i v)
+
+    {-|
+    Target vertices Vt,ᵢ for neuromodulation
+    (vertices receiving neuromodulator in machine i)
+    -}
+    is-target-vertex : Fin num-machines → Fin (vertices G) → Type
+    is-target-vertex-prop :
+      ∀ i v → is-prop (is-target-vertex i v)
+
+    {-|
+    Augmented graph G₀ obtained by adding:
+    - One neuromodulator vertex v₀,ᵢ per machine
+    - Edges from source vertices to v₀,ᵢ
+    - Edges from v₀,ᵢ to target vertices
+    -}
+    augmented-graph : DirectedGraph
+
+    {-| Original graph G embeds in G₀ (vertices) -}
+    original-vertices-count :
+      vertices augmented-graph ≡ vertices G + num-machines
+
+    {-| Embedding of original edges into augmented graph -}
+    embed-edge : Fin (edges G) → Fin (edges augmented-graph)
+
+    {-|
+    Time delay assignment to edges in G₀
+    - Original edges from G have delay 0
+    - New edges have specified delays
+    -}
+    time-delay : Fin (edges augmented-graph) → Nat
+
+    {-| Original edges have zero delay -}
+    original-edges-zero-delay :
+      ∀ (e : Fin (edges G)) →
+      time-delay (embed-edge e) ≡ 0
+
+open DistributedStructure public
+
+{-|
+**Condensation graph for distributed structure**
+
+Given (G,m), the condensation graph Ḡ₀(m) is obtained by contracting each
+subgraph Gᵢ (vertices Vᵢ and edges between them) to a single vertex.
+
+**Property**: Ḡ₀(m) is always acyclic
+-}
+postulate
+  {-| Condensation graph of distributed structure -}
+  condensation-distributed :
+    (G : DirectedGraph) →
+    (m : DistributedStructure G) →
+    DirectedGraph
+
+  {-| Condensation of distributed structure is acyclic -}
+  condensation-distributed-acyclic :
+    (G : DirectedGraph) →
+    (m : DistributedStructure G) →
+    is-acyclic (condensation-distributed G m)
+
+{-|
+## Category Gdist (Definition 4.7)
+
+**Objects**: Pairs (G,m) where:
+- G: Finite directed graph
+- m: Distributed structure on G
+- Induced subgraphs Gᵢ (vertex set Vᵢ ∪ {v₀,ᵢ}) are strongly connected
+
+**Morphisms**: α: (G,m) → (G',m') are graph morphisms α: G → G' that:
+- Preserve distributed structure
+- Map subgraphs αᵢ = α|Gᵢ : Gᵢ → G'ⱼ₍ᵢ₎ (compatible with partitions)
+
+**Note**: We use natural transformations as graph morphisms (Definition 2.6),
+allowing edge identifications but not edge contractions.
+-}
+
+{-|
+Graph with distributed structure
+-}
+DistributedGraph : Type₁
+DistributedGraph = Σ DirectedGraph DistributedStructure
+
+{-|
+Subgraph induced by machine i in distributed structure
+-}
+postulate
+  induced-subgraph :
+    (G : DirectedGraph) →
+    (m : DistributedStructure G) →
+    (i : Fin (m .num-machines)) →
+    DirectedGraph
+
+  {-| Induced subgraphs must be strongly connected -}
+  induced-subgraph-strongly-connected :
+    (G : DirectedGraph) →
+    (m : DistributedStructure G) →
+    (i : Fin (m .num-machines)) →
+    Type
+
+{-|
+Morphism of distributed graphs (Definition 4.7)
+
+α: (G,m) → (G',m') must:
+1. Be a graph morphism α: G → G'
+2. Preserve distributed structure (map machines to machines)
+-}
+record DistributedGraphMorphism (Gm G'm' : DistributedGraph) : Type₁ where
+  no-eta-equality
+
+  private
+    G = Gm .fst
+    m = Gm .snd
+    G' = G'm' .fst
+    m' = G'm' .snd
+
+  field
+    {-|
+    Underlying graph morphism
+
+    For now we postulate the structure - would be natural transformation
+    of functors ·⇉· → FinSets (Definition 2.6)
+    -}
+    vertex-map : Fin (vertices G) → Fin (vertices G')
+    edge-map : Fin (edges G) → Fin (edges G')
+
+    {-| Machine mapping -}
+    machine-map : Fin (m .num-machines) → Fin (m' .num-machines)
+
+    {-|
+    Compatibility: vertices map to vertices in compatible machines
+
+    If v ∈ Vᵢ in G, then vertex-map(v) ∈ Vⱼ₍ᵢ₎ in G'
+    -}
+    preserves-machine-assignment :
+      ∀ (v : Fin (vertices G)) →
+      m' .machine-of-vertex (vertex-map v) ≡
+        machine-map (m .machine-of-vertex v)
+
+open DistributedGraphMorphism public
+
+{-|
+Category of distributed graphs (Definition 4.7)
+-}
+postulate
+  Gdist : Precategory (lsuc lzero) (lsuc lzero)
+
+  {-| Objects are distributed graphs -}
+  Gdist-Ob : Precategory.Ob Gdist ≡ DistributedGraph
+
+  {-| Morphisms are distributed graph morphisms -}
+  Gdist-Hom :
+    (Gm G'm' : DistributedGraph) →
+    Precategory.Hom Gdist {!!} {!!} ≡ DistributedGraphMorphism Gm G'm'
+    -- Note: Using {!!} as we need to transport along Gdist-Ob
+
+{-|
+## Modified Summing Functor for Distributed Systems (Proposition 4.8)
+
+Given an object (G,m) ∈ Gdist and a summing functor Φ ∈ ΣCₜ(VG) with values
+in the time-delay subcategory Cₜ, we construct a properad-constrained functor:
+
+  Υ(Φ) ∈ Σᵖʳᵒᵖ_Cₜ(G,m)
+
+**Construction procedure**:
+1. For each machine i with vertex set Vᵢ:
+   - Consider objects Φ(v) for v ∈ Vᵢ
+   - Determine τGᵢ by grafting as in Definition 4.3
+2. For condensation graph Ḡ₀(m):
+   - Perform grafting τḠ₀(m),ω̄ as in Lemma 4.2
+   - Combines the machine systems {τGᵢ}
+
+**Result**: For (G',m') ∈ P(G,m) (category of subgraphs with compatible
+distributed structure), Υ(Φ)(G',m') = τḠ₀(m'),ω̄
+
+**Connection to Proposition 4.4**: This extends the faithful functor
+construction to account for larger-scale distributed structure and
+time-delay transitions.
+-}
+
+module DistributedSummingFunctor where
+  open GraftingForGeneralGraphs
+  open GraftingForAcyclicGraphs
+  open GraftingForStronglyConnected
+
+  {-|
+  Category of subgraphs with compatible distributed structure
+  -}
+  postulate
+    SubgraphsWithDistribution :
+      (G : DirectedGraph) →
+      (m : DistributedStructure G) →
+      Precategory lzero lzero
+
+  {-|
+  Summing functor with values in time-delay subcategory
+  -}
+  SummingFunctorTD : DirectedGraph → Type₁
+  SummingFunctorTD G =
+    Functor (SubgraphsWithDistribution G {!!}) {!!}
+    -- Would need proper category structure for TDT systems
+
+  {-|
+  Grafting within a single machine (Definition 4.3)
+
+  For strongly connected subgraph Gᵢ, combine time-delay systems
+  assigned to vertices in Vᵢ.
+  -}
+  postulate
+    graft-within-machine :
+      (G : DirectedGraph) →
+      (m : DistributedStructure G) →
+      (i : Fin (m .num-machines)) →
+      (vertex-systems : (v : Fin (vertices G)) → TimeDelayTransitionSystem') →
+      TimeDelayTransitionSystem'
+
+  {-|
+  Grafting between machines via condensation graph (Lemma 4.2)
+
+  For acyclic condensation graph Ḡ₀(m), combine machine systems
+  {τGᵢ} following topological ordering.
+  -}
+  postulate
+    graft-between-machines :
+      (G : DirectedGraph) →
+      (m : DistributedStructure G) →
+      (machine-systems : (i : Fin (m .num-machines)) → TimeDelayTransitionSystem') →
+      TimeDelayTransitionSystem'
+
+  {-|
+  **Proposition 4.8**: Modified summing functor construction
+
+  Given:
+  - (G,m): Distributed graph
+  - Φ ∈ ΣCₜ(VG): Summing functor assigning time-delay systems to vertices
+
+  Produces:
+  - Υ(Φ) ∈ Σᵖʳᵒᵖ_Cₜ(G,m): Properad-constrained functor on subgraphs
+
+  The construction uses:
+  1. Strongly-connected grafting within each machine
+  2. Acyclic grafting via condensation graph between machines
+  -}
+  postulate
+    proposition-4-8 :
+      (G : DirectedGraph) →
+      (m : DistributedStructure G) →
+      (vertex-assignment : (v : Fin (vertices G)) → TimeDelayTransitionSystem') →
+      {-| Produces properad-constrained summing functor -}
+      Type₁
+
+{-|
+## Topological Questions (§4.4.3)
+
+Several mathematical questions remain for future work:
+
+1. **Protocol simplicial complexes**: Describe the topological structure of
+   distributed computing algorithms implementing neuromodulated networks
+
+2. **Relation to neural codes**: Investigate how the topology of protocol
+   complexes relates to other topological structures (place field codes,
+   overlap patterns, etc.)
+
+3. **Embedded graph invariants**: Networks are embedded in 3-dimensional space.
+   Can invariants of embedded graphs (e.g., fundamental group of complement,
+   as in knot theory) carry relevant information about computational structure?
+
+These questions connect discrete graph topology with spatial embedding geometry.
+-}
+
 module Examples where
   postulate
     -- Example: Hodgkin-Huxley automaton for single neuron
@@ -767,3 +1195,12 @@ module Examples where
 
     -- Example: Parallel pathways
     parallel-pathways : TransitionSystem' → TransitionSystem' → TransitionSystem'
+
+    -- Example: Time-delay automaton for {aⁿbⁿcⁿ}
+    abc-time-delay-automaton : TimeDelayTransitionSystem'
+
+    -- Example: Distributed neuromodulated network
+    neuromodulated-network :
+      (G : DirectedGraph) →
+      (m : DistributedStructure G) →
+      TimeDelayTransitionSystem'

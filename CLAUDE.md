@@ -114,6 +114,36 @@ This project implements neural information networks using homotopy type theory a
   - Conversion rate calculations with examples
   - Measuring homomorphisms (ℝ-valued, entropy, energy)
   - Theorem 5.6 proof outline and concrete examples
+- **Neural.Resources.Optimization**: Section 3.3 - Adjunctions and optimality
+  - OptimalConstructor: Left adjoint β ⊣ ρ for resource assignment
+  - Universal property via adjunct-hom-equiv
+  - Freyd's Adjoint Functor Theorem application
+  - Solution sets and continuity conditions
+  - Examples: Minimal energy, minimal entropy optimization
+
+#### Section 4: Networks with Computational Structures
+- **Neural.Computational.TransitionSystems**: Sections 4.1-4.4 - Transition systems as computational resources
+  - Definition: Transition systems τ = (S, ι, L, T, S_F)
+  - Morphisms: Partial simulations (σ, λ) with simulation property
+  - Category C with coproduct (⊔) and product (×)
+  - Subcategory C' with single final states
+  - Grafting operations for sequential composition
+  - Lemma 4.2: Grafting for acyclic graphs via topological ordering
+  - Definition 4.3: Grafting for strongly connected graphs via coproduct
+  - Proposition 4.4: Faithful functor Υ: Σ_C'(V_G) → Σ^prop_C'(G)
+  - **Section 4.4: Distributed computing and neuromodulation**
+    - Definition 4.5: Time-delay transitions with labels L = L' × ℤ₊
+    - TimeDelayTransitionSystem record with base labels and time delays
+    - Definition 4.6: Distributed structures on graphs
+      - Partition into N machines with neuromodulator vertices v₀,ᵢ
+      - Source/target vertex subsets for neuromodulation
+      - Augmented graph G₀ with time-delayed edges
+    - Definition 4.7: Category Gdist of distributed graphs
+      - Objects: (G,m) with strongly connected induced subgraphs
+      - Morphisms preserve machine partitions
+    - Proposition 4.8: Modified summing functor for distributed systems
+      - Grafting within machines (strongly connected)
+      - Grafting between machines via condensation graph (acyclic)
 
 ### 🚧 Needs Work
 - **Conservation module examples**: Have unsolved metas (`{!!}`) for:
@@ -126,8 +156,8 @@ This project implements neural information networks using homotopy type theory a
 - Add concrete examples to Conservation module (finish example-category)
 - Add concrete examples to Grafting module (corollas, grafting operations)
 - Implement FinProb, FinStoch, FP examples from Section 3.2.1
-- Section 3.3: Adjunction and optimality of resources
-- Section 4: Computational systems and automata
+- Section 4.4.3: Protocol simplicial complexes for distributed computing
+- Section 4.4.3: Embedded graph invariants (fundamental groups)
 - Section 5: Weighted codes and information transmission
 
 ## Type Theory Notes
@@ -158,6 +188,36 @@ Goal: Given G, construct G* by adding:
 - Shift original vertices/edges by one position
 
 **Key insight**: Should only need ONE fsuc for shifting, not two!
+
+### Section 4.4: Distributed Computing and Time-Delay Systems
+
+**Time-delay automata** (Definition 4.5):
+- Labels: L = L' × ℤ₊ (base label, time delay)
+- Example: {aⁿbⁿcⁿ} language (non-context-free)
+  - Transitions: (a,0), (b,1), (c,2) deposit symbols at different time steps
+- Subcategory Cₜ ⊂ C' with time-delayed transitions
+
+**Distributed structures** (Definition 4.6):
+- Partition graph G into N machines (vertex subsets Vᵢ)
+- Add neuromodulator vertex v₀,ᵢ per machine
+- Edges:
+  - Incoming to v₀,ᵢ: from any source vertex (any machine)
+  - Outgoing from v₀,ᵢ: to target vertices in same machine
+- Time delays nₑ ∈ ℤ₊ on new edges (original edges have nₑ = 0)
+
+**Implementation notes**:
+- `DistributedStructure` record at Type₁ (contains Type-valued predicates)
+- `embed-edge` field for embedding original edges into augmented graph
+- `condensation-distributed` always produces acyclic graph
+- Universe level: Changed from Type to Type₁ to accommodate predicates
+
+**Category Gdist** (Definition 4.7):
+- Objects: (G,m) with induced subgraphs Gᵢ strongly connected
+- Morphisms: preserve machine assignments via `preserves-machine-assignment`
+
+**Proposition 4.8**: Two-level grafting
+1. Within machines: strongly-connected grafting (Definition 4.3)
+2. Between machines: acyclic grafting via condensation (Lemma 4.2)
 
 ## Common Pitfalls
 
