@@ -1,0 +1,8 @@
+name: homotopy-nn
+depend: 1lab
+include: src
+flags:
+  --rewriting
+  --guardedness
+  --cubical
+  --no-load-primitives

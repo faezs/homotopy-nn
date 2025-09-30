@@ -1,0 +1,26 @@
+# Agda compiled files
+*.agdai
+*.agda~
+
+# Build directories
+_build/
+MAlonzo/
+src/MAlonzo/
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude Code artifacts
+.claude/
+
+# Nix build results
+result
+result-*
+
+# Direnv (keep .envrc but ignore cache)
+.direnv/
