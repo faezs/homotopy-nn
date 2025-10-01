@@ -92,3 +92,6 @@ import Neural.Information.Cohomology
 import Neural.Information.RandomGraphs
 import Neural.Dynamics.IntegratedInformation
 import Neural.Homotopy.UnifiedCohomology
+
+-- Examples and Demonstrations
+import Neural.Examples.ConsciousnessDemo
