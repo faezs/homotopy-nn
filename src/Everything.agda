@@ -36,9 +36,11 @@ This module imports all formalized components from Manin & Marcolli (2024).
 - Neural.Homotopy: Main re-export module for Section 7
 
 ### Section 8: Information Geometry and Integrated Information
-- Neural.Information.Geometry: Divergences, Fisher-Rao metric, geodesics, natural gradient
-- Neural.Information.Cohomology: Cohomological information, integrated information Φ
-- Neural.Dynamics.IntegratedInformation: Φ for Hopfield networks, consciousness measures
+- Neural.Information.Geometry: Divergences, Fisher-Rao metric, geodesics, natural gradient (§8.1)
+- Neural.Information.Cohomology: Cohomological information, integrated information Φ (§8.2-8.4)
+- Neural.Information.RandomGraphs: Graph information structures, Gamma networks from probability (§8.6)
+- Neural.Dynamics.IntegratedInformation: Φ for Hopfield networks, feedforward Lemma 8.1 (§8.2-8.5)
+- Neural.Homotopy.UnifiedCohomology: Generalized cohomology, spectra, unified framework (§8.7)
 
 ## Type Checking
 
@@ -87,4 +89,6 @@ import Neural.Homotopy.GammaNetworks
 -- Section 8: Information Geometry and Integrated Information
 import Neural.Information.Geometry
 import Neural.Information.Cohomology
+import Neural.Information.RandomGraphs
 import Neural.Dynamics.IntegratedInformation
+import Neural.Homotopy.UnifiedCohomology

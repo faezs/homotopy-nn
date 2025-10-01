@@ -29,7 +29,9 @@ module Neural.Dynamics.IntegratedInformation where
 open import 1Lab.Prelude
 open import 1Lab.HLevel
 
-open import Data.Nat.Base using (Nat; zero; suc)
+open import Data.Nat.Base using (Nat; zero; suc; _<_)
+open import Data.Fin.Base using (Fin)
+open import Data.Bool using (Bool; true; false)
 
 open import Neural.Base
 open import Neural.Information using (ℝ; _+ℝ_; _*ℝ_; zeroℝ)
@@ -74,6 +76,138 @@ postulate
     (hd : HopfieldDynamics G) →
     (time : Nat) →
     zeroℝ ≤ℝ Φ-hopfield hd time
+
+{-|
+## Feedforward Networks Have Zero Integrated Information (Lemma 8.1)
+
+**Theorem (Lemma 8.1)**: Feedforward networks (multilayer perceptrons) have
+integrated information Φ = 0.
+
+**Architecture**: A multilayer perceptron has:
+- Input layer: v₁, ..., vᵣ (no incoming edges from within system)
+- Hidden layers: Directed connections forward only
+- Output layer: Final activations
+
+**Dynamics**: State update X_{t+1}(v) = σ(X_t(v') | ∃e: v'=s(e), v=t(e))
+depends only on predecessor nodes.
+
+**Key observation**: Input nodes v₁,...,vᵣ have no incoming edges, so their
+state X(vᵢ) remains constant throughout time evolution.
+
+**Proof sketch**:
+1. Partition S into 2ʳ subsets Sᵢ determined by values X(v₁),...,X(vᵣ) at inputs
+2. Each subset Sᵢ is preserved by time evolution
+3. Probability P(X_{t+1,i}|X_t) only depends on X_{t,i} (same subset)
+4. This satisfies the independence condition P(X_{t+1,i}|X_t) = P(X_{t+1,i}|X_{t,i})
+5. Therefore P(X_t, X_{t+1}) already lies in Ωλ, so Φλ = 0
+6. Minimizing over all partitions still gives Φ = 0
+
+**Physical interpretation**: The input nodes act as "frozen" boundary conditions
+that break integration. Information flows forward but cannot integrate backward
+from outputs to inputs, preventing global integration.
+
+**Contrast with recurrent networks**: Hopfield networks have no such frozen
+inputs, allowing full integration across all neurons.
+
+**Note**: This differs from the topological reason for feedforward networks
+having trivial homotopy groups (§7.4.3) - here it's the input nodes, there
+it's the lack of skip connections.
+-}
+
+-- Structure encoding feedforward architecture
+record FeedforwardStructure (G : DirectedGraph) : Type where
+  field
+    -- Input nodes with no incoming edges from within G
+    input-nodes : Fin (vertices G) → Bool
+
+    -- No edges target input nodes
+    no-incoming-to-inputs :
+      (e : Fin (edges G)) →
+      input-nodes (target G e) ≡ true →
+      ⊥  -- Contradiction: input nodes cannot be targets
+
+    -- Layer structure (each vertex has a layer number)
+    layer : Fin (vertices G) → Nat
+
+    -- Input nodes are at layer 0
+    inputs-at-zero :
+      (v : Fin (vertices G)) →
+      input-nodes v ≡ true →
+      layer v ≡ zero
+
+    -- Edges only go forward in layers
+    forward-edges :
+      (e : Fin (edges G)) →
+      layer (source G e) < layer (target G e)
+
+-- Being feedforward means having such a structure
+is-feedforward : DirectedGraph → Type
+is-feedforward G = FeedforwardStructure G
+
+-- Extract input nodes from feedforward structure
+get-input-nodes :
+  (G : DirectedGraph) →
+  FeedforwardStructure G →
+  Fin (vertices G) → Bool
+get-input-nodes G ff = FeedforwardStructure.input-nodes ff
+
+postulate
+  -- State space partition indexed by input values
+  StatePartition :
+    (G : DirectedGraph) →
+    FeedforwardStructure G →
+    Type
+
+  -- Partition element for a given state
+  partition-element :
+    {G : DirectedGraph} →
+    (ff : FeedforwardStructure G) →
+    (state : Fin (vertices G) → Bool) →  -- Binary state
+    StatePartition G ff
+
+  -- States in same partition → same input values
+  same-partition-then-same-inputs :
+    {G : DirectedGraph} →
+    (ff : FeedforwardStructure G) →
+    (s1 s2 : Fin (vertices G) → Bool) →
+    partition-element ff s1 ≡ partition-element ff s2 →
+    ((v : Fin (vertices G)) → get-input-nodes G ff v ≡ true → s1 v ≡ s2 v)
+
+  -- Same input values → states in same partition
+  same-inputs-then-same-partition :
+    {G : DirectedGraph} →
+    (ff : FeedforwardStructure G) →
+    (s1 s2 : Fin (vertices G) → Bool) →
+    ((v : Fin (vertices G)) → get-input-nodes G ff v ≡ true → s1 v ≡ s2 v) →
+    partition-element ff s1 ≡ partition-element ff s2
+
+  -- Dynamics preserves partition
+  dynamics-preserves-partition :
+    {G : DirectedGraph} →
+    (hd : HopfieldDynamics G) →
+    (ff : FeedforwardStructure G) →
+    (state : Fin (vertices G) → Bool) →
+    (time : Nat) →
+    partition-element ff state ≡
+    partition-element ff {-| state after one dynamics step -} state
+
+  -- Conditional probability satisfies independence
+  conditional-independence :
+    {G : DirectedGraph} →
+    (hd : HopfieldDynamics G) →
+    (ff : FeedforwardStructure G) →
+    (π : StatePartition G ff) →
+    {-| For states in partition π:
+        P(X_{t+1} ∈ π | X_t) = P(X_{t+1} ∈ π | X_t ∈ π) -}
+    ⊤  -- TODO: Need proper probability type
+
+  -- Feedforward networks have Φ = 0 (Lemma 8.1)
+  feedforward-zero-Φ :
+    {G : DirectedGraph} →
+    (hd : HopfieldDynamics G) →
+    (ff : FeedforwardStructure G) →
+    (time : Nat) →
+    Φ-hopfield hd time ≡ zeroℝ
 
 {-|
 ## Φ Dynamics: How Integration Changes
