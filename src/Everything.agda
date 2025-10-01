@@ -28,6 +28,18 @@ This module imports all formalized components from Manin & Marcolli (2024).
 - Neural.Dynamics.Hopfield.Discrete: Discrete dynamics (Definition 6.2, Lemmas 6.3-6.4)
 - Neural.Dynamics.Hopfield.Classical: Classical Hopfield recovery (Lemmas 6.6-6.9)
 
+### Section 7: Homotopy-Theoretic Models
+- Neural.Homotopy.Simplicial: Pointed simplicial sets, smash product, suspension, spheres
+- Neural.Homotopy.GammaSpaces: Segal's Gamma-spaces, connective spectra, infinite loop spaces
+- Neural.Homotopy.CliqueComplex: Clique complexes K(G), nerve construction, Betti numbers
+- Neural.Homotopy.GammaNetworks: Gamma networks, composition, stable homotopy invariants
+- Neural.Homotopy: Main re-export module for Section 7
+
+### Section 8: Information Geometry and Integrated Information
+- Neural.Information.Geometry: Divergences, Fisher-Rao metric, geodesics, natural gradient
+- Neural.Information.Cohomology: Cohomological information, integrated information Φ
+- Neural.Dynamics.IntegratedInformation: Φ for Hopfield networks, consciousness measures
+
 ## Type Checking
 
 To type-check the entire project:
@@ -64,3 +76,15 @@ import Neural.Dynamics.Hopfield
 import Neural.Dynamics.Hopfield.Threshold
 import Neural.Dynamics.Hopfield.Discrete
 import Neural.Dynamics.Hopfield.Classical
+
+-- Section 7: Homotopy-Theoretic Models
+import Neural.Homotopy
+import Neural.Homotopy.Simplicial
+import Neural.Homotopy.GammaSpaces
+import Neural.Homotopy.CliqueComplex
+import Neural.Homotopy.GammaNetworks
+
+-- Section 8: Information Geometry and Integrated Information
+import Neural.Information.Geometry
+import Neural.Information.Cohomology
+import Neural.Dynamics.IntegratedInformation
