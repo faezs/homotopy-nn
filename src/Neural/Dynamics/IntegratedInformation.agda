@@ -32,6 +32,7 @@ open import 1Lab.HLevel
 open import Data.Nat.Base using (Nat; zero; suc; _<_)
 open import Data.Fin.Base using (Fin)
 open import Data.Bool using (Bool; true; false)
+open import Data.List.Base using (List)
 
 open import Neural.Base
 open import Neural.Information using (ℝ; _+ℝ_; _*ℝ_; zeroℝ)
@@ -55,19 +56,54 @@ where p(X(t)) is the joint distribution and Π_i p(X_i(t)) is the product of mar
 to independent neurons.
 -}
 
+-- Helper: System partition type
 postulate
-  -- Integrated information for network state
-  Φ-hopfield :
+  SystemPartition : (G : DirectedGraph) → Type
+
+  -- Get product distribution for a partition
+  product-distribution :
     {G : DirectedGraph} →
     (hd : HopfieldDynamics G) →
     (time : Nat) →
-    ℝ
+    SystemPartition G →
+    Prob (vertices G)
 
+  -- Get joint distribution for current state
+  joint-distribution :
+    {G : DirectedGraph} →
+    (hd : HopfieldDynamics G) →
+    (time : Nat) →
+    Prob (vertices G)
+
+  -- All possible partitions of the system
+  all-partitions : (G : DirectedGraph) → List (SystemPartition G)
+
+  -- Minimum of a list of real numbers
+  minℝ : List ℝ → ℝ
+
+-- Integrated information for network state
+-- Φ = min over partitions of D_KL(p(X(t)) || p_partition(X(t)))
+Φ-hopfield :
+  {G : DirectedGraph} →
+  (hd : HopfieldDynamics G) →
+  (time : Nat) →
+  ℝ
+Φ-hopfield {G} hd time =
+  minℝ (map compute-MI-for-partition (all-partitions G))
+  where
+    joint-dist : Prob (vertices G)
+    joint-dist = joint-distribution hd time
+
+    compute-MI-for-partition : SystemPartition G → ℝ
+    compute-MI-for-partition π =
+      divergence D-KL joint-dist (product-distribution hd time π)
+
+postulate
   Φ-hopfield-def :
     {G : DirectedGraph} →
     (hd : HopfieldDynamics G) →
     (time : Nat) →
-    {-| Φ-hopfield hd t = D_KL(p(X(t)) || product_i p(X_i(t))) -}
+    {-| Φ-hopfield hd t = min_π D_KL(p(X(t)) || p_π(X(t))) -}
     ⊤
 
   -- Φ is always non-negative
