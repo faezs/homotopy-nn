@@ -77,6 +77,18 @@ postulate
   -ℝ_ : ℝ → ℝ
   logℝ : ℝ → ℝ
 
+  {-| Order relation on real numbers -}
+  _≤ℝ_ : ℝ → ℝ → Type
+  _≥ℝ_ : ℝ → ℝ → Type
+
+  {-| Constants -}
+  zeroℝ : ℝ
+  oneℝ : ℝ
+
+  {-| Basic properties -}
+  ≤ℝ-refl : {x : ℝ} → x ≤ℝ x
+  ≤ℝ-trans : {x y z : ℝ} → x ≤ℝ y → y ≤ℝ z → x ≤ℝ z
+
 {-|
 ## Neural Codes (Definition 3.1)
 

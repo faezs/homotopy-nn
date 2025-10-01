@@ -18,6 +18,16 @@ This module imports all formalized components from Manin & Marcolli (2024).
 - Neural.Resources: Resource theory as symmetric monoidal category
 - Neural.Resources.Convertibility: Conversion rates and measuring homomorphisms
 
+### Section 5: Codes, Probabilities, and Information
+- Neural.Code.Probabilities: Category Pf with fiberwise measures (Lemma 5.7)
+- Neural.Code.Weighted: Weighted codes for linear neuron model (Lemma 5.10)
+- Neural.Information.Shannon: Shannon entropy functor (Lemma 5.13)
+
+### Section 6: Categorical Hopfield Dynamics
+- Neural.Dynamics.Hopfield.Threshold: Categorical threshold non-linearity (Proposition 6.1)
+- Neural.Dynamics.Hopfield.Discrete: Discrete dynamics (Definition 6.2, Lemmas 6.3-6.4)
+- Neural.Dynamics.Hopfield.Classical: Classical Hopfield recovery (Lemmas 6.6-6.9)
+
 ## Type Checking
 
 To type-check the entire project:
@@ -43,3 +53,14 @@ import Neural.Resources.Optimization
 
 -- Section 4: Networks with Computational Structures
 import Neural.Computational.TransitionSystems
+
+-- Section 5: Codes, Probabilities, and Information
+import Neural.Code.Probabilities
+import Neural.Code.Weighted
+import Neural.Information.Shannon
+
+-- Section 6: Categorical Hopfield Dynamics
+import Neural.Dynamics.Hopfield
+import Neural.Dynamics.Hopfield.Threshold
+import Neural.Dynamics.Hopfield.Discrete
+import Neural.Dynamics.Hopfield.Classical
