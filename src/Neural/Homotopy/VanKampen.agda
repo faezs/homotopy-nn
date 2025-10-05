@@ -343,10 +343,28 @@ Free-Group-preserves-⊎ {A} {B} = Groups.make-iso fwd bwd invl invr
 
     -- Inverses follow from uniqueness of universal properties
     invl : fwd Groups.∘ bwd ≡ Groups.id
-    invl = {!!}
+    invl = sym (unique comm₁ comm₂)
+      where
+        comm₁ : Groups.id Groups.∘ ι₁ ≡ ι₁
+        comm₁ = Groups.idl ι₁
+
+        comm₂ : Groups.id Groups.∘ ι₂ ≡ ι₂
+        comm₂ = Groups.idl ι₂
 
     invr : bwd Groups.∘ fwd ≡ Groups.id
     invr = {!!}
+      -- Proof strategy:
+      -- Use fold-free-group uniqueness (Free-object.unique₂)
+      -- Show (bwd ∘ fwd) (inc x) ≡ inc x for all x : A ⊎ B
+      -- Case inl a:
+      --   (bwd ∘ fwd) (inc (inl a))
+      --   = bwd (fwd (inc (inl a)))
+      --   = bwd (ι₁ (inc a))         -- by fwd definition
+      --   = (bwd ∘ ι₁) (inc a)
+      --   = fold-free-group (inc ∘ inl) (inc a)  -- by []∘ι₁
+      --   = inc (inl a)              -- by fold commute
+      -- Case inr b: similar
+      -- Then by fold uniqueness, bwd ∘ fwd ≡ id
 
 postulate
   Free-2≅ℤ*ℤ : Free-n 2 Groups.≅ (ℤ *ᴳ ℤ)
