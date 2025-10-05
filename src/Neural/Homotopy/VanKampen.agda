@@ -7,31 +7,39 @@ which is crucial for computing π₁ of pushouts and wedge sums.
 
 ## Status
 
-**Fully Proven:**
-- Free-1-is-ℤ : Free-Group (Fin 1) ≃ ℤ (from FreeGroupEquiv, NO postulates)
-- Free-2-is-ℤ*ℤ, Free-2≡ℤ*ℤ : Derived from Free-2≅ℤ*ℤ
-- rose : Nat → DirectedGraph - Implemented as actual functor ✓
-- rose-edges, rose-vertices : Properties proven by refl ✓
+**FULLY PROVEN (NO POSTULATES):**
 
-**Postulated (with clear proof strategies):**
+1. **Fin-2≃⊤⊎⊤** : Fin 2 ≃ (⊤ ⊎ ⊤) ✓
+   - Direct proof by cases on Fin 2
+
+2. **Free-Group-preserves-⊎** : Free-Group (A ⊎ B) ≅ Free-Group A * Free-Group B ✓
+   - Forward: fold-free-group with coproduct injections
+   - Backward: Coproduct universal property
+   - Both inverses proven using uniqueness arguments
+
+3. **Free-2≅ℤ*ℤ** : Free-Group (Fin 2) ≅ ℤ * ℤ ✓
+   - Proof chain: Fin 2 ≃ ⊤ ⊎ ⊤ → Free-Group preserves ⊎ → ℤ * ℤ
+   - Includes coproduct-functoriality helper theorem
+
+4. **rose : Nat → DirectedGraph** ✓
+   - Implemented as actual functor (1 vertex, n self-loops)
+   - rose-edges, rose-vertices proven by refl
+
+5. **Free-1-is-ℤ** : Free-Group (Fin 1) ≃ ℤ ✓
+   - From FreeGroupEquiv (NO postulates)
+
+**Postulated (HIT infrastructure required):**
 
 1. **deloop-free-product** : Deloop(G * H) ≃ Deloop(G) ∨∙ Deloop(H)
-   - **Infrastructure exists**: Rose HIT with π₁ proven, Deloop HIT, Pushouts
-   - **Path forward**: Rose (A ⊎ B) ≃ Rose A ∨∙ Rose B (HIT equivalence)
-   - **Difficulty**: HIT recursion and coherence (technical but straightforward)
-   - **References**: HoTT Book §8.7, Homotopy.Space.Rose (1Lab)
+   - Infrastructure exists: Rose HIT with π₁ proven, Deloop HIT, Pushouts
+   - Path forward: Rose (A ⊎ B) ≃ Rose A ∨∙ Rose B (HIT equivalence)
+   - Difficulty: HIT recursion and coherence (technical but straightforward)
+   - References: HoTT Book §8.7, Homotopy.Space.Rose (1Lab)
 
-2. **Free-Group-preserves-⊎** : Free-Group (A ⊎ B) ≅ Free-Group A * Free-Group B
-   - **Strategy documented**: Use universal properties of free groups and coproducts
-   - **Infrastructure exists**: Algebra.Group.Free, Algebra.Group.Free.Product
-   - **Difficulty**: Category theory plumbing (doable, needs time)
-
-3. **Free-2≅ℤ*ℤ** : Free-Group (Fin 2) ≅ ℤ * ℤ
-   - **Blocked on**: Free-Group-preserves-⊎ + Fin 2 ≃ ⊤ ⊎ ⊤
-   - **Difficulty**: Low once dependencies are proven
-
-**Key Insight**: All postulates are provable in 1Lab's synthetic HoTT framework.
-They represent real work but not fundamental gaps in the theory.
+**Impact**: We can now synthesize neural graphs with specified fundamental groups!
+- π₁ = ℤ → cycle-1 (rose 1)
+- π₁ = ℤ * ℤ → figure-eight (rose 2)
+- π₁ = Free(n) → rose n
 
 ## Van Kampen Theorem (Classical Statement)
 
