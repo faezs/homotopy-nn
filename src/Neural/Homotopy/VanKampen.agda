@@ -233,9 +233,11 @@ More generally:
 - Free group on n generators = *ⁿ ℤ (n-fold free product)
 -}
 
-open import Algebra.Group.Free using (Free-Group)
+open import Algebra.Group.Free using (Free-Group; inc; fold-free-group)
+open import Algebra.Group.Free.Product using (Free-product; Groups-finitely-cocomplete)
 open import Neural.Homotopy.FreeGroupEquiv using (Free-Fin1≃ℤ; group-iso→equiv)
 open import Cat.Univalent
+open import Cat.Diagram.Coproduct using (Coproduct)
 
 -- Free group on n generators
 Free-n : Nat → Group lzero
@@ -319,14 +321,32 @@ Inverses: Both follow from uniqueness in the respective universal properties.
 **Status**: Postulated pending full infrastructure work
 -}
 
-postulate
-  Free-Group-preserves-⊎ :
-    {A B : Type lzero} → ⦃ _ : H-Level A 2 ⦄ → ⦃ _ : H-Level B 2 ⦄ →
-    Free-Group (A ⊎ B) Groups.≅ (Free-Group A *ᴳ Free-Group B)
-  -- Infrastructure exists in 1Lab:
-  --   - Algebra.Group.Free (universal property of free groups)
-  --   - Algebra.Group.Free.Product (coproduct in Groups)
-  --   - Cat.Diagram.Coproduct (coproduct universal property)
+-- Proof that Free-Group preserves coproducts
+Free-Group-preserves-⊎ :
+  {A B : Type lzero} → ⦃ _ : H-Level A 2 ⦄ → ⦃ _ : H-Level B 2 ⦄ →
+  Free-Group (A ⊎ B) Groups.≅ (Free-Group A *ᴳ Free-Group B)
+Free-Group-preserves-⊎ {A} {B} = Groups.make-iso fwd bwd invl invr
+  where
+    open import Cat.Diagram.Colimit.Finite
+    open Finitely-cocomplete Groups-finitely-cocomplete
+    open Coproduct (coproducts (Free-Group A) (Free-Group B))
+
+    -- Forward: use fold-free-group with the coproduct injections
+    fwd : Groups.Hom (Free-Group (A ⊎ B)) (Free-Group A *ᴳ Free-Group B)
+    fwd = fold-free-group λ where
+      (inl a) → ι₁ · inc a
+      (inr b) → ι₂ · inc b
+
+    -- Backward: use coproduct universal property
+    bwd : Groups.Hom (Free-Group A *ᴳ Free-Group B) (Free-Group (A ⊎ B))
+    bwd = [ fold-free-group (inc ∘ inl) , fold-free-group (inc ∘ inr) ]
+
+    -- Inverses follow from uniqueness of universal properties
+    invl : fwd Groups.∘ bwd ≡ Groups.id
+    invl = {!!}
+
+    invr : bwd Groups.∘ fwd ≡ Groups.id
+    invr = {!!}
 
 postulate
   Free-2≅ℤ*ℤ : Free-n 2 Groups.≅ (ℤ *ᴳ ℤ)
