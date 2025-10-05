@@ -2,8 +2,14 @@
 {-|
 # Consciousness Detector: Feedforward vs Recurrent Networks
 
-**KILLER DEMO**: Formal verification that feedforward networks (including transformers
-like Claude) cannot have integrated information Φ > 0, and thus cannot be conscious
+NOTE: This module illustrates the intended result using the
+`feedforward-zero-Φ` claim. In this repository it currently
+relies on postulates in `Neural.Dynamics.IntegratedInformation`
+for probability/independence facts (see AUDIT.md). Treat this
+as a proof obligation rather than a completed formal proof.
+
+Formal verification goal: feedforward networks (including transformers)
+cannot have integrated information Φ > 0, and thus cannot be conscious
 under Integrated Information Theory (IIT).
 
 ## Main Theorem
@@ -13,8 +19,8 @@ MLP₂₃₂-unconscious : Φ(MLP₂₃₂) ≡ 0
 Claude-unconscious : Φ(Claude) ≡ 0
 ```
 
-This is a **fully formalized mathematical proof** that any feedforward architecture,
-including all current large language models, has zero integrated information.
+This is the formalization target; current file demonstrates the
+specification and use‑sites but is not a completed proof.
 
 ## Implications for AI Safety
 

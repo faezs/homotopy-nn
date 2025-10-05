@@ -2,7 +2,11 @@ name: homotopy-nn
 depend: 1lab
 include: src
 flags:
-  --rewriting
-  --guardedness
   --cubical
   --no-load-primitives
+  --postfix-projections
+  --rewriting
+  --guardedness
+  --two-level
+  -W noUnsupportedIndexedMatch
+  --experimental-lazy-instances

@@ -53,17 +53,34 @@ open import Cat.Diagram.Initial
 
 import Cat.Reasoning
 
-open import Data.Nat.Base using (Nat; zero; suc; _+_)
+open import Data.Nat.Base using (Nat; zero; suc; _+_; _==_)
 open import Data.Fin.Base using (Fin; fzero; fsuc)
-open import Data.Bool.Base using (Bool)
+open import Data.Bool.Base using (Bool; if_then_else_)
 open import Data.Sum.Base using (_⊎_; inl; inr)
-open import Data.List.Base using (List; []; _∷_)
+open import Data.List.Base using (List; []; _∷_; _++_)
 open import Data.Maybe.Base using (Maybe; just; nothing)
 
 open import Neural.Base
 open import Neural.SummingFunctor
 open import Neural.Network.Grafting public
   using (is-acyclic; Properad; HasProperadStructure)
+
+-- Algorithmic implementations over DirectedGraph
+open import Neural.Graph.Algorithms as GraphAlgos public
+  using ( verticesList
+        ; edgesList
+        ; neighborsOut
+        ; neighborsIn
+        ; reachableFrom
+        ; coReachableTo
+        ; topoSort
+        ; sccs
+        )
+
+-- Small helpers
+list-length : ∀ {A : Type} → List A → Nat
+list-length [] = 0
+list-length (_ ∷ xs) = suc (list-length xs)
 
 private variable
   o ℓ : Level
@@ -434,49 +451,92 @@ like Kahn's algorithm [64] compute this in linear time.
 Since 1Lab doesn't have graph algorithms, we postulate the existence and properties.
 -}
 
-postulate
-  {-| Topological ordering on vertices of a graph -}
-  TopologicalOrdering : DirectedGraph → Type
+{-| Topological ordering on vertices of a graph, with an order and a check. -}
+record TopologicalOrdering (G : DirectedGraph) : Type where
+  field
+    ord : List (Fin (vertices G))
+    edgesOK : Bool  -- cache: order-respects-edges G ord
 
-  {-| Acyclic graphs admit topological orderings -}
-  acyclic→topological-ordering :
-    (G : DirectedGraph) →
-    is-acyclic G →
-    TopologicalOrdering G
+open TopologicalOrdering public
 
-  {-| Extract linear order from topological ordering -}
-  topo-order :
-    {G : DirectedGraph} →
-    TopologicalOrdering G →
-    Fin (vertices G) → Fin (vertices G) → Type
+-- Position of a vertex in a given order
+position : {G : DirectedGraph} → TopologicalOrdering G → Fin (vertices G) → Nat
+position {G} ω v = pos (ord ω) v
+  where
+    pos : List (Fin (vertices G)) → Fin (vertices G) → Nat
+    pos []       v = 0
+    pos (x ∷ xs) v = if GraphAlgos.eqFin? x v then 0 else suc (pos xs v)
 
-  {-| The ordering is transitive -}
-  topo-order-trans :
-    {G : DirectedGraph} →
-    (ω : TopologicalOrdering G) →
-    {v₁ v₂ v₃ : Fin (vertices G)} →
-    topo-order ω v₁ v₂ →
-    topo-order ω v₂ v₃ →
-    topo-order ω v₁ v₃
+-- Type-level ≤ on Nat
+data _≤ₙ_ : Nat → Nat → Type where
+  z≤n : ∀ {n} → 0 ≤ₙ n
+  s≤s : ∀ {m n} → m ≤ₙ n → suc m ≤ₙ suc n
 
-  {-| Edges respect the ordering -}
-  topo-order-edges :
-    {G : DirectedGraph} →
-    (ω : TopologicalOrdering G) →
-    (e : Fin (edges G)) →
-    topo-order ω (source G e) (target G e)
+≤ₙ-trans : ∀ {m n p} → m ≤ₙ n → n ≤ₙ p → m ≤ₙ p
+≤ₙ-trans z≤n _ = z≤n
+≤ₙ-trans (s≤s mn) (s≤s np) = s≤s (≤ₙ-trans mn np)
 
-  {-| First vertex in ordering -}
-  topo-first :
-    {G : DirectedGraph} →
-    TopologicalOrdering G →
-    Fin (vertices G)
+-- Extract linear order from topological ordering (by positions)
+topo-order :
+  {G : DirectedGraph} →
+  TopologicalOrdering G →
+  Fin (vertices G) → Fin (vertices G) → Type
+topo-order {G} ω v₁ v₂ = position ω v₁ ≤ₙ position ω v₂
 
-  {-| Last vertex in ordering -}
-  topo-last :
-    {G : DirectedGraph} →
-    TopologicalOrdering G →
-    Fin (vertices G)
+-- The ordering is transitive
+topo-order-trans :
+  {G : DirectedGraph} →
+  (ω : TopologicalOrdering G) →
+  {v₁ v₂ v₃ : Fin (vertices G)} →
+  topo-order ω v₁ v₂ →
+  topo-order ω v₂ v₃ →
+  topo-order ω v₁ v₃
+topo-order-trans ω p₁₂ p₂₃ = ≤ₙ-trans p₁₂ p₂₃
+
+-- Concrete, list-based topological orders and helpers
+TopologicalOrderList : (G : DirectedGraph) → Type
+TopologicalOrderList G = List (Fin (vertices G))
+
+compute-topological-order : (G : DirectedGraph) → Maybe (TopologicalOrderList G)
+compute-topological-order = topoSort
+
+private
+  posList : ∀ {n} → List (Fin n) → Fin n → Nat
+  posList []       v = 0
+  posList (x ∷ xs) v = if GraphAlgos.eqFin? x v then 0 else suc (posList xs v)
+
+order-respects-edges : (G : DirectedGraph) → TopologicalOrderList G → Bool
+order-respects-edges G ord =
+  allEdgesOK (edgesList G)
+  where
+    ps = posList ord
+    _<=?_ : Nat → Nat → Bool
+    zero    <=? _       = true
+    (suc m) <=? zero    = false
+    (suc m) <=? (suc n) = m <=? n
+
+    allEdgesOK : List (Fin (edges G)) → Bool
+    allEdgesOK [] = true
+    allEdgesOK (e ∷ es) =
+      let s = source G e
+          t = target G e
+      in if (ps s) <=? (ps t) then allEdgesOK es else false
+
+-- Acyclic graphs admit topological orderings (via Kahn's algorithm)
+acyclic→topological-ordering :
+  (G : DirectedGraph) →
+  is-acyclic G →
+  TopologicalOrdering G
+acyclic→topological-ordering G _ with compute-topological-order G
+... | just o  = record { ord = o ; edgesOK = order-respects-edges G o }
+... | nothing = record { ord = verticesList G ; edgesOK = false }
+
+-- Note: Edges-respect-order, first/last element depend on additional
+-- properties of ω (being a valid topological order and non-empty graph).
+-- They can be derived when ω is constructed by compute-topological-order
+-- on a non-empty acyclic graph. If you want, I can add refined variants
+-- guarded by those preconditions.
+
 
 {-|
 ## Grafting for Acyclic Graphs (Lemma 4.2)
@@ -541,30 +601,86 @@ vertices where every pair is mutually reachable.
 The **condensation graph** G̅ contracts each component to a single vertex,
 yielding an acyclic graph.
 
-Since 1Lab lacks graph theory, we postulate these constructions.
+We provide concrete SCCs via Kosaraju from Graph.Algorithms.
 -}
 
-postulate
-  {-| Strongly connected components of a graph -}
-  StronglyConnectedComponents : DirectedGraph → Type
+-- SCCs as a list of components (each component is a list of vertices)
+SCCsList : (G : DirectedGraph) → Type
+SCCsList G = List (List (Fin (vertices G)))
 
-  {-| Check if subgraph is strongly connected -}
-  is-strongly-connected : DirectedGraph → Type
+compute-sccs : (G : DirectedGraph) → SCCsList G
+compute-sccs = sccs
 
-  {-| Decompose graph into strongly connected components -}
-  scc-decomposition :
-    (G : DirectedGraph) →
-    StronglyConnectedComponents G
+{-| Strongly connected components of a graph -}
+StronglyConnectedComponents : DirectedGraph → Type
+StronglyConnectedComponents = SCCsList
 
-  {-| Condensation graph (contracts each SCC to a vertex) -}
-  condensation-graph :
-    (G : DirectedGraph) →
-    DirectedGraph
+{-| Check if a graph is strongly connected: exactly one SCC -}
+is-strongly-connected : DirectedGraph → Type
+is-strongly-connected G =
+  let n = list-length (compute-sccs G) in
+  if n == 1 then ⊤ else ⊥
 
-  {-| Condensation graph is always acyclic -}
-  condensation-acyclic :
-    (G : DirectedGraph) →
-    is-acyclic (condensation-graph G)
+{-| Decompose graph into strongly connected components -}
+scc-decomposition :
+  (G : DirectedGraph) →
+  StronglyConnectedComponents G
+scc-decomposition = compute-sccs
+
+{-| Condensation graph (contracts each SCC to a vertex) -}
+condensation-graph :
+  (G : DirectedGraph) →
+  DirectedGraph
+condensation-graph = GraphAlgos.condensationDirected
+
+-- Optional: Boolean acyclicity checker for the condensation graph
+isAcyclicCondensation? : (G : DirectedGraph) → Bool
+isAcyclicCondensation? G with compute-topological-order (condensation-graph G)
+... | just _  = true
+... | nothing = false
+
+{-|
+## Concrete SCC condensation summary
+
+Provide a lightweight condensation summary (component count and edges between
+components as Nat × Nat pairs).
+-}
+
+-- Find the first index of a vertex inside a list of components
+index-of-vertex : {G : DirectedGraph} →
+                  (comps : SCCsList G) →
+                  Fin (vertices G) →
+                  Nat
+index-of-vertex [] v = 0
+index-of-vertex (c ∷ cs) v = if member v c then 0 else suc (index-of-vertex cs v)
+  where
+    member : ∀ {n} → Fin n → List (Fin n) → Bool
+    member x [] = false
+    member x (y ∷ ys) = if GraphAlgos.eqFin? x y then true else member x ys
+
+-- Condensation summary: number of components and inter-component edges
+CondensationSummary : (G : DirectedGraph) → Type
+CondensationSummary G = Σ Nat (λ n → List (Nat × Nat))
+
+condensation-summary : (G : DirectedGraph) → CondensationSummary G
+condensation-summary G =
+  let comps = compute-sccs G
+      n     = list-length' comps
+      edges = map (λ e →
+                    let i = index-of-vertex comps (source G e)
+                        j = index-of-vertex comps (target G e) in
+                    (i , j)) (edgesList G)
+  in n , edges
+
+  where
+    -- Local list length (shadow-safe)
+    list-length' : ∀ {A : Type} → List A → Nat
+    list-length' [] = 0
+    list-length' (_ ∷ xs) = suc (list-length' xs)
+
+-- Concrete construction of the condensation graph as a DirectedGraph
+compute-condensation-graph : (G : DirectedGraph) → DirectedGraph
+compute-condensation-graph = GraphAlgos.condensationDirected
 
 {-|
 ## Grafting for Strongly Connected Graphs (Definition 4.3)

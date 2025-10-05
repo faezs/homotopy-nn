@@ -55,6 +55,8 @@ module Neural.Information where
 open import 1Lab.Prelude
 open import 1Lab.HLevel
 
+open import Algebra.Ring
+
 open import Cat.Base
 open import Cat.Functor.Base
 
@@ -79,15 +81,33 @@ postulate
 
   {-| Order relation on real numbers -}
   _≤ℝ_ : ℝ → ℝ → Type
-  _≥ℝ_ : ℝ → ℝ → Type
 
+{-| ≥ℝ defined in terms of ≤ℝ -}
+_≥ℝ_ : ℝ → ℝ → Type
+x ≥ℝ y = y ≤ℝ x
+
+postulate
   {-| Constants -}
   zeroℝ : ℝ
   oneℝ : ℝ
 
+  {-| Ring structure on ℝ -}
+  ℝ-ring : Ring-on ℝ
+
   {-| Basic properties -}
   ≤ℝ-refl : {x : ℝ} → x ≤ℝ x
   ≤ℝ-trans : {x y z : ℝ} → x ≤ℝ y → y ≤ℝ z → x ≤ℝ z
+
+{-| Open ring structure to use ring notation -}
+open Ring-on ℝ-ring public
+  using ()
+  renaming ( _+_ to _+ℝ'_
+           ; _*_ to _*ℝ'_
+           ; 1r to 1ℝ
+           ; 0r to 0ℝ
+           ; -_ to -ℝ'_
+           ; _-_ to _-ℝ'_
+           )
 
 {-|
 ## Neural Codes (Definition 3.1)

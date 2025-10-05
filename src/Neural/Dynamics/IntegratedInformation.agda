@@ -116,6 +116,11 @@ postulate
 {-|
 ## Feedforward Networks Have Zero Integrated Information (Lemma 8.1)
 
+NOTE: The following theorem is claimed from Manin & Marcolli (2024) Lemma 8.1.
+In this formalization it currently relies on postulates (see AUDIT.md/PRIORITY.md)
+for probability/independence facts, so it should be considered an obligation
+to be proven; the proof term below sketches the intended structure.
+
 **Theorem (Lemma 8.1)**: Feedforward networks (multilayer perceptrons) have
 integrated information Φ = 0.
 
