@@ -235,10 +235,12 @@ More generally:
 
 open import Algebra.Group.Free using (Free-Group; inc; fold-free-group; make-free-group)
 open import Algebra.Group.Free.Product using (Free-product; Groups-finitely-cocomplete)
-open import Neural.Homotopy.FreeGroupEquiv using (Free-Fin1≃ℤ; group-iso→equiv)
+open import Neural.Homotopy.FreeGroupEquiv using (Free-Fin1≃ℤ; group-iso→equiv; free-group-equiv)
 open import Cat.Univalent
 open import Cat.Diagram.Coproduct using (Coproduct)
 open import Cat.Functor.Adjoint using (Free-object)
+open import Algebra.Group.Cat.Base using (∫Hom)
+open ∫Hom
 
 -- Free group on n generators
 Free-n : Nat → Group lzero
@@ -401,12 +403,97 @@ Free-Group-preserves-⊎ {A} {B} = Groups.make-iso fwd bwd invl invr
         comm2 : Groups.id .fst ∘ inc ≡ inc
         comm2 = refl
 
-postulate
-  Free-2≅ℤ*ℤ : Free-n 2 Groups.≅ (ℤ *ᴳ ℤ)
-  -- TODO: Prove using:
-  --   1. Fin-2≃⊤⊎⊤ : Fin 2 ≃ (⊤ ⊎ ⊤)
-  --   2. Free-Group-preserves-⊎ (postulated above)
-  --   3. Compose with Free-Fin1≃ℤ from FreeGroupEquiv
+-- Proof that Free-Group (Fin 2) ≅ ℤ * ℤ
+Free-2≅ℤ*ℤ : Free-n 2 Groups.≅ (ℤ *ᴳ ℤ)
+Free-2≅ℤ*ℤ =
+  Free-Group (Fin 2)          Groups.≅⟨ step1 ⟩
+  Free-Group (⊤ ⊎ ⊤)          Groups.≅⟨ step2 ⟩
+  Free-Group ⊤ *ᴳ Free-Group ⊤ Groups.≅⟨ step3 ⟩
+  ℤ *ᴳ ℤ                      Groups.≅∎
+  where
+    -- Step 1: Fin 2 ≃ ⊤ ⊎ ⊤, so Free-Group preserves equivalences
+    step1 : Free-Group (Fin 2) Groups.≅ Free-Group (⊤ ⊎ ⊤)
+    step1 = free-group-equiv Fin-2≃⊤⊎⊤
+
+    -- Step 2: Free-Group preserves coproducts
+    step2 : Free-Group (⊤ ⊎ ⊤) Groups.≅ (Free-Group ⊤ *ᴳ Free-Group ⊤)
+    step2 = Free-Group-preserves-⊎ {⊤} {⊤}
+
+    -- Step 3: Free-Group ⊤ ≅ ℤ, lift to coproduct
+    step3 : (Free-Group ⊤ *ᴳ Free-Group ⊤) Groups.≅ (ℤ *ᴳ ℤ)
+    step3 = coproduct-functoriality Free-⊤≅ℤ Free-⊤≅ℤ
+      where
+        open import Neural.Homotopy.FreeGroupEquiv using (ℤ≃Free-⊤)
+
+        -- Free-Group ⊤ ≅ ℤ (inverse of ℤ≃Free-⊤)
+        Free-⊤≅ℤ : Free-Group ⊤ Groups.≅ ℤ
+        Free-⊤≅ℤ = Groups.Iso-inv ℤ≃Free-⊤
+
+        -- Coproduct is functorial: if A ≅ A' and B ≅ B' then A * B ≅ A' * B'
+        coproduct-functoriality :
+          {A A' B B' : Group lzero} →
+          A Groups.≅ A' → B Groups.≅ B' →
+          (A *ᴳ B) Groups.≅ (A' *ᴳ B')
+        coproduct-functoriality {A} {A'} {B} {B'} f g = Groups.make-iso fwd bwd invl invr
+          where
+            open Finitely-cocomplete Groups-finitely-cocomplete
+            open Coproduct (coproducts A B) renaming (ι₁ to ι₁-AB; ι₂ to ι₂-AB; [_,_] to [_,_]-AB)
+            open Coproduct (coproducts A' B') renaming (ι₁ to ι₁-A'B'; ι₂ to ι₂-A'B'; [_,_] to [_,_]-A'B')
+
+            -- Forward: [f ∘ ι₁, g ∘ ι₂]
+            fwd : Groups.Hom (A *ᴳ B) (A' *ᴳ B')
+            fwd = [_,_]-A'B' (f .to Groups.∘ ι₁-AB) (g .to Groups.∘ ι₂-AB)
+
+            -- Backward: [f⁻¹ ∘ ι₁', g⁻¹ ∘ ι₂']
+            bwd : Groups.Hom (A' *ᴳ B') (A *ᴳ B)
+            bwd = [_,_]-AB (f .from Groups.∘ ι₁-A'B') (g .from Groups.∘ ι₂-A'B')
+
+            -- Inverses: Use coproduct uniqueness
+            invl : fwd Groups.∘ bwd ≡ Groups.id
+            invl = unique₂ comm-fwd-bwd-ι₁ comm-fwd-bwd-ι₂ comm-id-ι₁ comm-id-ι₂
+              where
+                comm-fwd-bwd-ι₁ : (fwd Groups.∘ bwd) Groups.∘ ι₁-A'B' ≡ ι₁-A'B'
+                comm-fwd-bwd-ι₁ =
+                  (fwd Groups.∘ bwd) Groups.∘ ι₁-A'B'                        ≡⟨ Groups.pullr []∘ι₁ ⟩
+                  fwd Groups.∘ (f .from Groups.∘ ι₁-A'B')                    ≡⟨ Groups.extendl []∘ι₁ ⟩
+                  (f .to Groups.∘ ι₁-AB) Groups.∘ (f .from Groups.∘ ι₁-A'B') ≡⟨ Groups.cancel-inner (f .inverses .Inverses.invl) ⟩
+                  ι₁-A'B' ∎
+
+                comm-fwd-bwd-ι₂ : (fwd Groups.∘ bwd) Groups.∘ ι₂-A'B' ≡ ι₂-A'B'
+                comm-fwd-bwd-ι₂ =
+                  (fwd Groups.∘ bwd) Groups.∘ ι₂-A'B'                        ≡⟨ Groups.pullr []∘ι₂ ⟩
+                  fwd Groups.∘ (g .from Groups.∘ ι₂-A'B')                    ≡⟨ Groups.extendl []∘ι₂ ⟩
+                  (g .to Groups.∘ ι₂-AB) Groups.∘ (g .from Groups.∘ ι₂-A'B') ≡⟨ Groups.cancel-inner (g .inverses .Inverses.invl) ⟩
+                  ι₂-A'B' ∎
+
+                comm-id-ι₁ : Groups.id Groups.∘ ι₁-A'B' ≡ ι₁-A'B'
+                comm-id-ι₁ = Groups.idl ι₁-A'B'
+
+                comm-id-ι₂ : Groups.id Groups.∘ ι₂-A'B' ≡ ι₂-A'B'
+                comm-id-ι₂ = Groups.idl ι₂-A'B'
+
+            invr : bwd Groups.∘ fwd ≡ Groups.id
+            invr = unique₂ comm-bwd-fwd-ι₁ comm-bwd-fwd-ι₂ comm-id-ι₁ comm-id-ι₂
+              where
+                comm-bwd-fwd-ι₁ : (bwd Groups.∘ fwd) Groups.∘ ι₁-AB ≡ ι₁-AB
+                comm-bwd-fwd-ι₁ =
+                  (bwd Groups.∘ fwd) Groups.∘ ι₁-AB                        ≡⟨ Groups.pullr []∘ι₁ ⟩
+                  bwd Groups.∘ (f .to Groups.∘ ι₁-AB)                      ≡⟨ Groups.extendl []∘ι₁ ⟩
+                  (f .from Groups.∘ ι₁-A'B') Groups.∘ (f .to Groups.∘ ι₁-AB) ≡⟨ Groups.cancel-inner (f .inverses .Inverses.invr) ⟩
+                  ι₁-AB ∎
+
+                comm-bwd-fwd-ι₂ : (bwd Groups.∘ fwd) Groups.∘ ι₂-AB ≡ ι₂-AB
+                comm-bwd-fwd-ι₂ =
+                  (bwd Groups.∘ fwd) Groups.∘ ι₂-AB                        ≡⟨ Groups.pullr []∘ι₂ ⟩
+                  bwd Groups.∘ (g .to Groups.∘ ι₂-AB)                      ≡⟨ Groups.extendl []∘ι₂ ⟩
+                  (g .from Groups.∘ ι₂-A'B') Groups.∘ (g .to Groups.∘ ι₂-AB) ≡⟨ Groups.cancel-inner (g .inverses .Inverses.invr) ⟩
+                  ι₂-AB ∎
+
+                comm-id-ι₁ : Groups.id Groups.∘ ι₁-AB ≡ ι₁-AB
+                comm-id-ι₁ = Groups.idl ι₁-AB
+
+                comm-id-ι₂ : Groups.id Groups.∘ ι₂-AB ≡ ι₂-AB
+                comm-id-ι₂ = Groups.idl ι₂-AB
 
 -- Derive type equivalence from group isomorphism
 Free-2-is-ℤ*ℤ : ⌞ Free-n 2 ⌟ ≃ ⌞ ℤ *ᴳ ℤ ⌟
