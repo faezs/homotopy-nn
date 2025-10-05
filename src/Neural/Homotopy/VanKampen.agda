@@ -233,11 +233,12 @@ More generally:
 - Free group on n generators = *ⁿ ℤ (n-fold free product)
 -}
 
-open import Algebra.Group.Free using (Free-Group; inc; fold-free-group)
+open import Algebra.Group.Free using (Free-Group; inc; fold-free-group; make-free-group)
 open import Algebra.Group.Free.Product using (Free-product; Groups-finitely-cocomplete)
 open import Neural.Homotopy.FreeGroupEquiv using (Free-Fin1≃ℤ; group-iso→equiv)
 open import Cat.Univalent
 open import Cat.Diagram.Coproduct using (Coproduct)
+open import Cat.Functor.Adjoint using (Free-object)
 
 -- Free group on n generators
 Free-n : Nat → Group lzero
@@ -343,28 +344,62 @@ Free-Group-preserves-⊎ {A} {B} = Groups.make-iso fwd bwd invl invr
 
     -- Inverses follow from uniqueness of universal properties
     invl : fwd Groups.∘ bwd ≡ Groups.id
-    invl = sym (unique comm₁ comm₂)
+    invl = unique₂ comm-fwd-bwd-ι₁ comm-fwd-bwd-ι₂ comm-id-ι₁ comm-id-ι₂
       where
-        comm₁ : Groups.id Groups.∘ ι₁ ≡ ι₁
-        comm₁ = Groups.idl ι₁
+        -- Show (fwd ∘ bwd) ∘ ι₁ = ι₁
+        comm-fwd-bwd-ι₁ : (fwd Groups.∘ bwd) Groups.∘ ι₁ ≡ ι₁
+        comm-fwd-bwd-ι₁ =
+          (fwd Groups.∘ bwd) Groups.∘ ι₁                ≡⟨ Groups.pullr []∘ι₁ ⟩
+          fwd Groups.∘ fold-free-group (inc ∘ inl)      ≡⟨ fwd-∘-fold-inl ⟩
+          ι₁ ∎
+          where
+            -- Need: fwd ∘ fold-free-group (inc ∘ inl) = ι₁
+            -- Use fold-free-group uniqueness
+            fwd-∘-fold-inl : fwd Groups.∘ fold-free-group (inc ∘ inl) ≡ ι₁
+            fwd-∘-fold-inl = Free-object.unique (make-free-group (el! A)) ι₁ (refl {x = ι₁ .fst ∘ inc})
 
-        comm₂ : Groups.id Groups.∘ ι₂ ≡ ι₂
-        comm₂ = Groups.idl ι₂
+        -- Show (fwd ∘ bwd) ∘ ι₂ = ι₂
+        comm-fwd-bwd-ι₂ : (fwd Groups.∘ bwd) Groups.∘ ι₂ ≡ ι₂
+        comm-fwd-bwd-ι₂ =
+          (fwd Groups.∘ bwd) Groups.∘ ι₂                ≡⟨ Groups.pullr []∘ι₂ ⟩
+          fwd Groups.∘ fold-free-group (inc ∘ inr)      ≡⟨ fwd-∘-fold-inr ⟩
+          ι₂ ∎
+          where
+            fwd-∘-fold-inr : fwd Groups.∘ fold-free-group (inc ∘ inr) ≡ ι₂
+            fwd-∘-fold-inr = Free-object.unique (make-free-group (el! B)) ι₂ (refl {x = ι₂ .fst ∘ inc})
+
+        -- Show id ∘ ι₁ = ι₁ (trivial)
+        comm-id-ι₁ : Groups.id Groups.∘ ι₁ ≡ ι₁
+        comm-id-ι₁ = Groups.idl ι₁
+
+        -- Show id ∘ ι₂ = ι₂ (trivial)
+        comm-id-ι₂ : Groups.id Groups.∘ ι₂ ≡ ι₂
+        comm-id-ι₂ = Groups.idl ι₂
 
     invr : bwd Groups.∘ fwd ≡ Groups.id
-    invr = {!!}
-      -- Proof strategy:
-      -- Use fold-free-group uniqueness (Free-object.unique₂)
-      -- Show (bwd ∘ fwd) (inc x) ≡ inc x for all x : A ⊎ B
-      -- Case inl a:
-      --   (bwd ∘ fwd) (inc (inl a))
-      --   = bwd (fwd (inc (inl a)))
-      --   = bwd (ι₁ (inc a))         -- by fwd definition
-      --   = (bwd ∘ ι₁) (inc a)
-      --   = fold-free-group (inc ∘ inl) (inc a)  -- by []∘ι₁
-      --   = inc (inl a)              -- by fold commute
-      -- Case inr b: similar
-      -- Then by fold uniqueness, bwd ∘ fwd ≡ id
+    invr = Free-object.unique₂ FO (bwd Groups.∘ fwd) Groups.id comm1 comm2
+      where
+        FO = make-free-group (el! (A ⊎ B))
+
+        -- Need to show: underlying function of (bwd ∘ fwd) composed with inc equals inc
+        comm1 : (bwd Groups.∘ fwd) .fst ∘ inc ≡ inc
+        comm1 = ext λ x → comm-on-gens x
+          where
+            comm-on-gens : ∀ (x : A ⊎ B) → (bwd Groups.∘ fwd) .fst (inc x) ≡ inc x
+            comm-on-gens (inl a) =
+              bwd .fst (fwd .fst (inc (inl a)))         ≡⟨⟩
+              bwd .fst (ι₁ .fst (inc a))                ≡⟨ ap (λ h → h .fst (inc a)) []∘ι₁ ⟩
+              fold-free-group (inc ∘ inl) .fst (inc a)  ≡⟨⟩
+              inc (inl a) ∎
+            comm-on-gens (inr b) =
+              bwd .fst (fwd .fst (inc (inr b)))         ≡⟨⟩
+              bwd .fst (ι₂ .fst (inc b))                ≡⟨ ap (λ h → h .fst (inc b)) []∘ι₂ ⟩
+              fold-free-group (inc ∘ inr) .fst (inc b)  ≡⟨⟩
+              inc (inr b) ∎
+
+        -- Trivial: id composed with inc is inc
+        comm2 : Groups.id .fst ∘ inc ≡ inc
+        comm2 = refl
 
 postulate
   Free-2≅ℤ*ℤ : Free-n 2 Groups.≅ (ℤ *ᴳ ℤ)
