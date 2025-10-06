@@ -547,6 +547,193 @@ postulate
   -- V₀ contains η(t) as temporal spontaneous vertex
 
 --------------------------------------------------------------------------------
+-- § 3.2.7b: Explicit Dynamics Formula and H^0 Connection (Equation 3.5)
+
+module _ (G : AugmentedGraph) where
+  open AugmentedGraph G
+
+  {-|
+  ## Equation 3.5: Explicit Dynamics with Feed-Forward and Feedback
+
+  > "The explicit dynamics at vertex v ∈ V₁ is given by:
+  >   dh_v/dt = -h_v + σ(Σ_{u→v} w_{u,v} h_u)
+  >           = -h_v + σ(h_v^{ff} + h_v^{fb})
+  > where:
+  >   h_v^{ff} = Σ_{u∈V_0∪V_{<v}} w_{u,v} h_u   (feed-forward from V₀ and earlier layers)
+  >   h_v^{fb} = Σ_{u∈V_{≥v}} w_{u,v} h_u        (feedback from same/later layers)"
+
+  **Decomposition**:
+  The dynamics naturally splits into three components:
+
+  1. **Decay term**: -h_v
+     - Represents leakage or forgetting
+     - Time constant τ = 1 (can be scaled)
+     - Ensures stability when isolated
+
+  2. **Feed-forward term**: h_v^{ff} from V₀ ∪ V_{<v}
+     - Spontaneous inputs from V₀ (external/bias)
+     - Computed inputs from earlier layers V_{<v}
+     - Forms a DAG (directed acyclic graph)
+     - Can be computed in topological order
+
+  3. **Feedback term**: h_v^{fb} from V_{≥v}
+     - Recurrent connections (same layer)
+     - Skip connections (later layers)
+     - Forms potential cycles
+     - Requires fixed-point iteration or dynamics
+
+  **Mathematical Form** (Equation 3.5):
+  ```
+  dh_v/dt = -h_v + σ(Σ_{u→v, u∈V₀} w_{u,v} h_u
+                   + Σ_{u→v, u∈V_{<v}} w_{u,v} h_u
+                   + Σ_{u→v, u∈V_{≥v}} w_{u,v} h_u)
+          = -h_v + σ(h_v^{V₀} + h_v^{ff} + h_v^{fb})
+  ```
+
+  **DNN Interpretation**:
+
+  **Feed-forward networks** (h_v^{fb} = 0):
+  - Only spontaneous and earlier layers contribute
+  - Can compute in single forward pass
+  - Steady state: h_v = σ(h_v^{V₀} + h_v^{ff})
+  - Example: Standard MLPs, CNNs without residual
+
+  **Recurrent networks** (h_v^{fb} ≠ 0):
+  - Includes same-layer or later-layer feedback
+  - Requires temporal dynamics (RNN) or fixed-point (DEQ)
+  - Steady state: h_v = σ(h_v^{V₀} + h_v^{ff} + h_v^{fb})
+  - Example: RNNs, LSTMs, Transformers (self-attention), ResNets
+
+  **Residual Networks**:
+  h_{l+1} = h_l + f_l(h_l) corresponds to:
+  - Feed-forward: f_l(h_l) computed from h_l
+  - Feedback: identity skip connection h_l
+  - Discretized dynamics with dt = 1
+  -}
+
+  postulate
+    -- Time derivative of state
+    dh/dt : (v : V₁) → Time → Type
+
+    -- Activation function
+    σ : Type → Type
+
+    -- Vertices ordered by topological sort
+    _<_ : V₁ → V₁ → Type  -- u < v if u is "before" v in some ordering
+
+    -- Feed-forward component from V₀ and earlier layers
+    h^{ff} : (v : V₁) → Time → Type
+    h^{ff}-def : ∀ v t → h^{ff} v t
+                       ≡ {!!}  -- Σ_{u→v, u∈V₀∪V_{<v}} w_{u,v} h_u(t)
+
+    -- Feedback component from same/later layers
+    h^{fb} : (v : V₁) → Time → Type
+    h^{fb}-def : ∀ v t → h^{fb} v t
+                       ≡ {!!}  -- Σ_{u→v, u∈V_{≥v}} w_{u,v} h_u(t)
+
+    -- Equation 3.5: Explicit dynamics formula
+    dynamics-formula : ∀ (v : V₁) (t : Time)
+                     → dh/dt v t ≡ {!!}  -- -h_v(t) + σ(h^{ff} v t + h^{fb} v t)
+
+  {-|
+  ## Connection to H^0 Cohomology (Equation 3.4 from Section 3.1)
+
+  > "The H^0 cohomology H^0(A'_strict; M) computes the output-relevant dynamics,
+  >  which for spontaneous vertices corresponds to feed-forward flow:
+  >    H^0 = M(P_out) = flow from V₀ → ... → V_out (feed-forward only)
+  >  Feedback loops h^{fb} do NOT contribute to H^0."
+
+  **Why This Works**:
+
+  1. **H^0 = degree-0 cohomology** (from Section 3.4):
+     - Cochains ψ: Θ_λ → K with δψ = 0
+     - Constant functions over connected components
+     - These are determined by output propositions P_out
+
+  2. **Feed-forward propagates to output**:
+     - V₀ → V₁ → ... → V_out forms DAG
+     - Information flows acyclically to output
+     - All feed-forward paths contribute to M(P_out)
+
+  3. **Feedback does NOT reach output** (in steady state):
+     - Cycles V_i ↔ V_j stay within subnetwork
+     - Unless V_i has path to output
+     - But then that path is feed-forward from V_i!
+
+  4. **Cohomology captures output-relevant structure**:
+     - H^0(A'_strict) = functions constant on fibers over P_out
+     - These are exactly feed-forward contributions
+     - Feedback creates internal cycles that don't change output
+
+  **Mathematical Statement**:
+  Let h^∞_v be the steady-state solution of Equation 3.5.
+  Then:
+    H^0(A'_strict; M)(V₀) = {h^∞|_{V_out} : depends only on h_v^{ff}, not h_v^{fb}}
+
+  In other words: H^0 cohomology computes the feed-forward flow!
+
+  **DNN Interpretation**:
+
+  **Why feed-forward networks learn well**:
+  - All dynamics contribute to H^0 (no feedback to discard)
+  - Backpropagation computes ∂H^0/∂w (via Equation 3.3 RKan formula)
+  - Gradient descent directly optimizes output-relevant features
+  - No wasted capacity on internal feedback loops
+
+  **Why recurrent networks are harder**:
+  - Feedback h^{fb} doesn't contribute to H^0 directly
+  - Must learn dynamics that stabilize AND produce correct h^{ff}
+  - Vanishing gradients (long-term feedback dependencies)
+  - Need to balance internal dynamics vs output prediction
+
+  **ResNets as compromise**:
+  - Skip connections = controlled feedback
+  - Gradients flow through skips (feed-forward path preserved)
+  - Residual blocks add refinements to feed-forward flow
+  - H^0 includes skip paths (they reach output!)
+  -}
+
+  postulate
+    -- Steady-state solution
+    h^∞ : (v : V₁) → Type
+    h^∞-steady-state : ∀ v → dh/dt v {!!} ≡ {!!}  -- 0 at steady state
+
+    -- H^0 cohomology (from Section 3.1 and 3.4)
+    H0-spontaneous : (M : Cats-Manifold C d) → Type
+
+    -- H^0 equals feed-forward flow to output
+    H0-equals-feedforward : ∀ {d} (M : Cats-Manifold C d)
+                          → H0-spontaneous M ≃ {!!}  -- {h^∞|_{V_out} from h^{ff} only}
+
+    -- Feed-forward networks have full H^0 (all dynamics contribute)
+    feedforward-full-H0 : (acyclic : ∀ v → h^{fb} v {!!} ≡ {!!})  -- h^{fb} = 0
+                        → ∀ {d} (M : Cats-Manifold C d)
+                        → H0-spontaneous M ≃ {!!}  -- Full output dynamics
+
+  {-|
+  ## Summary: Equation 3.5 and H^0
+
+  **Equation 3.5** gives the explicit dynamics:
+  - Decomposition into feed-forward h^{ff} and feedback h^{fb}
+  - Standard neuron dynamics dh/dt = -h + σ(input)
+  - Connects to all DNN architectures (FF, RNN, ResNet, etc.)
+
+  **H^0 Connection** explains:
+  - Why cohomology captures output-relevant information
+  - Why feed-forward networks are "easier" to train
+  - How backpropagation computes RKan (via chain rule on feed-forward paths)
+  - Why skip connections help (maintain feed-forward gradient flow)
+
+  **Unified Framework**:
+  - **Section 3.1**: M(P_out) = RKan_ι(X_+) (geometric)
+  - **Section 3.2**: M(P_out) = feed-forward flow from V₀ (dynamic)
+  - **Section 3.4**: H^0(A'_strict) = degree-0 cohomology (algebraic)
+
+  All three perspectives describe the same mathematical structure:
+  *information that flows from inputs to outputs*.
+  -}
+
+--------------------------------------------------------------------------------
 -- § 3.2.8: Summary and Connections
 
 {-|

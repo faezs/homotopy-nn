@@ -156,6 +156,715 @@ postulate
                           → Language-Sheaf C Σ
 
 --------------------------------------------------------------------------------
+-- § 3.3.1b: Transfer Maps and Subobject Classifiers
+
+{-|
+## Transfer Maps Between Layers (Equations 3.6-3.8)
+
+> "For an arrow (α,h): (U,ξ) → (U',ξ'), the map Ω_{α,h}: Ω_{U'}(ξ') → Ω_U(ξ)
+> is obtained by composing the map λ_α = Ω_α at ξ' from Ω_{U'}(ξ') to
+> Ω_U(F_α ξ') with the map Ω_U(h) from Ω_U(F_α ξ') to Ω_U(ξ)."
+
+**Transfer in Downstream Direction** (toward output):
+- Maps propositions from layer U' to layer U
+- Uses geometric functor structure F_α
+- Composition of restriction and morphism application
+
+**DNN Interpretation**:
+- Information flows downstream during forward pass
+- Properties at deeper layers translate to earlier layers
+- Geometric morphism preserves logical structure
+-}
+
+-- Import stack structures from previous sections
+postulate
+  Stack : (C : Precategory o ℓ) → (o' ℓ' : Level) → Type (o ⊔ ℓ ⊔ lsuc (o' ⊔ ℓ'))
+  F₀ : ∀ {C o' ℓ'} → Stack C o' ℓ' → C .Precategory.Ob → Precategory o' ℓ'
+  F₁ : ∀ {C o' ℓ'} (F : Stack C o' ℓ') {U U' : C .Precategory.Ob}
+     → C .Precategory.Hom U U' → Functor (F₀ F U') (F₀ F U)
+
+module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
+
+  -- Subobject classifier at (U, ξ)
+  postulate
+    Ω : (U : C .Precategory.Ob) → (ξ : (F₀ F U) .Precategory.Ob) → Type ℓ'
+
+  {-|
+  ## Equation 3.6: Downstream Transfer Ω_{α,h}
+
+  For morphism (α,h): (U,ξ) → (U',ξ') in the total category of F:
+  - α: U → U' in base category C
+  - h: ξ → F_α(ξ') in fiber F_U
+
+  The transfer map Ω_{α,h} combines:
+  1. λ_α = Ω_α at ξ': direct image of subobject classifier
+  2. Ω_U(h): restriction along fiber morphism
+  -}
+
+  postulate
+    -- Direct image of classifier (pullback functor on subobjects)
+    λ_α : ∀ {U U'} (α : C .Precategory.Hom U U')
+        → (ξ' : (F₀ F U') .Precategory.Ob)
+        → Ω U' ξ' → Ω U ((F₁ F α) .Functor.F₀ ξ')
+
+    -- Restriction along morphism in fiber
+    Ω_U-hom : ∀ {U} {ξ ξ' : (F₀ F U) .Precategory.Ob}
+            → (F₀ F U) .Precategory.Hom ξ ξ'
+            → Ω U ξ' → Ω U ξ
+
+    -- Equation 3.6: Composition giving downstream transfer
+    Ω-transfer-downstream : ∀ {U U'} (α : C .Precategory.Hom U U')
+                          → {ξ : (F₀ F U) .Precategory.Ob}
+                          → {ξ' : (F₀ F U') .Precategory.Ob}
+                          → (h : (F₀ F U) .Precategory.Hom ξ ((F₁ F α) .Functor.F₀ ξ'))
+                          → Ω U' ξ' → Ω U ξ
+
+    -- Definition: Ω_{α,h} = Ω_U(h) ∘ λ_α
+    Ω-transfer-def : ∀ {U U' α ξ ξ' h}
+                   → Ω-transfer-downstream {U} {U'} α {ξ} {ξ'} h
+                     ≡ (λ P' → Ω_U-hom h (λ_α α ξ' P'))
+
+  {-|
+  ## Equation 3.7: Extension to Arbitrary Subobjects
+
+  > "More generally, for every object X' in E_{U'}, the map F_α^! sends the
+  > subobjects of X' to the subobjects of F_α^!(X'), respecting the lattice
+  > structures."
+
+  For any context X, X', the transfer extends to:
+  Ω_{α,h}: Ω^{X'}_{U'} → Ω^X_U
+  -}
+
+  postulate
+    -- Subobject classifier for arbitrary contexts
+    Ω^_ : ∀ {U} → (F₀ F U) .Precategory.Ob → Type ℓ'
+
+    -- Transfer for general contexts
+    Ω-transfer-context : ∀ {U U'} (α : C .Precategory.Hom U U')
+                       → {X : (F₀ F U) .Precategory.Ob}
+                       → {X' : (F₀ F U') .Precategory.Ob}
+                       → (h : (F₀ F U) .Precategory.Hom X ((F₁ F α) .Functor.F₀ X'))
+                       → Ω^ X' → Ω^ X
+
+    -- Respects lattice structure (∧, ∨)
+    Ω-transfer-preserves-∧ : ∀ {U U' α X X' h} (P Q : Ω^ X')
+                           → Ω-transfer-context {U} {U'} α {X} {X'} h (P ∧ Q)
+                             ≡ (Ω-transfer-context α h P) ∧ (Ω-transfer-context α h Q)
+      where postulate _∧_ : ∀ {X} → Ω^ X → Ω^ X → Ω^ X
+
+  {-|
+  ## Equation 3.8: Upstream Transfer Ω'_{α,h} (Right Adjoint)
+
+  > "Under the strong standard hypotheses on the fibration F, for instance if it
+  > defines a fibrant object in the injective groupoids models, i.e. any F_α is
+  > a fibration, there exists a right adjoint of Ω_{α,h}:
+  >   Ω'_{α,h}: Ω^X_U → Ω^{X'}_{U'}"
+
+  **Upstream Direction** (backpropagation):
+  - Right adjoint for logical transfer
+  - Uses F★_α (right adjoint of F_α^!)
+  - Corresponds to "what must be true upstream for downstream property to hold"
+
+  **Strong Hypothesis**: π★ ∘ π★ = Id (section-retraction pair)
+  -}
+
+  postulate
+    -- Right adjoint F★_α of geometric functor F_α^!
+    F★_α : ∀ {U U'} (α : C .Precategory.Hom U U')
+         → Functor (F₀ F U) (F₀ F U')
+
+    -- Upstream transfer (right adjoint)
+    Ω-transfer-upstream : ∀ {U U'} (α : C .Precategory.Hom U U')
+                        → {X : (F₀ F U) .Precategory.Ob}
+                        → {X' : (F₀ F U') .Precategory.Ob}
+                        → Ω^ X → Ω^ X'
+
+    -- Adjunction property
+    Ω-adjunction : ∀ {U U' α X X' h} (P : Ω^ X) (Q : Ω^ X')
+                 → (Ω-transfer-context {U} {U'} α {X} {X'} h Q ≤ P)
+                   ≃ (Q ≤ Ω-transfer-upstream α P)
+      where postulate _≤_ : ∀ {X} → Ω^ X → Ω^ X → Type ℓ'
+
+    -- Strong hypothesis: composition is identity
+    π★-π★-id : ∀ {U U'} (α : C .Precategory.Hom U U') {X}
+             → Ω-transfer-upstream α (Ω-transfer-context α {X = X} {!!} {!!}) ≡ {!!}
+
+{-|
+## Notation Convention
+
+Following the paper:
+- **π★_{α,h}** or **L_{α,h}**: Downstream transfer (Equation 3.6)
+- **π^★_{α,h}** or **^tL'_{α,h}**: Upstream transfer (Equation 3.8)
+- **A**: Presheaf with π★ morphisms (fibration)
+- **A'**: Copresheaf with π^★ morphisms (cofibration)
+
+These form the foundation for semantic conditioning in the next section.
+-}
+
+--------------------------------------------------------------------------------
+-- § 3.3.1c: Fibration A and Cofibration A' (Equations 3.9-3.10)
+
+{-|
+## Fibration and Cofibration of Propositions
+
+> "A and A' belong to augmented model categories using monoidal posets."
+
+The key structures for semantic information are:
+1. **Category A**: Objects (U, ξ, P), morphisms via downstream transfer π★
+2. **Category A'**: Same objects, morphisms via upstream transfer π^★
+3. **A'_strict**: Restricted A' where P' = π^★ P exactly
+
+These form fibration/cofibration over the stack F.
+-}
+
+module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
+
+  -- Notation: Use Ω for propositions (elements of subobject classifier)
+  -- Following paper: A_{U,ξ,P} is monoidal category of propositions
+
+  {-|
+  ## Objects of A and A'
+
+  Triple λ = (U, ξ, P) where:
+  - U: layer in network (object of C)
+  - ξ: context/feature in fiber F_U
+  - P: proposition (element of Ω_U(ξ))
+  -}
+
+  record A-Ob : Type (o ⊔ ℓ ⊔ o' ⊔ ℓ') where
+    constructor _,_,_
+    field
+      layer : C .Precategory.Ob
+      context : (F₀ F layer) .Precategory.Ob
+      proposition : Ω layer context
+
+  {-|
+  ## Equation 3.9: Morphisms in A (Fibration)
+
+  > "A morphism in A from (U,ξ,P) to (U',ξ',P') lifting (α,h): (U,ξ) → (U',ξ')
+  > is given by an external implication: P ≤ L_{α,h}(P') = π★_{α,h} P'"
+
+  **Interpretation**:
+  - P implies the transferred proposition from layer U'
+  - Downstream direction: deeper layers constrain earlier layers
+  - External implication in the poset/Heyting algebra structure
+  -}
+
+  record A-Hom (λ λ' : A-Ob) : Type (o ⊔ ℓ ⊔ ℓ') where
+    constructor mk-A-hom
+    field
+      -- Base morphism in network
+      base-mor : C .Precategory.Hom (λ .A-Ob.layer) (λ' .A-Ob.layer)
+
+      -- Fiber morphism
+      fiber-mor : (F₀ F (λ .A-Ob.layer)) .Precategory.Hom
+                  (λ .A-Ob.context)
+                  ((F₁ F base-mor) .Functor.F₀ (λ' .A-Ob.context))
+
+      -- External implication (Equation 3.9)
+      -- P ≤ π★_{α,h}(P')
+      implies : (λ .A-Ob.proposition)
+                ≤ Ω-transfer-downstream base-mor fiber-mor (λ' .A-Ob.proposition)
+
+    -- Notation from paper
+    π★ = Ω-transfer-downstream base-mor fiber-mor
+
+  {-|
+  ## Equation 3.10: Morphisms in A' (Cofibration)
+
+  > "An arrow in category A' lifting morphism (α,h) in F is an implication:
+  > ^tL'_{α,h}(P) ≤ P'"
+
+  **Interpretation**:
+  - Upstream transfer of P is implied by P'
+  - Backward direction: earlier layers provide evidence for deeper properties
+  - Dual to fibration structure
+  -}
+
+  record A'-Hom (λ λ' : A-Ob) : Type (o ⊔ ℓ ⊔ ℓ') where
+    constructor mk-A'-hom
+    field
+      base-mor : C .Precategory.Hom (λ .A-Ob.layer) (λ' .A-Ob.layer)
+      fiber-mor : (F₀ F (λ .A-Ob.layer)) .Precategory.Hom
+                  (λ .A-Ob.context)
+                  ((F₁ F base-mor) .Functor.F₀ (λ' .A-Ob.context))
+
+      -- Equation 3.10: ^tL'_{α,h}(P) ≤ P'
+      co-implies : Ω-transfer-upstream base-mor (λ .A-Ob.proposition)
+                   ≤ (λ' .A-Ob.proposition)
+
+    -- Notation from paper
+    π^★ = Ω-transfer-upstream base-mor
+
+  {-|
+  ## Category A (Fibration over F)
+
+  Objects: Triples (U, ξ, P)
+  Morphisms: External implications via π★
+  Composition: Transitivity of ≤
+  -}
+
+  A-Category : Precategory (o ⊔ ℓ ⊔ o' ⊔ ℓ') (o ⊔ ℓ ⊔ ℓ')
+  A-Category .Precategory.Ob = A-Ob
+  A-Category .Precategory.Hom = A-Hom
+  A-Category .Precategory.id {λ} = record
+    { base-mor = C .Precategory.id
+    ; fiber-mor = (F₀ F (λ .A-Ob.layer)) .Precategory.id
+    ; implies = ≤-refl
+    }
+  A-Category .Precategory._∘_ f g = record
+    { base-mor = C .Precategory._∘_ (f .A-Hom.base-mor) (g .A-Hom.base-mor)
+    ; fiber-mor = {!!}  -- Composition in fiber
+    ; implies = ≤-trans (g .A-Hom.implies) {!!}  -- Transitivity
+    }
+  A-Category .Precategory.idr f = {!!}
+  A-Category .Precategory.idl f = {!!}
+  A-Category .Precategory.assoc f g h = {!!}
+
+  {-|
+  ## Category A' (Cofibration over F)
+
+  Same objects as A, dual morphisms via π^★
+  -}
+
+  A'-Category : Precategory (o ⊔ ℓ ⊔ o' ⊔ ℓ') (o ⊔ ℓ ⊔ ℓ')
+  A'-Category .Precategory.Ob = A-Ob
+  A'-Category .Precategory.Hom = A'-Hom
+  A'-Category .Precategory.id {λ} = record
+    { base-mor = C .Precategory.id
+    ; fiber-mor = (F₀ F (λ .A-Ob.layer)) .Precategory.id
+    ; co-implies = ≤-refl
+    }
+  A'-Category .Precategory._∘_ f g = record
+    { base-mor = C .Precategory._∘_ (f .A'-Hom.base-mor) (g .A'-Hom.base-mor)
+    ; fiber-mor = {!!}
+    ; co-implies = ≤-trans {!!} (f .A'-Hom.co-implies)
+    }
+  A'-Category .Precategory.idr f = {!!}
+  A'-Category .Precategory.idl f = {!!}
+  A'-Category .Precategory.assoc f g h = {!!}
+
+  {-|
+  ## A'_strict: Restricted Cofibration
+
+  > "Consider the smaller category A'_strict with the same objects but with
+  > morphisms from A_{U,ξ,P} to A_{U',ξ',P'} only when P' = π^★_{α,h} P"
+
+  **Critical property**: This restriction allows copresheaf structure
+  -}
+
+  record A'-strict-Hom (λ λ' : A-Ob) : Type (o ⊔ ℓ ⊔ ℓ') where
+    constructor mk-A'-strict-hom
+    field
+      base-mor : C .Precategory.Hom (λ .A-Ob.layer) (λ' .A-Ob.layer)
+      fiber-mor : (F₀ F (λ .A-Ob.layer)) .Precategory.Hom
+                  (λ .A-Ob.context)
+                  ((F₁ F base-mor) .Functor.F₀ (λ' .A-Ob.context))
+
+      -- Strict condition: P' = π^★(P) exactly
+      strict-eq : (λ' .A-Ob.proposition)
+                  ≡ Ω-transfer-upstream base-mor (λ .A-Ob.proposition)
+
+  A'-strict-Category : Precategory (o ⊔ ℓ ⊔ o' ⊔ ℓ') (o ⊔ ℓ ⊔ ℓ')
+  A'-strict-Category .Precategory.Ob = A-Ob
+  A'-strict-Category .Precategory.Hom = A'-strict-Hom
+  A'-strict-Category .Precategory.id = {!!}
+  A'-strict-Category .Precategory._∘_ = {!!}
+  A'-strict-Category .Precategory.idr = {!!}
+  A'-strict-Category .Precategory.idl = {!!}
+  A'-strict-Category .Precategory.assoc = {!!}
+
+  {-|
+  ## Monoidal Structure on Fibers
+
+  For fixed U, ξ, the propositions A_{U,ξ,P} form a monoidal poset category:
+  - Monoidal operation: ∧ (conjunction)
+  - Unit: ⊤ (true)
+  - Order: P ≤ Q (external implication)
+  - Closed: internal implication P ⇒ Q
+  -}
+
+  module _ (U : C .Precategory.Ob) (ξ : (F₀ F U) .Precategory.Ob) where
+
+    postulate
+      -- Monoidal operations
+      _∧_ : Ω U ξ → Ω U ξ → Ω U ξ
+      ⊤ : Ω U ξ
+
+      -- Ordering
+      _≤_ : Ω U ξ → Ω U ξ → Type ℓ'
+      ≤-refl : ∀ {P} → P ≤ P
+      ≤-trans : ∀ {P Q R} → P ≤ Q → Q ≤ R → P ≤ R
+
+      -- Internal implication (Heyting algebra)
+      _⇒_ : Ω U ξ → Ω U ξ → Ω U ξ
+
+      -- Adjunction: (R ∧ Q ≤ P) ↔ (R ≤ (Q ⇒ P))
+      ⇒-adjoint : ∀ {P Q R} → (R ∧ Q ≤ P) ≃ (R ≤ (Q ⇒ P))
+
+      -- Negation
+      ¬_ : Ω U ξ → Ω U ξ
+      ¬-def : ∀ {P} → ¬ P ≡ (P ⇒ ⊥)
+        where postulate ⊥ : Ω U ξ
+
+{-|
+## Summary: Fibration/Cofibration Structure
+
+We have defined:
+1. **Category A**: Fibration with downstream transfer π★ (Equation 3.9)
+2. **Category A'**: Cofibration with upstream transfer π^★ (Equation 3.10)
+3. **Category A'_strict**: Strict equality P' = π^★ P
+4. **Monoidal posets**: Each fiber is a Heyting algebra
+
+**Next**: Use these to define:
+- Theories Θ_{U,ξ,P} as presheaves/copresheaves
+- Semantic conditioning Q.T = (Q ⇒ T)
+- Module structures for information measures
+-}
+
+--------------------------------------------------------------------------------
+-- § 3.3.1d: Theories and Semantic Conditioning
+
+module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
+  open A-Ob
+
+  {-|
+  ## Theories over Languages
+
+  > "Θ_{U,ξ} is the set of theories expressed in the algebra Ω L_U in the
+  > context ξ. Under our standard hypothesis on F, both L_α and ^tL'_α send
+  > theories to theories."
+
+  **Theory**: Set of axioms (propositions asserted as true)
+  - Represented by a single conjunction of all axioms
+  - T ≤ T' means T is weaker (less constraints)
+  -}
+
+  postulate
+    -- Set of all theories at (U, ξ)
+    Theory : (U : C .Precategory.Ob) → (ξ : (F₀ F U) .Precategory.Ob) → Type ℓ'
+
+    -- Theory is given by its conjunction of axioms
+    theory-prop : ∀ {U ξ} → Theory U ξ → Ω U ξ
+
+    -- Weaker/stronger ordering on theories
+    -- T ≤ T' means T is weaker (T' implies T)
+    _≤T_ : ∀ {U ξ} → Theory U ξ → Theory U ξ → Type ℓ'
+    ≤T-refl : ∀ {U ξ} {T : Theory U ξ} → T ≤T T
+    ≤T-trans : ∀ {U ξ} {T T' T'' : Theory U ξ} → T ≤T T' → T' ≤T T'' → T ≤T T''
+
+  {-|
+  ## Θ_{U,ξ,P}: Theories Excluding P
+
+  > "Θ_{U,ξ,P} is the subset of theories which imply the truth of proposition
+  > ¬P, i.e. the subset of theories excluding P."
+
+  **Construction**:
+  - Theory T excludes P if T ∧ P ≤ ⊥
+  - Equivalently: T ≤ ¬P
+  - These form a presheaf over A (with π★)
+  - And a copresheaf over A'_strict (with π^★)
+  -}
+
+  -- Theories that exclude proposition P
+  Θ : (λ : A-Ob) → Type ℓ'
+  Θ (U , ξ , P) = Σ[ T ∈ Theory U ξ ] (theory-prop T ≤ ¬ P)
+    where
+      open import Neural.Stack.Languages using (_≤_; ¬_)
+
+  {-|
+  ## Equation 3.11: Semantic Conditioning Q.T = (Q ⇒ T)
+
+  > "For fixed U,ξ, P ≤ Q in Ω L_{U,ξ}, and T a theory in the language L_{U,ξ},
+  > we define a new theory by the internal implication:
+  >   Q.T = (Q ⇒ T)"
+
+  **Properties**:
+  - More precisely: axioms of Q.T are {⊢ (Q ⇒ R) | ⊢ R is an axiom of T}
+  - This is conditioning in the logical/semantic sense
+  - Written T|_Q or Q.T
+
+  **DNN Interpretation**:
+  - Q: observed property or constraint
+  - T: general theory about network behavior
+  - Q.T: theory conditioned on Q being true
+  - Example: "cat detector theory | image-has-fur"
+  -}
+
+  -- Semantic conditioning operation
+  infixl 20 _·T_
+  _·T_ : ∀ {U ξ} → Ω U ξ → Theory U ξ → Theory U ξ
+  _·T_ {U} {ξ} Q T = {!!}  -- Theory with axioms {Q ⇒ R | R axiom of T}
+
+  -- Notation: T|_Q
+  _|ᵀ_ : ∀ {U ξ} → Theory U ξ → Ω U ξ → Theory U ξ
+  T |ᵀ Q = Q ·T T
+
+  {-|
+  ## Equation 3.12: Heyting Adjunction
+
+  > "(R ∧ Q ≤ P) if and only if (R ≤ (Q ⇒ P))"
+
+  This is the defining property of internal implication in a Heyting algebra.
+  At the level of theories, it means:
+  - Conditioning is right adjoint to conjunction
+  - Q.T is the largest theory T' such that Q ∧ T' ≤ T
+  -}
+
+  postulate
+    -- Conditioning satisfies adjunction
+    conditioning-adjoint : ∀ {U ξ} (Q : Ω U ξ) (T T' : Theory U ξ)
+                         → {!!}  -- (theory-prop T' ∧ Q ≤ theory-prop T)
+                                 -- ≃ (theory-prop T' ≤ theory-prop (Q ·T T))
+
+  {-|
+  ## Proposition 3.1: Conditioning Action on Theories
+
+  > "The conditioning gives an action of the monoid A_{U,ξ,P} on the set of
+  > theories in the language L_{U,ξ}."
+
+  **Proof**:
+  ```
+  (R ∧ Q' ∧ Q ≤ P)  iff  (R ∧ Q' ≤ (Q ⇒ P))
+                     iff  (R ≤ (Q' ⇒ (Q ⇒ P)))
+  ```
+
+  Therefore Q' ⇒ (Q ⇒ P) = (Q' ∧ Q) ⇒ P, giving the action.
+  -}
+
+  proposition-3-1 : ∀ {U ξ P} (Q Q' : Ω U ξ)
+                  → (P ≤ Q) → (P ≤ Q')
+                  → (T : Theory U ξ)
+                  → (Q ·T (Q' ·T T)) ≡ ((Q ∧ Q') ·T T)
+  proposition-3-1 = {!!}
+
+  {-|
+  ## Proposition 3.2: Conditioning Preserves Θ_{U,ξ,P}
+
+  > "The conditioning by elements of A_{U,ξ,P}, i.e. propositions Q implied by
+  > P, preserves the set Θ_{U,ξ,P} of theories excluding P."
+
+  **Proof**:
+  Let T be a theory excluding P and Q ≥ P.
+  Consider theory T' such that Q ∧ T' ≤ T.
+  Then: T' ∧ P ≤ T, thus T' ∧ P ≤ T ∧ P.
+  But T ∧ P ≤ ⊥, so T' ∧ P ≤ ⊥.
+  Since Q ⇒ T is the largest theory with Q ∧ T' ≤ T,
+  therefore (Q ⇒ T) excludes P, i.e., asserts ¬P.
+  -}
+
+  proposition-3-2 : ∀ {U ξ P} (Q : Ω U ξ)
+                  → (P ≤ Q)
+                  → (T : Θ (U , ξ , P))
+                  → {!!}  -- (Q ·T (fst T)) ∈ Θ (U , ξ , P)
+  proposition-3-2 = {!!}
+
+  {-|
+  ## Presheaf/Copresheaf Structure
+
+  The sets of theories form:
+  1. **Presheaf Θ_loc over A** with π★ transitions
+  2. **Copresheaf Θ' over A'_strict** with π^★ transitions
+
+  This enables homological algebra for semantic information.
+  -}
+
+  postulate
+    -- Transfer theories downstream via π★
+    Θ-transfer-downstream : ∀ {λ λ' : A-Ob}
+                          → A-Hom λ λ'
+                          → Θ λ' → Θ λ
+
+    -- Transfer theories upstream via π^★ (on A'_strict)
+    Θ-transfer-upstream : ∀ {λ λ' : A-Ob}
+                        → A'-strict-Hom λ λ'
+                        → Θ λ → Θ λ'
+
+  {-|
+  ## Lemma 3.1: A_{U,ξ,P} as Presheaf over A
+
+  > "The monoids A_{U,ξ,P}, with the functors π★ between them, form a presheaf
+  > over the category A."
+
+  **Proof**:
+  Given morphism (α,h,ι): A_{U,ξ,P} → A_{U',ξ',P'} in A,
+  the symbol ι means P ≤ π★ P'.
+  From P' ≤ Q', we deduce P ≤ π★ P' ≤ π★ Q'.
+  Therefore π★ is a functor on propositions Q' ≥ P'.
+  -}
+
+  lemma-3-1 : ∀ {λ λ' : A-Ob} (f : A-Hom λ λ')
+            → {Q' : Ω (λ' .layer) (λ' .context)}
+            → (λ' .proposition ≤ Q')
+            → {!!}  -- π★ gives presheaf structure
+  lemma-3-1 = {!!}
+
+  {-|
+  ## Lemma 3.2: Θ_{U,ξ,P} as Presheaf over A
+
+  > "Under the standard hypotheses on the fibration F, without necessarily
+  > axiom (2.30), the sets Θ_{U,ξ,P} with the morphisms π★, form a presheaf
+  > over A."
+
+  **Proof**:
+  Let (α,h,ι): A_{U,ξ,P} → A_{U',ξ',P'} where ι denotes P ≤ π★ P'.
+  We deduce π★ ¬P' = ¬π★ P' ≤ ¬P.
+  Then T' ≤ ¬P' implies π★ T' ≤ π★ ¬P' ≤ ¬P.
+  -}
+
+  lemma-3-2 : ∀ {λ λ' : A-Ob} (f : A-Hom λ λ')
+            → {T' : Θ λ'}
+            → Θ-transfer-downstream f T' ∈ Θ λ
+  lemma-3-2 = {!!}
+
+  {-|
+  ## Lemma 3.3: Copresheaves over A'_strict
+
+  > "Under the standard hypotheses on the fibration F plus the stronger one,
+  > the sets Θ_{U,ξ,P} with morphisms π^★, also form a presheaf over A'."
+
+  This requires the strong hypothesis π★ ∘ π^★ = Id.
+  -}
+
+  lemma-3-3 : ∀ {λ λ' : A-Ob} (f : A'-strict-Hom λ λ')
+            → {!!}  -- Copresheaf property
+  lemma-3-3 = {!!}
+
+{-|
+## Summary: Theories and Conditioning
+
+We have defined:
+1. **Theory U ξ**: Sets of axioms/propositions at each layer
+2. **Θ_{U,ξ,P}**: Theories excluding proposition P
+3. **Equation 3.11**: Conditioning Q.T = (Q ⇒ T)
+4. **Proposition 3.1**: Conditioning is monoidal action
+5. **Proposition 3.2**: Conditioning preserves Θ_{U,ξ,P}
+6. **Lemmas 3.1-3.3**: Presheaf/copresheaf structures
+
+**Next**: Functions on theories (module Φ) and Theorem 3.1
+-}
+
+--------------------------------------------------------------------------------
+-- § 3.3.1e: Module Structure and Theorem 3.1
+
+module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
+
+  {-|
+  ## Functions on Theories: Module Φ
+
+  > "The cosheaf Φ made by the measurable functions (with any kind of fixed
+  > values) on the theories Θ_{U,ξ,P}, with the morphisms π★, is a cosheaf of
+  > modules over the monoidal cosheaf A'_loc."
+
+  **Structure**:
+  - Φ_λ: functions Θ_λ → K (values in ring K)
+  - π★ pushforward: ϕ ↦ ϕ ∘ π★
+  - Module action via conditioning: (Q.ϕ)(T) = ϕ(Q ⇒ T)
+  -}
+
+  postulate
+    -- Ring of values (ℝ, ℤ, or more general)
+    K : Type
+
+  -- Functions on theories at λ
+  Φ : (λ : A-Ob) → Type ℓ'
+  Φ λ = Θ λ → K
+
+  {-|
+  ## Equation 3.16: Naturality over A'_strict
+
+  > "For morphism (α,h,ι): A_{U,ξ,P} → A_{U',ξ',π★P}, the equation:
+  >   (π★ Q').ϕ_P(T) = ϕ_P[π★(T')]|_Q]
+  > holds true under the strong hypothesis π★ π★ = Id."
+
+  This is the compatibility condition for the module action.
+  -}
+
+  postulate
+    -- Pushforward of functions via π★
+    Φ-transfer : ∀ {λ λ' : A-Ob}
+               → A'-strict-Hom λ λ'
+               → Φ λ → Φ λ'
+
+    -- Module action by conditioning
+    Φ-action : ∀ {λ : A-Ob} (Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context))
+             → (λ .A-Ob.proposition ≤ Q)
+             → Φ λ → Φ λ
+
+  {-|
+  ## Theorem 3.1: Cosheaf of Modules
+
+  > "Under the strong hypothesis, in particular π★ π★ = Id, and over the
+  > restricted category A'_strict, the cosheaf Φ' made by the measurable
+  > functions on the theories Θ_{U,ξ,P}, with the morphisms π★, is a cosheaf
+  > of modules over the monoidal cosheaf A'_loc, made by the monoidal
+  > categories A_{U,ξ,P}, with the morphisms π★."
+
+  **Proof**:
+  Consider morphism (α,h,ι): A_{U,ξ,P} → A_{U',ξ',π★P}.
+  For theory T' in Θ_{U',ξ',π★P}, proposition Q in A_{U,ξ,P}, and ϕ_P in Φ'_{U,ξ,P}:
+
+  ```
+  π★ Q.(Φ'★ ϕ_P)(T') = (Φ'★ ϕ_P)(T'|_{π★ Q})
+                       = ϕ_P[π★(T'|_{π★ Q})]
+                       = ϕ_P[π★(π★ Q ⇒ T')]
+                       = ϕ_P[π★ π★ Q ⇒ π★ T']   (geometric morphism)
+                       = ϕ_P[Q ⇒ π★ T']          (strong hypothesis)
+                       = ϕ_P[π★(T')|_Q]
+  ```
+
+  This shows naturality: action commutes with transfer.
+  -}
+
+  theorem-3-1 : ∀ {λ λ' : A-Ob} (f : A'-strict-Hom λ λ')
+              → {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)}
+              → (λ .A-Ob.proposition ≤ Q)
+              → (ϕ : Φ λ)
+              → (T' : Θ λ')
+              → {!!}  -- π★ Q.(Φ-transfer f ϕ)(T') = ϕ((Q ·T π★ T'))
+  theorem-3-1 = {!!}
+
+  {-|
+  ## Proposition 3.3: Presheaf Compatibility
+
+  > "The presheaf Θ_loc for π★ is compatible with the monoidal action of the
+  > presheaf A_loc, both considered on the category A (then over A' by
+  > restriction, under the strong standard hypothesis on F)."
+
+  **Proof**:
+  If T' ≤ ¬P' and P ≤ π★ P', we have ¬π★ P' ≤ ¬P.
+  Therefore π★ T' ≤ ¬P.
+  -}
+
+  proposition-3-3 : ∀ {λ λ' : A-Ob} (f : A-Hom λ λ')
+                  → {T' : Θ λ'}
+                  → {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)}
+                  → {!!}  -- Compatibility of presheaf with action
+  proposition-3-3 = {!!}
+
+{-|
+## Semantic Analogy to Probability Theory
+
+The paper draws deep analogies:
+
+**Probability (Bayesian networks)**:
+- Variables X, Y
+- Probability laws P_X
+- Conditioning: Y.P_X (Shannon mean formula)
+- Entropy H: measures ambiguity
+- Mutual information I(X;Y) = H(X) - H(X|Y)
+
+**Semantics (Neural networks)**:
+- Propositions P, Q (analogs of variables)
+- Theories T (analogs of probability laws)
+- Conditioning: Q.T = (Q ⇒ T)
+- Functions ψ on theories (analogs of -entropy)
+- Information: φ^Q(T) = ψ(T|Q) - ψ(T)
+
+The module structure (Theorem 3.1) makes this analogy precise.
+-}
+
+--------------------------------------------------------------------------------
 -- § 3.3.2: Deduction Systems as Fibrations
 
 {-|
