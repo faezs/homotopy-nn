@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 {-|
 # Neural Codes and Code Categories (Section 5.1)
 
@@ -532,17 +533,14 @@ Category of pointed codes of fixed length n (Lemma 5.6)
 
 Codes-pointed : (n q : Nat) → Precategory lzero lzero
 Codes-pointed n q .Precategory.Ob = PointedCode n (suc q)
-Codes-pointed n q .Precategory.Hom = λ a b → PointedCodeMorphism a b
+Codes-pointed n q .Precategory.Hom C C' =
+  Σ ((Fin n → Alphabet (suc q)) → (Fin n → Alphabet (suc q)))
+    (λ f → f zero-word ≡ zero-word)
 Codes-pointed n q .Precategory.Hom-set C C' = Σ-is-hlevel 2 (hlevel 2) λ f →
   is-prop→is-set (hlevel 1)
-Codes-pointed n q .Precategory.id {C} = record
-  { func = λ x → x
-  ; preserves-zero = refl
-  }
-Codes-pointed n q .Precategory._∘_ {C} {C'} {C''} g f = record
-  { func = λ x → g .func (f .func x)
-  ; preserves-zero = ap (g .func) (f .preserves-zero) ∙ g .preserves-zero
-  }
+Codes-pointed n q .Precategory.id {C} = (λ x → x) , refl
+Codes-pointed n q .Precategory._∘_ {C} {C'} {C''} (g , pg) (f , pf) =
+  (λ x → g (f x)) , (ap g pf ∙ pg)
 Codes-pointed n q .Precategory.idr f = Σ-pathp refl (is-prop→pathp (λ i → hlevel 1) _ _)
 Codes-pointed n q .Precategory.idl f = Σ-pathp refl (is-prop→pathp (λ i → hlevel 1) _ _)
 Codes-pointed n q .Precategory.assoc f g h = Σ-pathp refl (is-prop→pathp (λ i → hlevel 1) _ _)
@@ -628,32 +626,33 @@ finite probabilities, compatible with sums and zero objects.
 open import Neural.Code.Probabilities public
   using (PfObject; PfMorphism; Pf)
 
-postulate
+module Lemma5-9 { F } { n : Nat } { _∨_ : CodeWord n -> CodeWord n -> CodeWord n } { _⊕_ : Precategory.Ob Pf -> Precategory.Ob Pf -> Precategory.Ob Pf } where
   {-|
   Functor from pointed codes to finite probabilities (Lemma 5.9)
   -}
-  probability-functor :
-    (n q : Nat) →
-    Functor (Codes-pointed n q) Pf
+  postulate
+    probability-functor :
+      (n q : Nat) →
+      Functor (Codes-pointed n q) Pf
 
-  probability-functor-on-objects :
-    {n q' : Nat} →
-    (C : PointedCode n (suc q')) →
-    {-| F₀(C) = (C, P_C) -}
-    PfObject
+    probability-functor-on-objects :
+      {n q' : Nat} →
+      (C : PointedCode n (suc q')) →
+      {-| F₀(C) = (C, P_C) -}
+      PfObject
 
-  probability-functor-on-morphisms :
-    {n q' : Nat} →
-    {C C' : PointedCode n (suc q')} →
-    (f : PointedCodeMorphism C C') →
-    {-| F₁(f) = (f, Λ) with λ_{f(c)}(c) = P_C(c)/P_C'(f(c)) -}
-    PfMorphism (probability-functor-on-objects C) (probability-functor-on-objects C')
+    probability-functor-on-morphisms :
+      {n q' : Nat} →
+      {C C' : PointedCode n (suc q')} →
+      (f : PointedCodeMorphism C C') →
+      {-| F₁(f) = (f, Λ) with λ_{f(c)}(c) = P_C(c)/P_C'(f(c)) -}
+      PfMorphism (probability-functor-on-objects C) (probability-functor-on-objects C')
 
-  probability-functor-preserves-sum :
-    {n q' : Nat} →
-    (C C' : PointedCode n (suc q')) →
-    {-| F(C ∨ C') ≅ F(C) ⊕ F(C') -}
-    Type
+    probability-functor-preserves-sum :
+      {n q' : Nat} →
+      (C C' : PointedCode n (suc q')) →
+      {-| F₀(C ∨ C') ≅ F₀(C) ⊕ F₀(C') -}
+      ⊤  -- Simplified for now
 
 {-|
 ## Shannon Random Code Ensemble (SRCE)

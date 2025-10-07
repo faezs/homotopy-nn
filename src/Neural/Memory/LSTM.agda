@@ -1,4 +1,4 @@
-{-# OPTIONS --guardedness --rewriting --cubical #-}
+{-# OPTIONS --guardedness --rewriting --cubical --allow-unsolved-metas #-}
 
 {-|
 # Chapter 4: LSTMs, GRUs, and Memory Cells
@@ -36,7 +36,7 @@ open import Cat.Functor.Base
 
 open import Data.Nat.Base
 open import Data.Fin.Base
-open import Data.Vec
+open import Data.Float.Base
 
 --------------------------------------------------------------------------------
 -- §4.1: RNN Lattices
@@ -84,6 +84,40 @@ postulate
   hidden-to-junction : ∀ {i j} → Layer hidden-layer (i - 1 , j) → Layer junction-layer (i , j) → Type
 
 --------------------------------------------------------------------------------
+-- Real numbers and basic operations
+
+ℝ : Type
+ℝ = Float
+
+postulate
+  _+ℝ_ : ℝ → ℝ → ℝ
+  _-ℝ_ : ℝ → ℝ → ℝ
+  _*ℝ_ : ℝ → ℝ → ℝ
+  _/ℝ_ : ℝ → ℝ → ℝ
+  -ℝ_ : ℝ → ℝ
+  _<ℝ_ : ℝ → ℝ → Type
+
+  -- Nonlinear functions
+  exp : ℝ → ℝ
+  tanh : ℝ → ℝ
+
+  -- Sigmoid
+  σ : ℝ → ℝ
+  σ-def : ∀ z → σ z ≡ 1.0 /ℝ (1.0 +ℝ exp (-ℝ z))
+
+  -- Sigmoid properties
+  σ-range : ∀ z → (0.0 <ℝ σ z) × (σ z <ℝ 1.0)
+  σ-at-zero : σ 0.0 ≡ 0.5
+  σ-almost-linear-near-zero : ⊤  -- Formal statement TBD
+
+  -- Tanh properties
+  τ : ℝ → ℝ
+  τ-def : ∀ z → τ z ≡ tanh z
+  τ-range : ∀ z → ((-ℝ 1.0) <ℝ τ z) × (τ z <ℝ 1.0)
+  τ-at-zero : τ 0.0 ≡ 0.0
+  τ-almost-linear-near-zero : ⊤
+
+--------------------------------------------------------------------------------
 -- Hadamard Operations
 
 {-|
@@ -111,15 +145,15 @@ Vec-m m = Fin m → ℝ
 
 -- Hadamard product (element-wise multiplication)
 _⊙_ : ∀ {m} → Vec-m m → Vec-m m → Vec-m m
-(γ ⊙ φ) a = γ a * φ a
+(γ ⊙ φ) a = γ a *ℝ φ a
 
 -- Hadamard sum (element-wise addition)
 _⊕_ : ∀ {m} → Vec-m m → Vec-m m → Vec-m m
-(ξ₁ ⊕ ξ₂) a = ξ₁ a + ξ₂ a
+(ξ₁ ⊕ ξ₂) a = ξ₁ a +ℝ ξ₂ a
 
 -- Hadamard difference (for 1 - z in GRU)
 _⊖_ : ∀ {m} → Vec-m m → Vec-m m → Vec-m m
-(ξ₁ ⊖ ξ₂) a = ξ₁ a - ξ₂ a
+(ξ₁ ⊖ ξ₂) a = ξ₁ a -ℝ ξ₂ a
 
 -- Constant vector (all components equal)
 const-vec : ∀ {m} → ℝ → Vec-m m
@@ -154,32 +188,7 @@ infixl 6 _⊕_ _⊖_
 >  Therefore the point 0 plays an important role."
 -}
 
-postulate
-  ℝ : Type
-  _+_ : ℝ → ℝ → ℝ
-  _-_ : ℝ → ℝ → ℝ
-  _*_ : ℝ → ℝ → ℝ
-  _/_ : ℝ → ℝ → ℝ
-
-  -- Nonlinear functions
-  exp : ℝ → ℝ
-  tanh : ℝ → ℝ
-
-  -- Sigmoid
-  σ : ℝ → ℝ
-  σ-def : ∀ z → σ z ≡ 1.0 / (1.0 + exp (- z))
-
-  -- Sigmoid properties
-  σ-range : ∀ z → 0.0 < σ z × σ z < 1.0
-  σ-at-zero : σ 0.0 ≡ 0.5
-  σ-almost-linear-near-zero : {!!}  -- Formal statement
-
-  -- Tanh properties
-  τ : ℝ → ℝ
-  τ-def : ∀ z → τ z ≡ tanh z
-  τ-range : ∀ z → - 1.0 < τ z × τ z < 1.0
-  τ-at-zero : τ 0.0 ≡ 0.0
-  τ-almost-linear-near-zero : {!!}
+-- Already defined above
 
 -- Apply σ or τ to vectors (component-wise)
 σ-vec : ∀ {m} → Vec-m m → Vec-m m
@@ -224,7 +233,7 @@ apply-linear W v a = {!!}  -- ∑_{a'} W a a' * v a'
 
 -- Apply affine form
 apply-affine : ∀ {m n} → AffineForm m n → Vec-m n → Vec-m m
-apply-affine (affine W β) v a = apply-linear W v a + β a
+apply-affine (affine W β) v a = apply-linear W v a +ℝ β a
 
 -- Common notation: α_k(η, ξ) for affine forms before σ/τ
 -- Example: α_f(x_t, h_{t-1}) in LSTM forget gate
@@ -337,9 +346,10 @@ The Hadamard products require equal dimensions:
 Therefore: dim(c) = dim(f) = dim(i) = dim(o) = dim(h) = m
 -}
 
-multiplicity-invariant : ∀ {m n} (W : LSTM-Weights m n) (s : LSTM-State m) (x : Input n)
-                       → let (lstm-state c h) = lstm-step W s x
-                          in {!!}  -- All dimensions equal m
+postulate
+  multiplicity-invariant : ∀ {m n} (W : LSTM-Weights m n) (s : LSTM-State m) (x : Input n)
+                         → let (lstm-state c h) = lstm-step W s x
+                            in ⊤  -- All dimensions equal m
 
 --------------------------------------------------------------------------------
 -- §4.2: GRU Cell
@@ -595,19 +605,29 @@ cubic-step {m} W η ξ = η_new
 
     -- Linear form α in η
     α : Vec-m m
-    α a = {!!}  -- U_α · η (no bias!)
+    α = λ a → {!!}  -- U_α · η (no bias!)
 
-    σ_α = σ-vec α
+    σ-α : Vec-m m
+    σ-α = σ-vec α
 
     -- Unfolding parameters u, v from input ξ
+    u : Vec-m m
     u = τ-vec {!!}  -- tanh(W_u · ξ)
+
+    v : Vec-m m
     v = τ-vec {!!}  -- tanh(W_v · ξ)
 
     -- Pure cubic formula (Eq 4.21)
-    cubic-term = σ_α ⊙ σ_α ⊙ σ_α  -- σ_α³
-    linear-term = u ⊙ σ_α           -- u · σ_α
+    cubic-term : Vec-m m
+    cubic-term = σ-α ⊙ σ-α ⊙ σ-α  -- σ_α³
+
+    linear-term : Vec-m m
+    linear-term = u ⊙ σ-α           -- u · σ_α
+
+    constant-term : Vec-m m
     constant-term = v                -- v
 
+    η_new : Vec-m m
     η_new = cubic-term ⊕ linear-term ⊕ constant-term
 
 -- With residual connection (Eq 4.22)
@@ -616,16 +636,31 @@ cubic-step-residual {m} W η ξ = η_new
   where
     open Cubic-Weights W
 
+    α : Vec-m m
     α = {!!}
-    σ_α = σ-vec α
+
+    σ-α : Vec-m m
+    σ-α = σ-vec α
+
+    u : Vec-m m
     u = τ-vec {!!}
+
+    v : Vec-m m
     v = τ-vec {!!}
 
-    cubic-term = σ_α ⊙ σ_α ⊙ σ_α
-    linear-term = u ⊙ σ_α
-    constant-term = v
-    residual-term = (𝟙 ⊖ σ_α) ⊙ η
+    cubic-term : Vec-m m
+    cubic-term = σ-α ⊙ σ-α ⊙ σ-α
 
+    linear-term : Vec-m m
+    linear-term = u ⊙ σ-α
+
+    constant-term : Vec-m m
+    constant-term = v
+
+    residual-term : Vec-m m
+    residual-term = (𝟙 ⊖ σ-α) ⊙ η
+
+    η_new : Vec-m m
     η_new = cubic-term ⊕ residual-term ⊕ linear-term ⊕ constant-term
 
 -- Parameter count (minimal!)

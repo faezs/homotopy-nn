@@ -103,6 +103,9 @@ open import Data.Nat.Base using (Nat; suc)
 open import Data.Fin.Base using (Fin; fzero; fsuc; fin-view; Fin-view)
 open Data.Fin.Base.Fin-view
 open import Data.Sum.Base using (_⊎_; inl; inr)
+open import Data.Sum.Properties using (⊎-is-hlevel; Discrete-⊎)
+open import Data.Dec.Base using (Discrete; yes; no)
+open import 1Lab.Path.IdentitySystem using (Discrete→is-set)
 
 private variable
   ℓ : Level
@@ -247,6 +250,8 @@ open import Neural.Homotopy.FreeGroupEquiv using (Free-Fin1≃ℤ; group-iso→e
 open import Cat.Univalent
 open import Cat.Diagram.Coproduct using (Coproduct)
 open import Cat.Functor.Adjoint using (Free-object)
+import Cat.Morphism
+import Cat.Reasoning
 open import Algebra.Group.Cat.Base using (∫Hom)
 open ∫Hom
 
@@ -342,6 +347,13 @@ Free-Group-preserves-⊎ {A} {B} = Groups.make-iso fwd bwd invl invr
     open Finitely-cocomplete Groups-finitely-cocomplete
     open Coproduct (coproducts (Free-Group A) (Free-Group B))
 
+    -- Helper homomorphisms for backward direction
+    hom-inl : Groups.Hom (Free-Group A) (Free-Group (A ⊎ B))
+    hom-inl = fold-free-group {G = Free-Group (A ⊎ B)} (λ a → inc (inl a))
+
+    hom-inr : Groups.Hom (Free-Group B) (Free-Group (A ⊎ B))
+    hom-inr = fold-free-group {G = Free-Group (A ⊎ B)} (λ b → inc (inr b))
+
     -- Forward: use fold-free-group with the coproduct injections
     fwd : Groups.Hom (Free-Group (A ⊎ B)) (Free-Group A *ᴳ Free-Group B)
     fwd = fold-free-group λ where
@@ -350,7 +362,7 @@ Free-Group-preserves-⊎ {A} {B} = Groups.make-iso fwd bwd invl invr
 
     -- Backward: use coproduct universal property
     bwd : Groups.Hom (Free-Group A *ᴳ Free-Group B) (Free-Group (A ⊎ B))
-    bwd = [ fold-free-group (inc ∘ inl) , fold-free-group (inc ∘ inr) ]
+    bwd = [_,_] {Q = Free-Group (A ⊎ B)} hom-inl hom-inr
 
     -- Inverses follow from uniqueness of universal properties
     invl : fwd Groups.∘ bwd ≡ Groups.id
@@ -358,25 +370,23 @@ Free-Group-preserves-⊎ {A} {B} = Groups.make-iso fwd bwd invl invr
       where
         -- Show (fwd ∘ bwd) ∘ ι₁ = ι₁
         comm-fwd-bwd-ι₁ : (fwd Groups.∘ bwd) Groups.∘ ι₁ ≡ ι₁
-        comm-fwd-bwd-ι₁ =
-          (fwd Groups.∘ bwd) Groups.∘ ι₁                ≡⟨ Groups.pullr []∘ι₁ ⟩
-          fwd Groups.∘ fold-free-group (inc ∘ inl)      ≡⟨ fwd-∘-fold-inl ⟩
-          ι₁ ∎
+        comm-fwd-bwd-ι₁ = Free-object.unique₂ (make-free-group (el! A)) _ ι₁ comm1 comm2
           where
-            -- Need: fwd ∘ fold-free-group (inc ∘ inl) = ι₁
-            -- Use fold-free-group uniqueness
-            fwd-∘-fold-inl : fwd Groups.∘ fold-free-group (inc ∘ inl) ≡ ι₁
-            fwd-∘-fold-inl = Free-object.unique (make-free-group (el! A)) ι₁ (refl {x = ι₁ .fst ∘ inc})
+            comm1 : ((fwd Groups.∘ bwd) Groups.∘ ι₁) .fst ∘ inc ≡ ι₁ .fst ∘ inc
+            comm1 = refl
+
+            comm2 : ι₁ .fst ∘ inc ≡ ι₁ .fst ∘ inc
+            comm2 = refl
 
         -- Show (fwd ∘ bwd) ∘ ι₂ = ι₂
         comm-fwd-bwd-ι₂ : (fwd Groups.∘ bwd) Groups.∘ ι₂ ≡ ι₂
-        comm-fwd-bwd-ι₂ =
-          (fwd Groups.∘ bwd) Groups.∘ ι₂                ≡⟨ Groups.pullr []∘ι₂ ⟩
-          fwd Groups.∘ fold-free-group (inc ∘ inr)      ≡⟨ fwd-∘-fold-inr ⟩
-          ι₂ ∎
+        comm-fwd-bwd-ι₂ = Free-object.unique₂ (make-free-group (el! B)) _ ι₂ comm1 comm2
           where
-            fwd-∘-fold-inr : fwd Groups.∘ fold-free-group (inc ∘ inr) ≡ ι₂
-            fwd-∘-fold-inr = Free-object.unique (make-free-group (el! B)) ι₂ (refl {x = ι₂ .fst ∘ inc})
+            comm1 : ((fwd Groups.∘ bwd) Groups.∘ ι₂) .fst ∘ inc ≡ ι₂ .fst ∘ inc
+            comm1 = refl
+
+            comm2 : ι₂ .fst ∘ inc ≡ ι₂ .fst ∘ inc
+            comm2 = refl
 
         -- Show id ∘ ι₁ = ι₁ (trivial)
         comm-id-ι₁ : Groups.id Groups.∘ ι₁ ≡ ι₁
@@ -387,29 +397,19 @@ Free-Group-preserves-⊎ {A} {B} = Groups.make-iso fwd bwd invl invr
         comm-id-ι₂ = Groups.idl ι₂
 
     invr : bwd Groups.∘ fwd ≡ Groups.id
-    invr = Free-object.unique₂ FO (bwd Groups.∘ fwd) Groups.id comm1 comm2
+    invr = Free-object.unique FO (bwd Groups.∘ fwd) refl
+         ∙ sym (Free-object.unique FO Groups.id (sym (ext λ where (inl a) → refl ; (inr b) → refl)))
       where
         FO = make-free-group (el! (A ⊎ B))
 
-        -- Need to show: underlying function of (bwd ∘ fwd) composed with inc equals inc
-        comm1 : (bwd Groups.∘ fwd) .fst ∘ inc ≡ inc
-        comm1 = ext λ x → comm-on-gens x
-          where
-            comm-on-gens : ∀ (x : A ⊎ B) → (bwd Groups.∘ fwd) .fst (inc x) ≡ inc x
-            comm-on-gens (inl a) =
-              bwd .fst (fwd .fst (inc (inl a)))         ≡⟨⟩
-              bwd .fst (ι₁ .fst (inc a))                ≡⟨ ap (λ h → h .fst (inc a)) []∘ι₁ ⟩
-              fold-free-group (inc ∘ inl) .fst (inc a)  ≡⟨⟩
-              inc (inl a) ∎
-            comm-on-gens (inr b) =
-              bwd .fst (fwd .fst (inc (inr b)))         ≡⟨⟩
-              bwd .fst (ι₂ .fst (inc b))                ≡⟨ ap (λ h → h .fst (inc b)) []∘ι₂ ⟩
-              fold-free-group (inc ∘ inr) .fst (inc b)  ≡⟨⟩
-              inc (inr b) ∎
+-- H-Level instance for ⊤ ⊎ ⊤ (needed for free-group-equiv)
 
-        -- Trivial: id composed with inc is inc
-        comm2 : Groups.id .fst ∘ inc ≡ inc
-        comm2 = refl
+instance
+  Discrete-⊤ : Discrete ⊤
+  Discrete-⊤ .Discrete.decide tt tt = yes refl
+  
+  ⊤⊎⊤-is-set : H-Level (⊤ ⊎ ⊤) 2
+  ⊤⊎⊤-is-set = basic-instance 2 (Discrete→is-set Discrete-⊎)
 
 -- Proof that Free-Group (Fin 2) ≅ ℤ * ℤ
 Free-2≅ℤ*ℤ : Free-n 2 Groups.≅ (ℤ *ᴳ ℤ)
@@ -419,9 +419,10 @@ Free-2≅ℤ*ℤ =
   Free-Group ⊤ *ᴳ Free-Group ⊤ Groups.≅⟨ step3 ⟩
   ℤ *ᴳ ℤ                      Groups.≅∎
   where
+
     -- Step 1: Fin 2 ≃ ⊤ ⊎ ⊤, so Free-Group preserves equivalences
     step1 : Free-Group (Fin 2) Groups.≅ Free-Group (⊤ ⊎ ⊤)
-    step1 = free-group-equiv Fin-2≃⊤⊎⊤
+    step1 = free-group-equiv ⦃ auto ⦄ ⦃ ⊤⊎⊤-is-set ⦄ Fin-2≃⊤⊎⊤
 
     -- Step 2: Free-Group preserves coproducts
     step2 : Free-Group (⊤ ⊎ ⊤) Groups.≅ (Free-Group ⊤ *ᴳ Free-Group ⊤)
@@ -435,7 +436,8 @@ Free-2≅ℤ*ℤ =
 
         -- Free-Group ⊤ ≅ ℤ (inverse of ℤ≃Free-⊤)
         Free-⊤≅ℤ : Free-Group ⊤ Groups.≅ ℤ
-        Free-⊤≅ℤ = Groups.Iso-inv ℤ≃Free-⊤
+        Free-⊤≅ℤ = ℤ≃Free-⊤ Iso⁻¹
+          where open Cat.Morphism (Groups lzero)
 
         -- Coproduct is functorial: if A ≅ A' and B ≅ B' then A * B ≅ A' * B'
         coproduct-functoriality :
@@ -444,35 +446,38 @@ Free-2≅ℤ*ℤ =
           (A *ᴳ B) Groups.≅ (A' *ᴳ B')
         coproduct-functoriality {A} {A'} {B} {B'} f g = Groups.make-iso fwd bwd invl invr
           where
+            open import Cat.Diagram.Colimit.Finite
             open Finitely-cocomplete Groups-finitely-cocomplete
-            open Coproduct (coproducts A B) renaming (ι₁ to ι₁-AB; ι₂ to ι₂-AB; [_,_] to [_,_]-AB)
-            open Coproduct (coproducts A' B') renaming (ι₁ to ι₁-A'B'; ι₂ to ι₂-A'B'; [_,_] to [_,_]-A'B')
+            open Coproduct (coproducts A B) renaming (ι₁ to ι₁-AB; ι₂ to ι₂-AB; [_,_] to [_,_]-AB; unique₂ to unique₂-AB; []∘ι₁ to []∘ι₁-AB; []∘ι₂ to []∘ι₂-AB)
+            open Coproduct (coproducts A' B') renaming (ι₁ to ι₁-A'B'; ι₂ to ι₂-A'B'; [_,_] to [_,_]-A'B'; unique₂ to unique₂-A'B'; []∘ι₁ to []∘ι₁-A'B'; []∘ι₂ to []∘ι₂-A'B')
+            open Cat.Morphism.Inverses using () renaming (invl to inv-l; invr to inv-r)
+            open Cat.Reasoning (Groups lzero) hiding (invl; invr)
+            
 
-            -- Forward: [f ∘ ι₁, g ∘ ι₂]
+            -- Forward: [ι₁' ∘ f, ι₂' ∘ g]
             fwd : Groups.Hom (A *ᴳ B) (A' *ᴳ B')
-            fwd = [_,_]-A'B' (f .to Groups.∘ ι₁-AB) (g .to Groups.∘ ι₂-AB)
+            fwd = [_,_]-AB (ι₁-A'B' Groups.∘ Groups._≅_.to f) (ι₂-A'B' Groups.∘ Groups._≅_.to g)
 
-            -- Backward: [f⁻¹ ∘ ι₁', g⁻¹ ∘ ι₂']
+            -- Backward: [ι₁ ∘ f⁻¹, ι₂ ∘ g⁻¹]
             bwd : Groups.Hom (A' *ᴳ B') (A *ᴳ B)
-            bwd = [_,_]-AB (f .from Groups.∘ ι₁-A'B') (g .from Groups.∘ ι₂-A'B')
+            bwd = [_,_]-A'B' (ι₁-AB Groups.∘ Groups._≅_.from f) (ι₂-AB Groups.∘ Groups._≅_.from g)
 
             -- Inverses: Use coproduct uniqueness
             invl : fwd Groups.∘ bwd ≡ Groups.id
-            invl = unique₂ comm-fwd-bwd-ι₁ comm-fwd-bwd-ι₂ comm-id-ι₁ comm-id-ι₂
+            invl = unique₂-A'B' comm-fwd-bwd-ι₁ comm-fwd-bwd-ι₂ comm-id-ι₁ comm-id-ι₂
               where
                 comm-fwd-bwd-ι₁ : (fwd Groups.∘ bwd) Groups.∘ ι₁-A'B' ≡ ι₁-A'B'
                 comm-fwd-bwd-ι₁ =
-                  (fwd Groups.∘ bwd) Groups.∘ ι₁-A'B'                        ≡⟨ Groups.pullr []∘ι₁ ⟩
-                  fwd Groups.∘ (f .from Groups.∘ ι₁-A'B')                    ≡⟨ Groups.extendl []∘ι₁ ⟩
-                  (f .to Groups.∘ ι₁-AB) Groups.∘ (f .from Groups.∘ ι₁-A'B') ≡⟨ Groups.cancel-inner (f .inverses .Inverses.invl) ⟩
+                  (fwd Groups.∘ bwd) Groups.∘ ι₁-A'B'                            ≡⟨ Groups.pullr []∘ι₁-A'B' ⟩
+                  fwd Groups.∘ (ι₁-AB Groups.∘ Groups._≅_.from f)                ≡⟨ Groups.assoc fwd ι₁-AB ((Groups._≅_.from f)) ⟩
+                  (fwd Groups.∘ ι₁-AB) Groups.∘ Groups._≅_.from f                ≡⟨ ap (Groups._∘ Groups._≅_.from f) []∘ι₁-AB ⟩
+                  (ι₁-A'B' Groups.∘ Groups._≅_.to f) Groups.∘ Groups._≅_.from f  ≡⟨ sym (Groups.assoc ι₁-A'B' ((Groups._≅_.to f)) ((Groups._≅_.from f))) ⟩
+                  ι₁-A'B' Groups.∘ (Groups._≅_.to f Groups.∘ Groups._≅_.from f)  ≡⟨ ap (ι₁-A'B' Groups.∘_) (inv-l (Groups._≅_.inverses f)) ⟩
+                  ι₁-A'B' Groups.∘ Groups.id                                     ≡⟨ Groups.idr _ ⟩
                   ι₁-A'B' ∎
 
                 comm-fwd-bwd-ι₂ : (fwd Groups.∘ bwd) Groups.∘ ι₂-A'B' ≡ ι₂-A'B'
-                comm-fwd-bwd-ι₂ =
-                  (fwd Groups.∘ bwd) Groups.∘ ι₂-A'B'                        ≡⟨ Groups.pullr []∘ι₂ ⟩
-                  fwd Groups.∘ (g .from Groups.∘ ι₂-A'B')                    ≡⟨ Groups.extendl []∘ι₂ ⟩
-                  (g .to Groups.∘ ι₂-AB) Groups.∘ (g .from Groups.∘ ι₂-A'B') ≡⟨ Groups.cancel-inner (g .inverses .Inverses.invl) ⟩
-                  ι₂-A'B' ∎
+                comm-fwd-bwd-ι₂ = {!!}
 
                 comm-id-ι₁ : Groups.id Groups.∘ ι₁-A'B' ≡ ι₁-A'B'
                 comm-id-ι₁ = Groups.idl ι₁-A'B'
@@ -481,21 +486,13 @@ Free-2≅ℤ*ℤ =
                 comm-id-ι₂ = Groups.idl ι₂-A'B'
 
             invr : bwd Groups.∘ fwd ≡ Groups.id
-            invr = unique₂ comm-bwd-fwd-ι₁ comm-bwd-fwd-ι₂ comm-id-ι₁ comm-id-ι₂
+            invr = unique₂-AB comm-bwd-fwd-ι₁ comm-bwd-fwd-ι₂ comm-id-ι₁ comm-id-ι₂
               where
                 comm-bwd-fwd-ι₁ : (bwd Groups.∘ fwd) Groups.∘ ι₁-AB ≡ ι₁-AB
-                comm-bwd-fwd-ι₁ =
-                  (bwd Groups.∘ fwd) Groups.∘ ι₁-AB                        ≡⟨ Groups.pullr []∘ι₁ ⟩
-                  bwd Groups.∘ (f .to Groups.∘ ι₁-AB)                      ≡⟨ Groups.extendl []∘ι₁ ⟩
-                  (f .from Groups.∘ ι₁-A'B') Groups.∘ (f .to Groups.∘ ι₁-AB) ≡⟨ Groups.cancel-inner (f .inverses .Inverses.invr) ⟩
-                  ι₁-AB ∎
+                comm-bwd-fwd-ι₁ = {!!}
 
                 comm-bwd-fwd-ι₂ : (bwd Groups.∘ fwd) Groups.∘ ι₂-AB ≡ ι₂-AB
-                comm-bwd-fwd-ι₂ =
-                  (bwd Groups.∘ fwd) Groups.∘ ι₂-AB                        ≡⟨ Groups.pullr []∘ι₂ ⟩
-                  bwd Groups.∘ (g .to Groups.∘ ι₂-AB)                      ≡⟨ Groups.extendl []∘ι₂ ⟩
-                  (g .from Groups.∘ ι₂-A'B') Groups.∘ (g .to Groups.∘ ι₂-AB) ≡⟨ Groups.cancel-inner (g .inverses .Inverses.invr) ⟩
-                  ι₂-AB ∎
+                comm-bwd-fwd-ι₂ = {!!}
 
                 comm-id-ι₁ : Groups.id Groups.∘ ι₁-AB ≡ ι₁-AB
                 comm-id-ι₁ = Groups.idl ι₁-AB

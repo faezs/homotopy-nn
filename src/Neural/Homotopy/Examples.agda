@@ -50,6 +50,7 @@ open import Neural.Homotopy.Simplicial using (PSSet)
 open import Neural.Homotopy.Realization using (semantic; Realizes'; geometric-realization)
 open import Neural.Information using (ℝ)
 open import Neural.Homotopy.VanKampen using (rose; rose-edges; rose-vertices; Free-2≅ℤ*ℤ; Free-n)
+open import Neural.Homotopy.Attention using (complete-digraph)
 
 private variable
   o ℓ : Level
@@ -203,10 +204,10 @@ From Neural.Homotopy.Attention, we know:
 This is a key example showing Φ ≠ π₁.
 -}
 
-postulate
-  -- Complete graph (from Attention module)
-  complete-digraph : (n : Nat) → DirectedGraph
+-- Complete graph is imported from Attention module
+-- complete-digraph : (n : Nat) → DirectedGraph (already defined)
 
+postulate
   -- Complete graph is contractible
   complete-is-contractible :
     (n : Nat) →
