@@ -30,6 +30,8 @@
               safetensors
               accelerate
               huggingface-hub
+              onnx
+              onnxruntime
             ]))
           ];
 

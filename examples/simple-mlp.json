@@ -1,0 +1,113 @@
+{
+  "ir-version": 9,
+  "opset-import": [
+    {
+      "domain": "",
+      "version": 17
+    }
+  ],
+  "producer-name": "homotopy-nn",
+  "producer-version": "1.0.0",
+  "domain": "neural.homotopy",
+  "model-version": 1,
+  "doc": "Simple 2-layer MLP for MNIST classification: 784→256→10",
+  "graph": {
+    "name": "simple-mlp",
+    "nodes": [
+      {
+        "op-type": "Gemm",
+        "inputs": ["input", "hidden_weight", "hidden_bias"],
+        "outputs": ["hidden_output"],
+        "attributes": [
+          {"name": "alpha", "value": {"attr-float": 1.0}},
+          {"name": "beta", "value": {"attr-float": 1.0}},
+          {"name": "transB", "value": {"attr-int": 0}}
+        ],
+        "name": "hidden_layer",
+        "domain": ""
+      },
+      {
+        "op-type": "Relu",
+        "inputs": ["hidden_output"],
+        "outputs": ["hidden_relu"],
+        "attributes": [],
+        "name": "relu_activation",
+        "domain": ""
+      },
+      {
+        "op-type": "Gemm",
+        "inputs": ["hidden_relu", "output_weight", "output_bias"],
+        "outputs": ["output_logits"],
+        "attributes": [
+          {"name": "alpha", "value": {"attr-float": 1.0}},
+          {"name": "beta", "value": {"attr-float": 1.0}},
+          {"name": "transB", "value": {"attr-int": 0}}
+        ],
+        "name": "output_layer",
+        "domain": ""
+      },
+      {
+        "op-type": "Softmax",
+        "inputs": ["output_logits"],
+        "outputs": ["probabilities"],
+        "attributes": [
+          {"name": "axis", "value": {"attr-int": 1}}
+        ],
+        "name": "softmax",
+        "domain": ""
+      }
+    ],
+    "inputs": [
+      {
+        "name": "input",
+        "type": {
+          "tensor-type": {
+            "elem-type": "FLOAT",
+            "shape": [
+              {"dim-param": "batch_size"},
+              {"dim-value": 784}
+            ]
+          }
+        },
+        "doc": "Input images (flattened 28x28 MNIST)"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "probabilities",
+        "type": {
+          "tensor-type": {
+            "elem-type": "FLOAT",
+            "shape": [
+              {"dim-param": "batch_size"},
+              {"dim-value": 10}
+            ]
+          }
+        },
+        "doc": "Classification probabilities for 10 digit classes"
+      }
+    ],
+    "initializers": [
+      {
+        "name": "hidden_weight",
+        "elem-type": "FLOAT",
+        "dims": [784, 256]
+      },
+      {
+        "name": "hidden_bias",
+        "elem-type": "FLOAT",
+        "dims": [256]
+      },
+      {
+        "name": "output_weight",
+        "elem-type": "FLOAT",
+        "dims": [256, 10]
+      },
+      {
+        "name": "output_bias",
+        "elem-type": "FLOAT",
+        "dims": [10]
+      }
+    ]
+  }
+}
