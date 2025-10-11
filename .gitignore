@@ -26,3 +26,4 @@ result-*
 
 # Direnv (keep .envrc but ignore cache)
 .direnv/
+agda-mcp/
