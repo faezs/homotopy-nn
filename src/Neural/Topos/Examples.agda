@@ -11,11 +11,14 @@ module Neural.Topos.Examples where
 
 open import 1Lab.Prelude
 open import 1Lab.HLevel
+open import 1Lab.Type.Sigma
 
 open import Cat.Instances.Graphs using (Graph)
 open import Data.Nat.Base using (Nat; zero; suc; _+_)
 open import Data.Fin.Base using (Fin; fzero; fsuc)
 open import Data.Bool.Base using (Bool; true; false)
+open import Data.Sum.Base using (_⊎_; inl; inr)
+open import Data.Sum.Properties using (⊎-is-hlevel)
 
 open import Neural.Topos.Architecture
 
@@ -33,7 +36,6 @@ Poset X is just: y ≤ h₂ ≤ h₁ ≤ x₀
 module SimpleMLP where
   -- Graph with 4 vertices (input, 2 hidden, output) and 3 edges
   open OrientedGraph
-  open GraphPath
 
   -- The underlying graph structure
   mlp-graph : Graph lzero lzero
@@ -47,7 +49,10 @@ module SimpleMLP where
     (i ≡ fsuc fzero) × (j ≡ fsuc (fsuc fzero)) ⊎  -- h₁ → h₂
     (i ≡ fsuc (fsuc fzero)) × (j ≡ fsuc (fsuc (fsuc fzero)))  -- h₂ → y
   mlp-graph .Graph.Vertex-is-set = hlevel 2
-  mlp-graph .Graph.Edge-is-set = hlevel 2
+  mlp-graph .Graph.Edge-is-set {i} {j} =
+    ⊎-is-hlevel 0 (×-is-hlevel 2 (hlevel 2) (hlevel 2))
+                   (⊎-is-hlevel 0 (×-is-hlevel 2 (hlevel 2) (hlevel 2))
+                                  (×-is-hlevel 2 (hlevel 2) (hlevel 2)))
 
   -- This is an oriented graph (no cycles, classical, no loops)
   postulate mlp-oriented : OrientedGraph lzero lzero
@@ -121,9 +126,12 @@ module ConvergentNetwork where
     edge-hy  : OriginalEdge hidden output
 
   -- hidden has 2 inputs → is-convergent!
+  postulate
+    input₁≠input₂ : ¬ (input₁ ≡ input₂)
+
   hidden-is-convergent : Σ[ x ∈ OriginalVertex ] Σ[ y ∈ OriginalVertex ]
                          (¬ (x ≡ y)) × OriginalEdge x hidden × OriginalEdge y hidden
-  hidden-is-convergent = input₁ , input₂ , (λ ()) , edge-i1h , edge-i2h
+  hidden-is-convergent = input₁ , input₂ , input₁≠input₂ , edge-i1h , edge-i2h
 
   -- After fork construction (Section 1.3):
   data ForkedVertex : Type where

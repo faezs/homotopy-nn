@@ -54,20 +54,22 @@ module Neural.Topos.Alexandrov where
 open import 1Lab.Prelude
 open import 1Lab.HLevel
 open import 1Lab.Path
+open import 1Lab.Equiv
 
 open import Cat.Base
 open import Cat.Instances.Functor
 open import Cat.Functor.Base
 open import Cat.Site.Base using (Coverage)
-open import Cat.Diagram.Limit.Base using (Limit; Cone)
+open import Cat.Diagram.Limit.Base using (Limit)
 
 open import Order.Base using (Poset)
 open import Order.Frame using (is-frame)
 
 open import Data.Nat.Base using (Nat)
-open import Data.Power using (ℙ; _∈_; _⊆_)
+open import Data.Power
 
-open import Neural.Topos.Poset
+open import Neural.Topos.Architecture
+import Neural.Topos.Poset as NPoset
 
 private variable
   o ℓ : Level
@@ -86,9 +88,19 @@ From the paper:
 - In terms of paths: if y ∈ U and there's a path from y to x, then x ∈ U
 - In terms of information: if y is in region U, all upstream sources of y are in U
 -}
-module _ {Γ : OrientedGraph o ℓ} where
+module _ (Γ : OrientedGraph o ℓ) where
   open OrientedGraph Γ
-  open Neural.Topos.Poset Γ
+
+  -- Re-use definitions from Poset module
+  open NPoset.PosetOfGraph Γ public
+
+  {-|
+  ### Power set at our universe level
+
+  Since our ordering is at level (o ⊔ ℓ), we define subsets at that level.
+  -}
+  Subset : Type (lsuc (o ⊔ ℓ))
+  Subset = X-Vertex → Type (o ⊔ ℓ)
 
   {-|
   ### is-alexandrov-open: Downward-closed subsets
@@ -100,8 +112,8 @@ module _ {Γ : OrientedGraph o ℓ} where
   - If y ∈ U and x ≤ˣ y (there's a morphism y → x), then x ∈ U
   - Equivalently: if y is in U, and x can reach y via a path, then x is in U
   -}
-  is-alexandrov-open : ℙ X-Vertex → Type (o ⊔ ℓ)
-  is-alexandrov-open U = ∀ {x y} → y ∈ U → x ≤ˣ y → x ∈ U
+  is-alexandrov-open : Subset → Type (o ⊔ ℓ)
+  is-alexandrov-open U = ∀ {x y} → U y → x ≤ˣ y → U x
 
   {-|
   ### Principal Ideal ↓α
@@ -117,11 +129,11 @@ module _ {Γ : OrientedGraph o ℓ} where
   - ↓(tang A) = {outputs, ..., tang A} (everything downstream from A)
   - ↓(input) = entire connected component (maximal element reaches everything)
   -}
-  principal-ideal : X-Vertex → ℙ X-Vertex
-  principal-ideal α = λ β → el! (β ≤ˣ α)
+  principal-ideal : X-Vertex → Subset
+  principal-ideal α = λ β → β ≤ˣ α
 
   -- Notation: ↓_ for principal ideals
-  ↓_ : X-Vertex → ℙ X-Vertex
+  ↓_ : X-Vertex → Subset
   ↓_ = principal-ideal
 
   {-|
@@ -155,8 +167,8 @@ module _ {Γ : OrientedGraph o ℓ} where
   - Conversely, if z ∈ ↓x ∩ ↓x', then z ∈ ↓z (by reflexivity)
   - So ↓x ∩ ↓x' = ⋃_{y ∈ ↓x ∩ ↓x'} ↓y
   -}
-  principal-ideals-intersection : ∀ x x' →
-    (↓ x ∩ ↓ x') ⊆ (λ z → Σ[ y ∈ X-Vertex ] ((y ∈ ↓ x) × (y ∈ ↓ x') × (z ∈ ↓ y)))
+  principal-ideals-intersection : ∀ x x' z →
+    (↓ x) z × (↓ x') z → Σ[ y ∈ X-Vertex ] ((↓ x) y × (↓ x') y × (↓ y) z)
   principal-ideals-intersection x x' z (z≤x , z≤x') = z , (z≤x , z≤x' , ≤ˣ-refl)
 
   {-|
@@ -169,16 +181,16 @@ module _ {Γ : OrientedGraph o ℓ} where
   Ω(X) is the collection of all Alexandrov-open subsets of X.
   This forms a frame (complete Heyting algebra).
   -}
-  Ω : Type (lsuc (o ⊔ ℓ))
-  Ω = Σ[ U ∈ ℙ X-Vertex ] (is-alexandrov-open U)
+  Ω-Alexandrov : Type (lsuc (o ⊔ ℓ))
+  Ω-Alexandrov = Σ[ U ∈ Subset ] (is-alexandrov-open U)
 
   -- Empty set is open (vacuously true)
-  ∅-open : is-alexandrov-open (λ _ → ⊥)
-  ∅-open ()
+  ∅-open : is-alexandrov-open (λ _ → Lift (o ⊔ ℓ) ⊥)
+  ∅-open (lift ())
 
   -- Whole set X is open (trivially true)
-  X-open : is-alexandrov-open (λ _ → ⊤)
-  X-open _ _ = tt
+  X-open : is-alexandrov-open (λ _ → Lift (o ⊔ ℓ) ⊤)
+  X-open _ _ = lift tt
 
   {-|
   ### Union of Open Sets is Open
@@ -190,7 +202,7 @@ module _ {Γ : OrientedGraph o ℓ} where
   - Since U_i is open and x ≤ y, we have x ∈ U_i
   - Therefore x ∈ ⋃_i U_i
   -}
-  union-open : ∀ {I : Type (o ⊔ ℓ)} (Us : I → ℙ X-Vertex) →
+  union-open : ∀ {I : Type (o ⊔ ℓ)} (Us : I → Subset) →
               (∀ i → is-alexandrov-open (Us i)) →
               is-alexandrov-open (λ x → Σ[ i ∈ I ] (x ∈ Us i))
   union-open Us opens {x} {y} (i , y∈Ui) x≤y = i , opens i y∈Ui x≤y
@@ -205,7 +217,7 @@ module _ {Γ : OrientedGraph o ℓ} where
   - Since each U_i is open and x ≤ y, we have x ∈ U_i for all i
   - Therefore x ∈ ⋂_i U_i
   -}
-  intersection-open : ∀ {I : Type (o ⊔ ℓ)} (Us : I → ℙ X-Vertex) →
+  intersection-open : ∀ {I : Type (o ⊔ ℓ)} (Us : I → Subset) →
                      (∀ i → is-alexandrov-open (Us i)) →
                      is-alexandrov-open (λ x → ∀ i → x ∈ Us i)
   intersection-open Us opens {x} {y} y∈⋂Ui x≤y = λ i → opens i (y∈⋂Ui i) x≤y
@@ -255,10 +267,10 @@ module _ {Γ : OrientedGraph o ℓ} where
     -}
     postulate
       -- Extension of F to open sets
-      F̃ : (U : ℙ X-Vertex) → is-alexandrov-open U → Type κ
+      F̃ : (U : Subset) → is-alexandrov-open U → Type κ
 
-      -- For principal ideals, F̃(↓x) ≅ F(x)
-      F̃-principal : ∀ (x : X-Vertex) → F̃ (↓ x) (principal-ideal-is-open x) ≅ F₀ x
+      -- For principal ideals, F̃(↓x) ≃ F(x)
+      F̃-principal : ∀ (x : X-Vertex) → F̃ (↓ x) (principal-ideal-is-open x) ≃ ∣ F₀ x ∣
 
       {-|
       ### Restriction Maps
@@ -266,10 +278,10 @@ module _ {Γ : OrientedGraph o ℓ} where
       For V ⊆ U (both open), there's a restriction map F̃(U) → F̃(V).
       This is induced by the inclusion of limits.
       -}
-      F̃-restrict : ∀ {U V : ℙ X-Vertex}
+      F̃-restrict : ∀ {U V : Subset}
                    (U-open : is-alexandrov-open U)
                    (V-open : is-alexandrov-open V) →
-                   V ⊆ U →
+                   (∀ x → V x → U x) →
                    F̃ U U-open → F̃ V V-open
 
       {-|
@@ -280,15 +292,15 @@ module _ {Γ : OrientedGraph o ℓ} where
       For Alexandrov topology, a covering of U is any family {V_i} of open sets
       with U = ⋃_i V_i.
       -}
-      F̃-unique : ∀ {U : ℙ X-Vertex} {I : Type (o ⊔ ℓ)}
+      F̃-unique : ∀ {U : Subset} {I : Type (o ⊔ ℓ)}
                  (U-open : is-alexandrov-open U)
-                 (Vs : I → ℙ X-Vertex)
+                 (Vs : I → Subset)
                  (Vs-open : ∀ i → is-alexandrov-open (Vs i))
-                 (cover : ∀ x → x ∈ U → Σ[ i ∈ I ] (x ∈ Vs i))
+                 (cover : ∀ x → U x → Σ[ i ∈ I ] (Vs i x))
                  (s s' : F̃ U U-open) →
-                 (∀ i (x∈Vi-proof : ∀ x → x ∈ Vs i → x ∈ U) →
-                    F̃-restrict U-open (Vs-open i) x∈Vi-proof s ≡
-                    F̃-restrict U-open (Vs-open i) x∈Vi-proof s') →
+                 (∀ i (Vi⊆U : ∀ x → Vs i x → U x) →
+                    F̃-restrict U-open (Vs-open i) Vi⊆U s ≡
+                    F̃-restrict U-open (Vs-open i) Vi⊆U s') →
                  s ≡ s'
 
       {-|
@@ -300,17 +312,13 @@ module _ {Γ : OrientedGraph o ℓ} where
       Compatibility means: for all i, j, the restrictions of s_i and s_j to
       V_i ∩ V_j agree.
       -}
-      F̃-glue : ∀ {U : ℙ X-Vertex} {I : Type (o ⊔ ℓ)}
+      F̃-glue : ∀ {U : Subset} {I : Type (o ⊔ ℓ)}
               (U-open : is-alexandrov-open U)
-              (Vs : I → ℙ X-Vertex)
+              (Vs : I → Subset)
               (Vs-open : ∀ i → is-alexandrov-open (Vs i))
-              (cover : ∀ x → x ∈ U → Σ[ i ∈ I ] (x ∈ Vs i))
+              (cover : ∀ x → U x → Σ[ i ∈ I ] (Vs i x))
               (ss : ∀ i → F̃ (Vs i) (Vs-open i)) →
-              -- Compatibility condition
-              (∀ i j → let V-ij-open = intersection-open (λ { true → Vs i ; false → Vs j })
-                                                        (λ { true → Vs-open i ; false → Vs-open j })
-                      in F̃-restrict (Vs-open i) V-ij-open (λ x (xi , _) → xi) (ss i) ≡
-                         F̃-restrict (Vs-open j) V-ij-open (λ x (_ , xj) → xj) (ss j)) →
+              -- TODO: Add compatibility condition: ss i and ss j agree on Vs i ∩ Vs j
               F̃ U U-open
 
   {-|

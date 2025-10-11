@@ -54,7 +54,11 @@ open import Cat.Instances.Functor
 open import Cat.Instances.Shape.Terminal
 open import Cat.Bi.Base
 
-open import Algebra.Group
+open import Algebra.Group using (Group-on; Group≃)
+
+-- Helper: Group is Σ Type Group-on
+Group : ∀ ℓ → Type (lsuc ℓ)
+Group ℓ = Σ (Type ℓ) Group-on
 
 open import Data.Nat.Base using (Nat)
 

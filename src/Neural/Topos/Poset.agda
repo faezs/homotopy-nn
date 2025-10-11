@@ -45,14 +45,17 @@ open import 1Lab.Path
 open import Cat.Base
 open import Cat.Instances.Functor
 open import Cat.Functor.Base
-open import Cat.Site.Base using (Coverage)
+open import Cat.Site.Base using (Coverage; is-sheaf)
+open import Cat.Diagram.Sieve
 
 open import Order.Base using (Poset)
 open import Order.Cat using (poset→category)
 
 open import Data.Nat.Base using (Nat; zero; suc)
+open import Data.Power
 
 open import Neural.Topos.Architecture
+open import Neural.Topos.Category
 
 private variable
   o ℓ : Level
@@ -62,13 +65,13 @@ private variable
 
 The poset X is obtained from the fork category C by removing all A★ vertices.
 From Architecture.agda, we have ForkVertex with three constructors:
-- original: Layer → ForkVertex
-- fork-star: (convergent layer) → ForkVertex  [REMOVED in X]
-- fork-tang: (convergent layer) → ForkVertex
+- original: Vertex → ForkVertex
+- fork-star: (convergent vertex) → ForkVertex  [REMOVED in X]
+- fork-tang: (convergent vertex) → ForkVertex
 
 We keep only `original` and `fork-tang` vertices.
 -}
-module _ (Γ : OrientedGraph o ℓ) where
+module PosetOfGraph (Γ : OrientedGraph o ℓ) where
   open OrientedGraph Γ
 
   {-|
@@ -78,8 +81,8 @@ module _ (Γ : OrientedGraph o ℓ) where
   to emphasize that it's the fundamental object of study in this module.
   -}
   data X-Vertex : Type (o ⊔ ℓ) where
-    x-original   : Layer → X-Vertex
-    x-fork-tang  : (a : Layer) → is-convergent a → X-Vertex
+    x-original   : Vertex → X-Vertex
+    x-fork-tang  : (a : Vertex) → is-convergent Γ a → X-Vertex
 
   {-|
   ### Ordering on X
@@ -95,18 +98,20 @@ module _ (Γ : OrientedGraph o ℓ) where
     -- Reflexivity
     ≤ˣ-refl : ∀ {x} → x ≤ˣ x
 
-    -- Original edge (non-convergent): y ≤ x (arrow x → y in Γ)
-    ≤ˣ-orig : ∀ {x y} → Connection x y → ¬ (is-convergent y) →
-              x-original y ≤ˣ x-original x
+    -- Original edge (non-convergent): x ≤ y (when Edge x y in Γ)
+    -- Arrows go in SAME direction as edges (categorical convention)
+    ≤ˣ-orig : ∀ {x y} → Edge x y → ¬ (is-convergent Γ y) →
+              x-original x ≤ˣ x-original y
 
-    -- Tang to handle: a ≤ A (arrow A → a in forked graph)
-    ≤ˣ-tang-handle : ∀ {a} (conv : is-convergent a) →
-                     x-original a ≤ˣ x-fork-tang a conv
+    -- Tang to handle: A ≤ a (when there's an edge into a convergent vertex a)
+    -- In Fork-Cat: fork-tang a → original a
+    ≤ˣ-tang-handle : ∀ {a} (conv : is-convergent Γ a) →
+                     x-fork-tang a conv ≤ˣ x-original a
 
-    -- Tip to tang: a' ≤ A (path a' → A★ → A, but A★ removed)
-    -- This is the key edge that "jumps over" the removed A★
-    ≤ˣ-tip-tang : ∀ {a' a} (conv : is-convergent a) → Connection a' a →
-                  x-fork-tang a conv ≤ˣ x-original a'
+    -- Tip to tang: a' ≤ A (when Edge a' a where a is convergent)
+    -- This jumps over the removed A★: a' → A★ → A becomes a' → A
+    ≤ˣ-tip-tang : ∀ {a' a} (conv : is-convergent Γ a) → Edge a' a →
+                  x-original a' ≤ˣ x-fork-tang a conv
 
     -- Transitivity
     ≤ˣ-trans : ∀ {x y z} → x ≤ˣ y → y ≤ˣ z → x ≤ˣ z
@@ -193,16 +198,39 @@ module _ (Γ : OrientedGraph o ℓ) where
   - F(A) for tang vertices
   -}
 
-  module _ where
+  module _ (ForkVertex-is-set : is-set (ForkConstruction.ForkVertex Γ)) where
     open Functor
+    open ForkConstruction Γ using (ForkVertex; fork-star; original; fork-tang; _≤ᶠ_; module _≤ᶠ_)
 
-    -- Fork-Category is defined in a parametrized module in Architecture
-    -- We postulate the fork category for the current oriented graph Γ
-    postulate
-      Fork-Cat : Precategory (o ⊔ ℓ) (o ⊔ ℓ)
+    -- Use the Fork-Category from Neural.Topos.Category
+    Fork-Cat : Precategory (o ⊔ ℓ) (o ⊔ ℓ)
+    Fork-Cat = ForkConstruction.Fork-Category Γ ForkVertex-is-set
 
-      -- The inclusion functor ι: CX ↪ Fork-Cat
-      ι-CX : Functor CX-Category Fork-Cat
+    -- The inclusion functor ι: CX ↪ Fork-Cat
+    -- Maps X-Vertex to ForkVertex (excludes fork-stars)
+    {-# TERMINATING #-}
+    ι-CX : Functor CX-Category Fork-Cat
+    ι-CX .F₀ (x-original v) = original v
+    ι-CX .F₀ (x-fork-tang a conv) = fork-tang a conv
+    ι-CX .F₁ ≤ˣ-refl = _≤ᶠ_.id-edge
+    -- ≤ˣ-orig : Edge x y → x-original x ≤ˣ x-original y
+    -- orig-edge : Edge x y → original x ≤ᶠ original y
+    -- Perfect match!
+    ι-CX .F₁ (≤ˣ-orig e not-conv) = _≤ᶠ_.orig-edge e not-conv
+    -- ≤ˣ-tang-handle : fork-tang a → original a
+    -- tang-to-handle : fork-tang a → original a
+    ι-CX .F₁ (≤ˣ-tang-handle conv) = _≤ᶠ_.tang-to-handle conv
+    -- ≤ˣ-tip-tang : Edge a' a → original a' ≤ˣ fork-tang a
+    -- Need: original a' ≤ᶠ fork-tang a
+    -- Path: original a' → fork-star a → fork-tang a
+    ι-CX .F₁ (≤ˣ-tip-tang conv e) =
+      _≤ᶠ_.≤ᶠ-trans (_≤ᶠ_.star-to-tang conv) (_≤ᶠ_.tip-to-star conv e)
+    -- ≤ˣ-trans : (x ≤ˣ y) → (y ≤ˣ z) → (x ≤ˣ z) [sequential]
+    -- ≤ᶠ-trans : (y ≤ᶠ z) → (x ≤ᶠ y) → (x ≤ᶠ z) [diagrammatic]
+    -- So map ≤ˣ-trans f g to ≤ᶠ-trans (F₁ g) (F₁ f)
+    ι-CX .F₁ (≤ˣ-trans f g) = _≤ᶠ_.≤ᶠ-trans (ι-CX .F₁ g) (ι-CX .F₁ f)
+    ι-CX .F-id = refl  -- F₁ ≤ˣ-refl = id-edge = id
+    ι-CX .F-∘ f g = refl  -- F₁ (≤ˣ-trans f g) = ≤ᶠ-trans (F₁ g) (F₁ f) = F₁ g ∘ F₁ f
 
     {-|
     Restriction of a presheaf on C to CX.
@@ -211,7 +239,7 @@ module _ (Γ : OrientedGraph o ℓ) where
     presheaf-restriction : ∀ {κ} →
                           Functor (Fork-Cat ^op) (Sets κ) →
                           Functor (CX-Category ^op) (Sets κ)
-    presheaf-restriction F = F F∘ (ι-CX ^op)
+    presheaf-restriction F = F F∘ Functor.op ι-CX
 
   {-|
   ## Proposition 1.1(iii): Unique Sheaf Extension
@@ -235,29 +263,75 @@ module _ (Γ : OrientedGraph o ℓ) where
   2. The morphism structure is uniquely determined by composition in C
   -}
 
-  module _ where
-    open Functor
+    -- Presheaf restriction (re-use definition from above)
+    presheaf-restriction' : ∀ {κ} → Functor (Fork-Cat ^op) (Sets κ) → Functor (CX-Category ^op) (Sets κ)
+    presheaf-restriction' = presheaf-restriction
 
+    {-|
+    ### Fork Coverage: The Grothendieck topology J
+
+    From the paper's proof of Proposition 1.1(iii):
+    > "the sheaf condition over C tells that F(A★) must be the product of
+    > the entrant F(a'), ..."
+
+    The fork topology has different coverings depending on vertex type:
+    - **At fork-star A★**: Covering = all incoming edges from tips
+      - This encodes the sheaf gluing condition F(A★) ≅ ∏_{a'→A★} F(a')
+    - **At other vertices**: Maximal sieve (all morphisms)
+      - No special gluing condition needed
+    -}
+    fork-coverage : ∀ {κ} → Coverage Fork-Cat κ
+    fork-coverage {κ} = cov where
+      open Coverage
+      open Sieve
+
+      -- For each vertex, define what it means to be a covering
+      covers-vertex : ForkVertex → Type κ
+      covers-vertex (fork-star a conv) = Lift κ ⊤  -- fork-stars have one canonical covering
+      covers-vertex _ = Lift κ ⊤  -- all other vertices use maximal sieve
+
+      -- Convert covering to sieve
+      cover-sieve : ∀ {v : ForkVertex} → covers-vertex v → Sieve Fork-Cat v
+      cover-sieve {fork-star a conv} (lift tt) = record
+        { arrows = λ {y} f → el ⊤ (λ _ _ → refl)
+          -- At A★, include ALL incoming morphisms (tips, but also any path leading to A★)
+        ; closed = λ hf g → tt
+        }
+      cover-sieve {original x} (lift tt) = maximal' {C = Fork-Cat}
+      cover-sieve {fork-tang a conv} (lift tt) = maximal' {C = Fork-Cat}
+
+      -- Stability: pullbacks of coverings are coverings
+      -- For fork topology, maximal sieves pull back to maximal sieves
+      -- For fork-star sieves (all arrows), pullback is also all arrows
+      -- Since all our sieves have arrows : f → el ⊤ _, the pullback also has ⊤
+      stability : ∀ {U V : ForkVertex} (R : covers-vertex U) (f : Fork-Cat .Precategory.Hom V U)
+                → ∃[ S ∈ covers-vertex V ] (cover-sieve S ⊆ pullback {C = Fork-Cat} f (cover-sieve R))
+      stability {fork-star a conv} {fork-star b conv'} (lift tt) f = inc (lift tt , λ h _ → tt)
+      stability {fork-star a conv} {original v} (lift tt) f = inc (lift tt , λ h _ → tt)
+      stability {fork-star a conv} {fork-tang b conv'} (lift tt) f = inc (lift tt , λ h _ → tt)
+      stability {original u} {fork-star b conv'} (lift tt) f = inc (lift tt , λ h _ → tt)
+      stability {original u} {original v} (lift tt) f = inc (lift tt , λ h _ → tt)
+      stability {original u} {fork-tang b conv'} (lift tt) f = inc (lift tt , λ h _ → tt)
+      stability {fork-tang a conv} {fork-star b conv'} (lift tt) f = inc (lift tt , λ h _ → tt)
+      stability {fork-tang a conv} {original v} (lift tt) f = inc (lift tt , λ h _ → tt)
+      stability {fork-tang a conv} {fork-tang b conv'} (lift tt) f = inc (lift tt , λ h _ → tt)
+
+      cov : Coverage Fork-Cat κ
+      cov .covers = covers-vertex
+      cov .cover = cover-sieve
+      cov .stable = stability
+
+    {-|
+    For each presheaf F on CX, there exists a unique extension to a sheaf on C.
+    The sheaf is characterized by:
+    - F̃(x) = F(x) for x ∈ CX
+    - F̃(A★) = ∏_{a'→A★} F(a') for fork-stars
+    - Sheaf condition: F̃ satisfies gluing for the fork topology J
+    -}
     postulate
-      -- The fork category for the current oriented graph Γ
-      Fork-Cat : Precategory (o ⊔ ℓ) (o ⊔ ℓ)
-
-      -- Helper: property of being a sheaf (defined properly in Architecture or later)
-      is-sheaf : ∀ {κ} → Functor (Fork-Cat ^op) (Sets κ) → Type
-
-      -- Presheaf restriction (re-declared for sheaf extension scope)
-      presheaf-restriction' : ∀ {κ} → Functor (Fork-Cat ^op) (Sets κ) → Functor (CX-Category ^op) (Sets κ)
-
-      {-|
-      For each presheaf F on CX, there exists a unique extension to a sheaf on C.
-      The sheaf is characterized by:
-      - F̃(x) = F(x) for x ∈ CX
-      - F̃(A★) = ∏_{a'→A★} F(a') for fork-stars
-      - Sheaf condition: F̃ satisfies gluing for the fork topology J
-      -}
       sheaf-extension : ∀ {κ} (F : Functor (CX-Category ^op) (Sets κ)) →
                        Σ[ F̃ ∈ Functor (Fork-Cat ^op) (Sets κ) ]
-                         ((presheaf-restriction' F̃ ≡ F) × is-sheaf F̃)
+                         ((presheaf-restriction' F̃ ≡ F) × is-sheaf (fork-coverage {κ}) F̃)
 
       {-|
       The extension is unique: if two sheaves F̃₁ and F̃₂ both extend F: CX → Sets
@@ -265,7 +339,7 @@ module _ (Γ : OrientedGraph o ℓ) where
       -}
       sheaf-extension-unique : ∀ {κ} {F : Functor (CX-Category ^op) (Sets κ)} →
                               (ext₁ ext₂ : Σ[ F̃ ∈ Functor (Fork-Cat ^op) (Sets κ) ]
-                                             ((presheaf-restriction' F̃ ≡ F) × is-sheaf F̃)) →
+                                             ((presheaf-restriction' F̃ ≡ F) × is-sheaf (fork-coverage {κ}) F̃)) →
                               ext₁ ≡ ext₂
 
   {-|
@@ -290,7 +364,7 @@ module _ (Γ : OrientedGraph o ℓ) where
     topos-presheaf-equivalence : ∀ {κ} →
       -- Sh[C, J] ≃ [CX^op, Sets]
       -- This requires defining the sheaf topos, which we do in Properties.agda
-      Type
+      Type (o ⊔ ℓ ⊔ lsuc κ)
 
 {-|
 ## Summary
