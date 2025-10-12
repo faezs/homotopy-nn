@@ -1,0 +1,170 @@
+{
+  "ir-version": 9,
+  "opset-import": [
+    {
+      "domain": "",
+      "version": 17
+    }
+  ],
+  "producer-name": "simple-cnn",
+  "producer-version": "1.0",
+  "domain": "",
+  "model-version": 1,
+  "doc": "Generated from SequentialSpec",
+  "graph": {
+    "name": "simple-cnn",
+    "nodes": [
+      {
+        "op-type": "Conv",
+        "inputs": [
+          "input_0",
+          "conv1_weight",
+          "conv1_bias"
+        ],
+        "outputs": [
+          "tensor_1"
+        ],
+        "attributes": [
+          {
+            "name": "kernel_shape",
+            "value": {
+              "attr-ints": [
+                5,
+                5
+              ]
+            }
+          },
+          {
+            "name": "strides",
+            "value": {
+              "attr-ints": [
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "name": "pads",
+            "value": {
+              "attr-ints": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        ],
+        "name": "Conv_0",
+        "domain": ""
+      },
+      {
+        "op-type": "Relu",
+        "inputs": [
+          "tensor_1"
+        ],
+        "outputs": [
+          "tensor_2"
+        ],
+        "attributes": [],
+        "name": "Relu_1",
+        "domain": ""
+      },
+      {
+        "op-type": "MaxPool",
+        "inputs": [
+          "tensor_2"
+        ],
+        "outputs": [
+          "tensor_3"
+        ],
+        "attributes": [
+          {
+            "name": "kernel_shape",
+            "value": {
+              "attr-ints": [
+                2,
+                2
+              ]
+            }
+          },
+          {
+            "name": "strides",
+            "value": {
+              "attr-ints": [
+                2,
+                2
+              ]
+            }
+          }
+        ],
+        "name": "MaxPool_2",
+        "domain": ""
+      }
+    ],
+    "inputs": [
+      {
+        "name": "input_0",
+        "type": {
+          "tensor-type": {
+            "elem-type": "FLOAT",
+            "shape": [
+              {
+                "dim-value": 1
+              },
+              {
+                "dim-value": 28
+              },
+              {
+                "dim-value": 28
+              },
+              {
+                "dim-value": 1
+              }
+            ]
+          }
+        },
+        "doc": "Input tensor"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "tensor_3",
+        "type": {
+          "tensor-type": {
+            "elem-type": "FLOAT",
+            "shape": [
+              {
+                "dim-value": 1
+              },
+              {
+                "dim-value": 10
+              }
+            ]
+          }
+        },
+        "doc": "Output tensor"
+      }
+    ],
+    "initializers": [
+      {
+        "name": "conv1_weight",
+        "elem-type": "FLOAT",
+        "dims": [
+          20,
+          1,
+          5,
+          5
+        ]
+      },
+      {
+        "name": "conv1_bias",
+        "elem-type": "FLOAT",
+        "dims": [
+          20
+        ]
+      }
+    ],
+    "doc": "Sequential CNN with \u2124\u00b2 symmetry"
+  }
+}
