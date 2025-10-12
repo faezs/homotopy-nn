@@ -1,0 +1,21 @@
+Checking Neural.Topos.Localic (/Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda).
+/Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda:556.58-63: error: [AmbiguousName]
+Ambiguous name ⋃-apᶠ. It could refer to any one of
+  Neural.Topos.Localic.TripleComp.⋃-apᶠ bound at
+    /nix/store/f5w4kylmw0idvbn7bbhn8837h5k3j7lv-1lab-unstable-2025-07-01/src/Order/Diagram/Lub/Reasoning.lagda.md:156.3-8
+  CompleteHeytingAlgebra.⋃-apᶠ bound at
+    /nix/store/f5w4kylmw0idvbn7bbhn8837h5k3j7lv-1lab-unstable-2025-07-01/src/Order/Diagram/Lub/Reasoning.lagda.md:156.3-8
+⋃-apᶠ is in scope as
+  * a defined name Neural.Topos.Localic.TripleComp._.⋃-apᶠ
+    brought into scope by
+    - the application of FrameReasoning at /Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda:543.8-22
+    - the application of is-frame at
+    - the application of Lubs at
+    - its definition at /nix/store/f5w4kylmw0idvbn7bbhn8837h5k3j7lv-1lab-unstable-2025-07-01/src/Order/Diagram/Lub/Reasoning.lagda.md:156.3-8
+  * a defined name Neural.Topos.Localic.CompleteHeytingAlgebra._.⋃-apᶠ
+    brought into scope by
+    - the opening of CompleteHeytingAlgebra at /Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda:134.6-28
+    - the application of is-frame at /Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda:125.8-16
+    - the application of Lubs at
+    - its definition at /nix/store/f5w4kylmw0idvbn7bbhn8837h5k3j7lv-1lab-unstable-2025-07-01/src/Order/Diagram/Lub/Reasoning.lagda.md:156.3-8
+when scope checking ⋃-apᶠ

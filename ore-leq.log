@@ -1,0 +1,7 @@
+Checking ToposOfDNNs (/Users/faezs/homotopy-nn/src/ToposOfDNNs.agda).
+ Checking Neural.Topos.Localic (/Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda).
+/Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda:200.27-66: error: [NoParseForApplication]
+Could not parse the application
+(Ω .meet (δ x y) (δ y z)) Ω._≤_ (δ x z)
+Operators used in the grammar:
+when scope checking (Ω .meet (δ x y) (δ y z)) Ω._≤_ (δ x z)

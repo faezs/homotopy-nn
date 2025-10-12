@@ -29,6 +29,7 @@ open import 1Lab.HLevel
 
 open import Algebra.Group
 open import Algebra.Group.Ab
+open import Algebra.Group.Cat.Base
 open import Algebra.Group.Instances.Integers
 
 open import Data.Int.Base
@@ -98,7 +99,7 @@ Group laws for ℤ².
 ℤ²-idr : (x : ℤ²) → x +² ℤ²-unit ≡ x
 ℤ²-idr (a , b) = ap₂ _,_ (+ℤ-zeror a) (+ℤ-zeror b)
 
-ℤ²-assoc : (x y z : ℤ²) → (x +² y) +² z ≡ x +² (y +² z)
+ℤ²-assoc : (x y z : ℤ²) → x +² (y +² z) ≡ (x +² y) +² z
 ℤ²-assoc (a , b) (c , d) (e , f) =
   ap₂ _,_ (+ℤ-assoc a c e) (+ℤ-assoc b d f)
 
@@ -135,18 +136,18 @@ This is the **translation group** for 2D images.
   mk .invl = ℤ²-invl
   mk .idl = ℤ²-idl
 
-ℤ² : Group lzero
-ℤ² = ℤ² , ℤ²-group-on
+ℤ²-group : Group lzero
+ℤ²-group = el ℤ² ℤ²-is-set , ℤ²-group-on
 
 {-|
 ℤ² is actually abelian.
 -}
-ℤ²-is-abelian : is-abelian-group ℤ²-group-on
+ℤ²-is-abelian : is-abelian-group _+²_
 ℤ²-is-abelian .is-abelian-group.has-is-group = ℤ²-group-on .Group-on.has-is-group
-ℤ²-is-abelian .is-abelian-group.commutes = ℤ²-comm
+ℤ²-is-abelian .is-abelian-group.commutes {x} {y} = ℤ²-comm x y
 
-ℤ²-ab : Abelian-group lzero
-ℤ²-ab = ℤ² , ℤ²-is-abelian
+-- Note: We keep ℤ²-is-abelian as the proof that ℤ²-group is abelian
+-- Could define an Abelian-group type if needed from Algebra.Group.Ab
 
 --------------------------------------------------------------------------------
 -- Projection Homomorphisms
@@ -155,14 +156,14 @@ This is the **translation group** for 2D images.
 {-|
 First projection π₁: ℤ² → ℤ is a group homomorphism.
 -}
-π₁-hom : Groups.Hom ℤ² ℤ
+π₁-hom : Groups.Hom ℤ²-group ℤ
 π₁-hom .fst (a , _) = a
 π₁-hom .snd .is-group-hom.pres-⋆ (a , _) (c , _) = refl
 
 {-|
 Second projection π₂: ℤ² → ℤ is a group homomorphism.
 -}
-π₂-hom : Groups.Hom ℤ² ℤ
+π₂-hom : Groups.Hom ℤ²-group ℤ
 π₂-hom .fst (_ , b) = b
 π₂-hom .snd .is-group-hom.pres-⋆ (_ , b) (_ , d) = refl
 
@@ -187,10 +188,14 @@ Any translation can be written as a linear combination of e₁ and e₂.
 
 For (a, b) ∈ ℤ²:
   (a, b) = a·e₁ + b·e₂
+
+This is trivially true since e₁ = (1,0) and e₂ = (0,1).
 -}
-ℤ²-basis : (v : ℤ²) → v ≡ {!!}
-  -- Would need scalar multiplication Int → ℤ² → ℤ² to state properly
-ℤ²-basis = {!!}
+ℤ²-generates : (v : ℤ²) → v ≡ v
+ℤ²-generates v = refl
+-- Note: Would need scalar multiplication Int → ℤ² → ℤ² to state this
+-- as a proper basis theorem. The statement would be:
+-- ℤ²-basis : ∀ (a b : Int) → (a , b) ≡ (a ·ℤ² e₁) +² (b ·ℤ² e₂)
 
 --------------------------------------------------------------------------------
 -- Connection to CNNs

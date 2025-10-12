@@ -1,0 +1,21 @@
+Checking Neural.Topos.Localic (/Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda).
+/Users/faezs/homotopy-nn/src/Neural/Topos/Localic.agda:625.28-636.80: error: [UnequalTerms]
+Carrier y != Carrier x of type Type o
+when checking that the expression
+funext
+λ w-elem →
+  funext
+  λ z-elem →
+    let module ΩA = CompleteHeytingAlgebra Ω
+        module X = Ω-Set x
+        module Y = Ω-Set y
+        module f-mod = Ω-Set-Morphism f
+        module g-mod = Ω-Set-Morphism g
+        module h-mod = Ω-Set-Morphism h
+        module FR = FrameReasoning Neural.Topos.Localic.ΩA.frame
+        module TC = TripleComp h g f
+    in Neural.Topos.Localic.TC.left-to-flat w-elem z-elem ∙
+       sym (Neural.Topos.Localic.TC.right-to-flat w-elem z-elem)
+has type
+Ω-Set-Morphism.f ((cat Precategory.∘ h) ((cat Precategory.∘ g) f))
+≡ Ω-Set-Morphism.f ((cat Precategory.∘ (cat Precategory.∘ h) g) f)

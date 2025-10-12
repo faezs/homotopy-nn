@@ -67,6 +67,10 @@ private variable
 suc-monus-lemma : (m : Nat) → suc (suc m ∸ 1) ≡ suc m
 suc-monus-lemma m = refl   -- suc (suc m ∸ 1) = suc m ✓ definitionally
 
+-- Length of non-empty list is at least 1
+length-nonempty : {A : Type} → (x : A) → (xs : List A) → length (x ∷ xs) ≡ suc (length xs)
+length-nonempty x xs = refl
+
 -- Float constant: 1.0
 -- Cannot import Agda.Builtin.Float directly due to LEVELMAX conflict with 1Lab
 -- Use postulate with GHC binding instead
@@ -371,7 +375,7 @@ compile-annotations spec with extract-vertex-shapes (spec .layers)
   ; edge-shape = edge-shapes
   ; edge-elem-type = λ _ → FLOAT
   ; vertex-attributes = vertex-attrs
-  ; graph-inputs = fzero ∷ []  -- First vertex is input
+  ; graph-inputs = first-vertex ∷ []  -- First vertex is input
   ; graph-outputs = last-vertex ∷ []  -- Last vertex is output
   ; producer = spec .network-name
   ; model-version = 1
@@ -389,6 +393,11 @@ compile-annotations spec with extract-vertex-shapes (spec .layers)
 
     n-eds : Nat
     n-eds = n-verts ∸ 1  -- Must match compile-to-graph's edge count
+
+    -- First vertex: Since shapes is non-empty, index 0 exists
+    first-vertex : Fin n-verts
+    first-vertex with shapes
+    ... | (h ∷ t) = fzero
 
     -- Vertex operation types: For sequential networks, just use list lookup
     vertex-ops : Fin n-verts → String
@@ -419,15 +428,16 @@ compile-annotations spec with extract-vertex-shapes (spec .layers)
           else infer-attrs-at n (tgt ∷ []) rest-ops
         infer-attrs-at _ _ _ = []
 
-    -- Last vertex index (highest index in Fin n-verts)
-    -- For non-empty list (first-shape ∷ rest-shapes), n-verts ≥ 1
+    -- Last vertex index: Since we matched (first-shape ∷ rest-shapes),
+    -- shapes is provably non-empty. Match on it to get the structure.
     last-vertex : Fin n-verts
-    last-vertex with n-verts
-    ... | suc m = make-last m
+    last-vertex with shapes
+    ... | [] = fzero  -- Impossible but needed for coverage
+    ... | (h ∷ t) = go-nonempty h t
       where
-        make-last : (m : Nat) → Fin (suc m)
-        make-last zero = fzero
-        make-last (suc n) = fsuc (make-last n)
+        go-nonempty : (head : List Nat) → (tail : List (List Nat)) → Fin (suc (length tail))
+        go-nonempty _ [] = fzero  -- Single element list
+        go-nonempty _ (x ∷ xs) = fsuc (go-nonempty x xs)  -- Recurse
 
 --------------------------------------------------------------------------------
 -- Documentation

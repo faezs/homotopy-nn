@@ -50,7 +50,7 @@ open import Cat.Instances.Graphs
 open import Cat.Instances.Sets
 
 open import Data.Nat.Base using (Nat; zero; suc; _+_)
-open import Data.Fin.Base using (Fin; fzero; fsuc)
+open import Data.Fin.Base using (Fin; fzero; fsuc; weaken; from-nat; Fin-elim; Fin-cases)
 
 {-|
 ## Chain Graph (Definition)
@@ -79,10 +79,10 @@ record ChainGraph (n : Nat) : Type where
 
   -- Source and target functions
   src : Edge → Vertex
-  src k = {!!}  -- Fin n → Fin (suc n): k ↦ k
+  src k = subst Fin (sym layers-eq) (weaken k)  -- Fin n → Fin (suc n) → Fin num-layers
 
   tgt : Edge → Vertex
-  tgt k = {!!}  -- Fin n → Fin (suc n): k ↦ suc k
+  tgt k = subst Fin (sym layers-eq) (fsuc k)  -- Fin n → Fin (suc n) → Fin num-layers
 
 {-|
 ## Activity Functor X^w (for fixed weights)
@@ -146,7 +146,8 @@ module _ {ℓ} (n : Nat) (chain : ChainGraph n) where
       forget : (k : Edge) → Π (src k) → Π (tgt k)
 
       -- For output layer Lₙ: Πₙ = ★ (terminal object/singleton)
-      output-terminal : Π {!!} ≃ ⊤
+      -- Last vertex is fsuc (fsuc ... fzero) n times = from-nat n
+      output-terminal : Π (subst Fin (sym layers-eq) (from-nat n)) ≃ ⊤
 
   {-|
   ## Crossed Product Functor X (Equation 1.1)
@@ -169,15 +170,14 @@ module _ {ℓ} (n : Nat) (chain : ChainGraph n) where
     open ActivityFunctor X^w
     open WeightFunctor W
 
-    field
-      -- At each layer: activity-weight pairs
-      State : Vertex → Type ℓ
-      State k = Activity k × Π k
+    -- At each layer: activity-weight pairs
+    State : Vertex → Type ℓ
+    State k = Activity k × Π k
 
-      -- Transition function (Equation 1.1)
-      -- (xₖ, (wₖ₊₁ₖ, w'ₖ₊₁)) ↦ (X^w_{k+1,k}(xₖ), w'_{k+1})
-      transition : (k : Edge) → State (src k) → State (tgt k)
-      transition k (xₖ , wₖ) = forward k xₖ , forget k wₖ
+    -- Transition function (Equation 1.1)
+    -- (xₖ, (wₖ₊₁ₖ, w'ₖ₊₁)) ↦ (X^w_{k+1,k}(xₖ), w'_{k+1})
+    transition : (k : Edge) → State (src k) → State (tgt k)
+    transition k (xₖ , wₖ) = forward k xₖ , forget k wₖ
 
     -- Natural projection from X to W
     -- This is a natural transformation: X → W
@@ -219,39 +219,91 @@ postulate
 
 -- Example: 2-layer MLP (input → hidden → output)
 module Example-MLP where
-  open ChainGraph
-
   -- Chain with 2 edges (3 layers: L₀, L₁, L₂)
   mlp-chain : ChainGraph 2
-  mlp-chain .num-layers = 3
-  mlp-chain .layers-eq = refl
+  mlp-chain = record
+    { num-layers = 3
+    ; layers-eq = refl
+    }
 
-  -- Activity spaces (postulate for simplicity)
+  -- Activity spaces (concrete definitions as Fin n → ℝ)
+  ℝ² : Type
+  ℝ² = Fin 2 → ℝ
+
+  ℝ³ : Type
+  ℝ³ = Fin 3 → ℝ
+
+  ℝ¹ : Type
+  ℝ¹ = Fin 1 → ℝ
+
+  -- Weight spaces (matrices as Fin m → Fin n → ℝ)
+  Matrix-2×3 : Type
+  Matrix-2×3 = Fin 2 → Fin 3 → ℝ  -- 2 input dims, 3 output dims
+
+  Matrix-3×1 : Type
+  Matrix-3×1 = Fin 3 → Fin 1 → ℝ  -- 3 input dims, 1 output dim
+
+  -- Matrix-vector multiplication (requires summing)
+  -- For now we postulate sum (would come from a linear algebra library)
   postulate
-    ℝ² : Type
-    ℝ³ : Type
-    ℝ¹ : Type
+    sum : {n : Nat} → (Fin n → ℝ) → ℝ
+    _*ᵣ_ : ℝ → ℝ → ℝ
 
-  -- Weight spaces
-  postulate
-    Matrix-2×3 : Type  -- ℝ² → ℝ³
-    Matrix-3×1 : Type  -- ℝ³ → ℝ¹
+  -- Weighted transformations (concrete matrix-vector multiplication)
+  apply-w₁₀ : Matrix-2×3 → ℝ² → ℝ³
+  apply-w₁₀ W x j = sum (λ i → W i j *ᵣ x i)
 
-    -- Weighted transformations
-    apply-w₁₀ : Matrix-2×3 → ℝ² → ℝ³
-    apply-w₂₁ : Matrix-3×1 → ℝ³ → ℝ¹
+  apply-w₂₁ : Matrix-3×1 → ℝ³ → ℝ¹
+  apply-w₂₁ W x j = sum (λ i → W i j *ᵣ x i)
 
-  -- Activity functor for fixed weights w = (w₁₀, w₂₁)
+  -- Open the mlp-chain module to access src and tgt
+  open ChainGraph mlp-chain
+
+  -- Helper functions for Activity functor
+  mlp-activity-space : Fin 3 → Type
+  mlp-activity-space = Fin-elim (λ _ → Type)
+                         ℝ²  -- fzero case
+                         (λ k _ → Fin-elim (λ _ → Type) ℝ³ (λ _ _ → ℝ¹) k)  -- fsuc case
+
+  mlp-forward : (w₁₀ : Matrix-2×3) → (w₂₁ : Matrix-3×1) → (e : Fin 2) →
+                mlp-activity-space (src e) →
+                mlp-activity-space (tgt e)
+  mlp-forward w₁₀ w₂₁ = Fin-cases
+    {P = λ e → mlp-activity-space (src e) → mlp-activity-space (tgt e)}
+    (apply-w₁₀ w₁₀)      -- P 0 case (edge 0: L₀ → L₁)
+    (λ _ → apply-w₂₁ w₂₁)  -- P (fsuc x) case (edge 1: L₁ → L₂)
+
+  -- Concrete Activity functor for the MLP
   mlp-activity : Matrix-2×3 → Matrix-3×1 → ActivityFunctor 2 mlp-chain
-  mlp-activity w₁₀ w₂₁ .ActivityFunctor.Activity = {!!}
-  mlp-activity w₁₀ w₂₁ .ActivityFunctor.forward = {!!}
+  mlp-activity w₁₀ w₂₁ = record
+    { Activity = mlp-activity-space
+    ; forward = mlp-forward w₁₀ w₂₁
+    }
 
-  -- Weight functor
+  -- Helper functions for Weight functor
+  mlp-weight-space : Fin 2 → Type
+  mlp-weight-space = Fin-elim (λ _ → Type) Matrix-2×3 (λ _ _ → Matrix-3×1)
+
+  mlp-weight-product : Fin 3 → Type
+  mlp-weight-product = Fin-elim (λ _ → Type)
+                         (Matrix-2×3 × Matrix-3×1)  -- fzero case
+                         (λ k _ → Fin-elim (λ _ → Type) Matrix-3×1 (λ _ _ → ⊤) k)  -- fsuc case
+
+  mlp-forget : (e : Fin 2) → mlp-weight-product (src e) →
+                             mlp-weight-product (tgt e)
+  mlp-forget = Fin-cases
+    {P = λ e → mlp-weight-product (src e) → mlp-weight-product (tgt e)}
+    snd              -- P 0 case: (W₁₀ × W₂₁) → W₂₁
+    (λ _ _ → tt)     -- P (fsuc x) case: W₂₁ → ⊤
+
+  -- Concrete Weight functor for the MLP
   mlp-weights : WeightFunctor 2 mlp-chain
-  mlp-weights .WeightFunctor.WeightSpace = {!!}
-  mlp-weights .WeightFunctor.Π = {!!}
-  mlp-weights .WeightFunctor.forget = {!!}
-  mlp-weights .WeightFunctor.output-terminal = {!!}
+  mlp-weights = record
+    { WeightSpace = mlp-weight-space
+    ; Π = mlp-weight-product
+    ; forget = mlp-forget
+    ; output-terminal = id-equiv
+    }
 
 {-|
 ## Computational vs Denotational: The Answer

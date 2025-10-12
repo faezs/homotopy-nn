@@ -13,17 +13,10 @@ open import Data.Nat.Base using (Nat; zero; suc)
 open import Data.Fin.Base using (Fin; lower)
 open import Data.List.Base
 open import Data.String.Base using (String)
+open import Data.String.Properties using (_<>_)
 open import Data.Float.Base using (Float)
 
 open import Neural.Compile.ONNX
-open TensorTypeProto
-open ValueInfoProto
-open AttributeProto
-open NodeProto
-open TensorProto
-open GraphProto
-open OperatorSetIdProto
-open ModelProto
 
 -- Postulate string operations for JSON building
 postulate
@@ -86,28 +79,28 @@ serialize-elem-type BFLOAT16   = quote-string "BFLOAT16"
 
 serialize-dimension : Dimension → String
 serialize-dimension (dim-value n) =
-  json-braces (json-field "dim-value" (show-nat n))
+  json-json-braces (json-field "dim-value" (show-nat n))
 serialize-dimension (dim-param s) =
-  json-braces (json-field "dim-param" (quote-string s))
+  json-json-braces (json-field "dim-param" (quote-string s))
 
 serialize-shape : TensorShape → String
 serialize-shape dims = json-brackets (join ", " (map serialize-dimension dims))
 
 serialize-tensor-type : TensorTypeProto → String
-serialize-tensor-type tp = json-braces (join ", "
-  ( json-field "elem-type" (serialize-elem-type (elem-type tp))
-  ∷ json-field "shape" (serialize-shape (shape tp))
+serialize-tensor-type tt = json-json-braces (join ", "
+  ( json-field "elem-type" (serialize-elem-type (TensorTypeProto.elem-type tt))
+  ∷ json-field "shape" (serialize-shape (TensorTypeProto.shape tt))
   ∷ [] ))
 
 serialize-type-proto : TypeProto → String
-serialize-type-proto (tensor-type tp) =
-  json-braces (json-field "tensor-type" (serialize-tensor-type tp))
+serialize-type-proto (tensor-type tt) =
+  json-json-braces (json-field "tensor-type" (serialize-tensor-type tt))
 
 serialize-value-info : ValueInfoProto → String
-serialize-value-info vi = json-braces (join ", "
-  ( json-field "name" (quote-string (name vi))
-  ∷ json-field "type" (serialize-type-proto (type vi))
-  ∷ json-field "doc" (quote-string (doc vi))
+serialize-value-info vi = json-json-braces (join ", "
+  ( json-field "name" (quote-string (ValueInfoProto.name vi))
+  ∷ json-field "type" (serialize-type-proto (ValueInfoProto.type vi))
+  ∷ json-field "doc" (quote-string (ValueInfoProto.doc vi))
   ∷ [] ))
 
 serialize-attribute-value : AttributeValue → String
@@ -118,11 +111,11 @@ serialize-attribute-value (attr-int n) =
 serialize-attribute-value (attr-string s) =
   json-braces (json-field "attr-string" (quote-string s))
 serialize-attribute-value (attr-floats fs) =
-  json-braces (json-field "attr-floats" (json-brackets (join ", " (map show-float fs))))
+  json-braces (json-field "attr-floats" (brackets (join ", " (map show-float fs))))
 serialize-attribute-value (attr-ints ns) =
-  json-braces (json-field "attr-ints" (json-brackets (join ", " (map show-nat ns))))
+  json-braces (json-field "attr-ints" (brackets (join ", " (map show-nat ns))))
 serialize-attribute-value (attr-strings ss) =
-  json-braces (json-field "attr-strings" (json-brackets (join ", " (map quote-string ss))))
+  json-braces (json-field "attr-strings" (brackets (join ", " (map quote-string ss))))
 
 serialize-attribute : AttributeProto → String
 serialize-attribute attr = json-braces (join ", "
@@ -131,14 +124,14 @@ serialize-attribute attr = json-braces (join ", "
   ∷ [] ))
 
 serialize-string-list : List String → String
-serialize-string-list ss = json-brackets (join ", " (map quote-string ss))
+serialize-string-list ss = brackets (join ", " (map quote-string ss))
 
 serialize-node : NodeProto → String
 serialize-node node = json-braces (join ", "
   ( json-field "op-type" (quote-string (NodeProto.op-type node))
   ∷ json-field "inputs" (serialize-string-list (NodeProto.inputs node))
   ∷ json-field "outputs" (serialize-string-list (NodeProto.outputs node))
-  ∷ json-field "attributes" (json-brackets (join ", " (map serialize-attribute (NodeProto.attributes node))))
+  ∷ json-field "attributes" (brackets (join ", " (map serialize-attribute (NodeProto.attributes node))))
   ∷ json-field "name" (quote-string (NodeProto.name node))
   ∷ json-field "domain" (quote-string (NodeProto.domain node))
   ∷ [] ))
@@ -147,16 +140,16 @@ serialize-tensor : TensorProto → String
 serialize-tensor tensor = json-braces (join ", "
   ( json-field "name" (quote-string (TensorProto.name tensor))
   ∷ json-field "elem-type" (serialize-elem-type (TensorProto.elem-type tensor))
-  ∷ json-field "dims" (json-brackets (join ", " (map show-nat (TensorProto.dims tensor))))
+  ∷ json-field "dims" (brackets (join ", " (map show-nat (TensorProto.dims tensor))))
   ∷ [] ))
 
 serialize-graph : GraphProto → String
 serialize-graph graph = json-braces (join ", "
   ( json-field "name" (quote-string (GraphProto.name graph))
-  ∷ json-field "nodes" (json-brackets (join ", " (map serialize-node (GraphProto.nodes graph))))
-  ∷ json-field "inputs" (json-brackets (join ", " (map serialize-value-info (GraphProto.inputs graph))))
-  ∷ json-field "outputs" (json-brackets (join ", " (map serialize-value-info (GraphProto.outputs graph))))
-  ∷ json-field "initializers" (json-brackets (join ", " (map serialize-tensor (GraphProto.initializers graph))))
+  ∷ json-field "nodes" (brackets (join ", " (map serialize-node (GraphProto.nodes graph))))
+  ∷ json-field "inputs" (brackets (join ", " (map serialize-value-info (GraphProto.inputs graph))))
+  ∷ json-field "outputs" (brackets (join ", " (map serialize-value-info (GraphProto.outputs graph))))
+  ∷ json-field "initializers" (brackets (join ", " (map serialize-tensor (GraphProto.initializers graph))))
   ∷ json-field "doc" (quote-string (GraphProto.doc graph))
   ∷ [] ))
 
@@ -169,7 +162,7 @@ serialize-opset opset = json-braces (join ", "
 serialize-model : ModelProto → String
 serialize-model model = json-braces (join ", "
   ( json-field "ir-version" (show-nat (ModelProto.ir-version model))
-  ∷ json-field "opset-import" (json-brackets (join ", " (map serialize-opset (ModelProto.opset-import model))))
+  ∷ json-field "opset-import" (brackets (join ", " (map serialize-opset (ModelProto.opset-import model))))
   ∷ json-field "producer-name" (quote-string (ModelProto.producer-name model))
   ∷ json-field "producer-version" (quote-string (ModelProto.producer-version model))
   ∷ json-field "domain" (quote-string (ModelProto.domain model))
