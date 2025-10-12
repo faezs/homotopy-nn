@@ -100,6 +100,24 @@ Verify convergence count (should still be 0 for sequential network).
 simple-cnn-convergence-dsl : count-multi-input-nodes simple-cnn-graph-dsl ≡ 0
 simple-cnn-convergence-dsl = sequential-convergence-count simple-cnn-spec
 
+{-|
+Generate ONNX annotations automatically from the spec!
+-}
+simple-cnn-annotations-dsl : GraphAnnotations simple-cnn-graph-dsl
+simple-cnn-annotations-dsl = compile-annotations simple-cnn-spec
+
+{-|
+Export to ONNX model protocol buffer format.
+-}
+simple-cnn-onnx-dsl : ModelProto
+simple-cnn-onnx-dsl = export-to-onnx simple-cnn-graph-dsl simple-cnn-annotations-dsl
+
+{-|
+Serialize to JSON string for Python bridge.
+-}
+simple-cnn-json-dsl : String
+simple-cnn-json-dsl = model-to-json simple-cnn-onnx-dsl
+
 --------------------------------------------------------------------------------
 -- Weight Functors (Dynamical Objects)
 --------------------------------------------------------------------------------

@@ -40,12 +40,13 @@ The graph structure encodes everything!
 module Neural.Compile.EinsumDSL where
 
 open import 1Lab.Prelude
-open import Data.Nat.Base using (Nat; zero; suc; _+_; _*_)
+open import Data.Nat.Base using (Nat; zero; suc; _+_; _*_; _==_)
 open import Prim.Data.Nat renaming (_-_ to _∸_)
-open import Data.Fin.Base using (Fin; fzero; fsuc; weaken)
+open import Data.Fin.Base using (Fin; fzero; fsuc; weaken; Fin-cases; Fin-elim)
+open import Data.Fin.Base as Fin using (lower)
 open import Data.List.Base using (List; []; _∷_; length; head; tail)
 open import Data.String.Base using (String)
-open import Data.Bool.Base using (Bool; true; false)
+open import Data.Bool.Base using (Bool; true; false; if_then_else_)
 open import Data.Maybe.Base using (Maybe; just; nothing)
 open import Data.Float.Base using (Float)
 
@@ -53,8 +54,8 @@ open import Cat.Base using (Functor)
 open Functor
 
 open import Neural.Base using (DirectedGraph)
-open import Neural.Compile.ONNX using (AttributeProto; AttributeValue; attr-ints; attr-int; attr-float)
-open import Neural.Compile.ONNX.Export using (count-multi-input-nodes)
+open import Neural.Compile.ONNX using (AttributeProto; AttributeValue; attr-ints; attr-int; attr-float; TensorElementType; FLOAT)
+open import Neural.Compile.ONNX.Export using (count-multi-input-nodes; GraphAnnotations)
 
 private variable
   ℓ : Level
@@ -337,6 +338,96 @@ lookup : {A : Type} → Nat → List A → Maybe A
 lookup _ [] = nothing
 lookup zero (x ∷ xs) = just x
 lookup (suc n) (x ∷ xs) = lookup n xs
+
+--------------------------------------------------------------------------------
+-- ONNX Annotations Generation
+--------------------------------------------------------------------------------
+
+{-|
+Generate GraphAnnotations from SequentialSpec.
+
+This is the complete bridge from shape-based DSL to ONNX:
+1. Extract shapes from layers
+2. Extract operation labels from transforms
+3. Infer attributes from shape changes
+4. Mark first vertex as input, last as output
+-}
+
+compile-annotations : (spec : SequentialSpec) → GraphAnnotations (compile-to-graph spec)
+compile-annotations spec with extract-vertex-shapes (spec .layers)
+... | [] = record  -- Empty graph case
+  { vertex-op-type = λ ()  -- Fin 0 → String
+  ; edge-shape = λ ()      -- Fin 0 → List Nat
+  ; edge-elem-type = λ ()  -- Fin 0 → TensorElementType
+  ; vertex-attributes = λ ()  -- Fin 0 → List AttributeProto
+  ; graph-inputs = []
+  ; graph-outputs = []
+  ; producer = "agda-homotopy-nn"
+  ; model-version = 1
+  ; doc-string = "Empty network"
+  }
+... | (first-shape ∷ rest-shapes) = record
+  { vertex-op-type = vertex-ops
+  ; edge-shape = edge-shapes
+  ; edge-elem-type = λ _ → FLOAT
+  ; vertex-attributes = vertex-attrs
+  ; graph-inputs = fzero ∷ []  -- First vertex is input
+  ; graph-outputs = last-vertex ∷ []  -- Last vertex is output
+  ; producer = spec .network-name
+  ; model-version = 1
+  ; doc-string = "Generated from SequentialSpec"
+  }
+  where
+    shapes : List (List Nat)
+    shapes = extract-vertex-shapes (spec .layers)
+
+    ops : List String
+    ops = extract-edge-labels (spec .layers)
+
+    n-verts : Nat
+    n-verts = length shapes
+
+    n-eds : Nat
+    n-eds = n-verts ∸ 1  -- Must match compile-to-graph's edge count
+
+    -- Vertex operation types: For sequential networks, just use list lookup
+    vertex-ops : Fin n-verts → String
+    vertex-ops v = lookup-op-at (Fin.lower v) ("Input" ∷ ops)
+      where
+        lookup-op-at : Nat → List String → String
+        lookup-op-at _ [] = "Identity"
+        lookup-op-at zero (op ∷ _) = op
+        lookup-op-at (suc n) (_ ∷ rest) = lookup-op-at n rest
+
+    -- Edge shapes: output shape of source vertex
+    edge-shapes : Fin n-eds → List Nat
+    edge-shapes e = lookup-shape (Fin.lower (fsuc e)) shapes
+      where
+        lookup-shape : Nat → List (List Nat) → List Nat
+        lookup-shape _ [] = []
+        lookup-shape zero (s ∷ _) = s
+        lookup-shape (suc n) (_ ∷ rest) = lookup-shape n rest
+
+    -- Vertex attributes: infer from shape transformation
+    vertex-attrs : Fin n-verts → List AttributeProto
+    vertex-attrs v = infer-attrs-at (Fin.lower v) shapes ops
+      where
+        infer-attrs-at : Nat → List (List Nat) → List String → List AttributeProto
+        infer-attrs-at zero _ _ = []  -- Input has no attributes
+        infer-attrs-at (suc n) (src ∷ tgt ∷ _) (op ∷ rest-ops) =
+          if n == 0 then infer-attributes op src tgt
+          else infer-attrs-at n (tgt ∷ []) rest-ops
+        infer-attrs-at _ _ _ = []
+
+    -- Last vertex index (highest index in Fin n-verts)
+    -- For non-empty list (first-shape ∷ rest-shapes), n-verts ≥ 1
+    last-vertex : Fin n-verts
+    last-vertex with n-verts
+    ... | suc m = make-last m
+      where
+        make-last : (m : Nat) → Fin (suc m)
+        make-last zero = fzero
+        make-last (suc n) = fsuc (make-last n)
 
 --------------------------------------------------------------------------------
 -- Documentation
