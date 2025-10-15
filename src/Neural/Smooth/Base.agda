@@ -75,6 +75,9 @@ homogeneous straight line with:
 postulate
   ℝ : Type
 
+  -- ℝ is a set (h-level 2: all paths between paths are equal)
+  ℝ-is-set : is-set ℝ
+
   -- Distinguished points
   0ℝ : ℝ
   1ℝ : ℝ
@@ -112,6 +115,11 @@ postulate
   -- Division (partial operation, only defined for non-zero denominator)
   _/ℝ_ : (x y : ℝ) → (y ≠ 0ℝ) → ℝ
 
+-- Operator precedence
+infixl 25 _+ℝ_ _-ℝ_
+infixl 30 _·ℝ_
+infix  35 -ℝ_
+
 -- Subtraction defined as a - b = a + (-b)
 _-ℝ_ : ℝ → ℝ → ℝ
 a -ℝ b = a +ℝ (-ℝ b)
@@ -148,6 +156,83 @@ postulate
   -- Division properties
   /ℝ-invl : ∀ (a : ℝ) (p : a ≠ 0ℝ) → (1ℝ /ℝ a) p ·ℝ a ≡ 1ℝ
   /ℝ-invr : ∀ (a : ℝ) (p : a ≠ 0ℝ) → a ·ℝ (1ℝ /ℝ a) p ≡ 1ℝ
+
+  -- Zero-product property (field axiom for integral domains)
+  -- If a product is zero, at least one factor is zero
+  zero-product : ∀ (a b : ℝ) → a ·ℝ b ≡ 0ℝ → (a ≡ 0ℝ) ⊎ (b ≡ 0ℝ)
+
+  -- Product of non-zero numbers is non-zero (contrapositive of zero-product)
+  product-nonzero : ∀ (a b : ℝ) → a ≠ 0ℝ → b ≠ 0ℝ → (a ·ℝ b) ≠ 0ℝ
+
+  -- General division cancellation: (a/b)·b = a
+  /ℝ-cancel : ∀ (a b : ℝ) (p : b ≠ 0ℝ) → ((a /ℝ b) p) ·ℝ b ≡ a
+
+  -- Multiplicative cancellation: if a·c = b·c and c ≠ 0, then a = b
+  ·ℝ-cancelr : ∀ (a b c : ℝ) → c ≠ 0ℝ → a ·ℝ c ≡ b ·ℝ c → a ≡ b
+
+{-|
+## Derived Field Properties
+
+These are provable from the field axioms above.
+-}
+
+-- Uniqueness of additive inverses
+inv-unique : ∀ (a b c : ℝ) → a +ℝ b ≡ 0ℝ → a +ℝ c ≡ 0ℝ → b ≡ c
+inv-unique a b c ab=0 ac=0 =
+  b
+    ≡⟨ sym (+ℝ-idl b) ⟩
+  0ℝ +ℝ b
+    ≡⟨ ap (_+ℝ b) (sym (+ℝ-invl a)) ⟩
+  ((-ℝ a) +ℝ a) +ℝ b
+    ≡⟨ +ℝ-assoc (-ℝ a) a b ⟩
+  (-ℝ a) +ℝ (a +ℝ b)
+    ≡⟨ ap ((-ℝ a) +ℝ_) ab=0 ⟩
+  (-ℝ a) +ℝ 0ℝ
+    ≡⟨ +ℝ-idr (-ℝ a) ⟩
+  -ℝ a
+    ≡⟨ sym (+ℝ-idr (-ℝ a)) ⟩
+  (-ℝ a) +ℝ 0ℝ
+    ≡⟨ ap ((-ℝ a) +ℝ_) (sym ac=0) ⟩
+  (-ℝ a) +ℝ (a +ℝ c)
+    ≡⟨ sym (+ℝ-assoc (-ℝ a) a c) ⟩
+  ((-ℝ a) +ℝ a) +ℝ c
+    ≡⟨ ap (_+ℝ c) (+ℝ-invl a) ⟩
+  0ℝ +ℝ c
+    ≡⟨ +ℝ-idl c ⟩
+  c
+    ∎
+
+-- Negation via multiplication by -1
+neg-mult : ∀ (a : ℝ) → (-ℝ 1ℝ) ·ℝ a ≡ -ℝ a
+neg-mult a =
+  -- Proof: Both are additive inverses of a, so equal by uniqueness
+  inv-unique a ((-ℝ 1ℝ) ·ℝ a) (-ℝ a) neg-is-inv inv-ax
+  where
+    neg-is-inv : a +ℝ ((-ℝ 1ℝ) ·ℝ a) ≡ 0ℝ
+    neg-is-inv =
+      a +ℝ ((-ℝ 1ℝ) ·ℝ a)
+        ≡⟨ ap (_+ℝ ((-ℝ 1ℝ) ·ℝ a)) (sym (·ℝ-idl a)) ⟩
+      (1ℝ ·ℝ a) +ℝ ((-ℝ 1ℝ) ·ℝ a)
+        ≡⟨ sym (·ℝ-distribr 1ℝ (-ℝ 1ℝ) a) ⟩
+      (1ℝ +ℝ (-ℝ 1ℝ)) ·ℝ a
+        ≡⟨ ap (_·ℝ a) (+ℝ-invr 1ℝ) ⟩
+      0ℝ ·ℝ a
+        ≡⟨ ·ℝ-zerol a ⟩
+      0ℝ
+        ∎
+
+    inv-ax : a +ℝ (-ℝ a) ≡ 0ℝ
+    inv-ax = +ℝ-invr a
+
+-- Double negation
+double-neg : ∀ (a : ℝ) → (-ℝ 1ℝ) ·ℝ (-ℝ a) ≡ a
+double-neg a =
+  (-ℝ 1ℝ) ·ℝ (-ℝ a)
+    ≡⟨ neg-mult (-ℝ a) ⟩
+  -ℝ (-ℝ a)
+    ≡⟨ -ℝ-involutive a ⟩
+  a
+    ∎
 
 {-|
 ## Order Structure (Section 1.3)

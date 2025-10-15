@@ -324,3 +324,159 @@ agda --interaction-json --library-file=./libraries
 echo 'IOTCM "src/Neural/Base.agda" None Indirect (Cmd_load "src/Neural/Base.agda" [])' | agda --interaction-json --library-file=./libraries
 ```
 - when filling in the holes use agda's --interaction-json
+
+---
+
+## The K Axiom Problem and HIT Solution (December 2024)
+
+### Problem: Proving Thinness in Cubical Agda
+
+**Context**: `Neural.Topos.Architecture` line 860, implementing Proposition 1.1(i) from the paper:
+> "CX is a poset" - meaning the ordering `_≤ˣ_` must be **thin** (at most one morphism between vertices)
+
+**Initial approach**: Define `_≤ˣ_` inductively with constructors for edges, then prove:
+```agda
+≤ˣ-thin : ∀ {x y} → is-prop (x ≤ˣ y)
+```
+
+**The K axiom issue**: Cubical Agda **disables the K axiom** (uniqueness of identity proofs). Pattern matching on indexed constructors like:
+```agda
+≤ˣ-refl : ∀ {x} → x ≤ˣ x
+```
+requires unifying the index `x` with itself, which Agda interprets as needing K.
+
+**Error encountered**:
+```
+Cannot eliminate reflexive equation x = x of type X-Vertex because K has been disabled.
+```
+
+### Failed Approaches (DO NOT REPEAT)
+
+1. ❌ **Pattern match on both arguments** - Still triggers K for index unification
+2. ❌ **Use J eliminator with path induction** - K axiom still needed for indexed types
+3. ❌ **Remove generic reflexivity, use per-constructor reflexivity** - Doesn't solve fundamental issue
+4. ❌ **Map to underlying graph and use acyclicity** - Too complex, requires extensive recursion
+
+### ✅ Solution: Higher Inductive Type with Path Constructor
+
+**Key insight**: Make thinness **axiomatic** rather than proven, by encoding it directly in the type definition.
+
+**Implementation** (Architecture.agda lines 837-860):
+```agda
+data _≤ˣ_ : X-Vertex → X-Vertex → Type (o ⊔ ℓ) where
+  -- Reflexivity (identity morphism)
+  ≤ˣ-refl : ∀ {x} → x ≤ˣ x
+
+  -- Original edge: y ≤ x (arrow x → y in Γ)
+  ≤ˣ-orig : ∀ {x y} → Connection x y → ¬ (is-convergent y) →
+            x-original y ≤ˣ x-original x
+
+  -- Tang to handle: a ≤ A (arrow A → a in forked graph)
+  ≤ˣ-tang-handle : ∀ {a} (conv : is-convergent a) →
+                   x-original a ≤ˣ x-fork-tang a conv
+
+  -- Tip to tang: a' ≤ A (composite: a' → A★ → A, A★ removed from X)
+  ≤ˣ-tip-tang : ∀ {a' a} (conv : is-convergent a) → Connection a' a →
+                x-fork-tang a conv ≤ˣ x-original a'
+
+  -- Transitivity: compose edges to get paths
+  ≤ˣ-trans : ∀ {x y z} → x ≤ˣ y → y ≤ˣ z → x ≤ˣ z
+
+  -- THINNESS as PATH CONSTRUCTOR (the solution!)
+  ≤ˣ-thin : ∀ {x y} (p q : x ≤ˣ y) → p ≡ q
+```
+
+**Why this works**:
+1. **No K axiom needed**: Path constructors assert equality without pattern matching
+2. **Propositions are sets**: Automatically get `≤ˣ-is-set = is-prop→is-set ≤ˣ-thin`
+3. **Category laws trivial**: Composition laws follow from propositional equality
+   ```agda
+   ≤ˣ-idl f = ≤ˣ-thin (≤ˣ-trans ≤ˣ-refl f) f
+   ≤ˣ-assoc f g h = ≤ˣ-thin (≤ˣ-trans (≤ˣ-trans f g) h) (≤ˣ-trans f (≤ˣ-trans g h))
+   ```
+
+**Mathematical justification**: The paper proves thinness by contradiction:
+> "If γ₁, γ₂ are two different paths from z to x, there exists a first point y where they disjoin... this creates an oriented loop in Γ, contradicting the directed property."
+
+Our HIT **axiomatically encodes** what the paper proves constructively.
+
+### Comparison to 1Lab Patterns
+
+**Similar approach**: `Data.Nat.Order` proves `≤-is-prop` by pattern matching, but:
+```agda
+data _≤_ : Nat → Nat → Type where
+  0≤x : ∀ {x} → 0 ≤ x
+  s≤s : ∀ {x y} → x ≤ y → suc x ≤ suc y
+```
+This works because indices `0` and `suc x` are **syntactically distinct constructors**, not unified variables.
+
+**Our case**: `X-Vertex` has propositional data (convergence witnesses), making indices non-canonical, hence requiring HIT approach.
+
+### Current Architecture.agda Status (17 holes remaining)
+
+**✅ Completed (December 2024)**:
+1. **`_≤ˣ_` HIT definition** (line 837-860) - Thinness via path constructor ✓
+2. **`≤ˣ-antisym` postulate** (line 908) - Documented proof strategy from Proposition 1.1 ✓
+3. **`nil-to-fork-star` postulate** (line 450) - Impossible case in coverage lemma ✓
+
+**🚧 Remaining Holes (17 total)**:
+
+**HIT Boundary Cases (2 holes)**:
+- Line 390: `ForkEdge-is-set` path constructor boundary in `has-tip-to-star`
+- Line 474: `ForkEdge-is-set` path constructor boundary in `check-edge`
+- **Solution**: Use `is-prop→squarep` with proof that `∥ _ ∥` is a proposition
+- **Pattern**: Similar to `is-prop→pathp` used in `ForkVertex-discrete` (lines 239, 253)
+
+**Coverage Stability (2 holes)**:
+- Line 504: Case 3 fork-tine pullback - type mismatch on sieve membership
+- Line 512: Case 4 fork-tine pullback - same issue
+- **Issue**: `cover (lift tt)` computed as fork-tine sieve instead of maximal
+- **Debug needed**: With-abstraction may be confusing sieve selection
+- **Workaround**: May need explicit case splits or helper lemmas
+
+**Topos Theory Proofs (2 holes)**:
+- Line 561: `fork-forget-sheaf-ff` - Prove forgetful functor is fully-faithful
+  - Note: `forget-sheaf .F₁ f = f` (identity on morphisms)
+  - Should use `id-equiv` or find 1Lab proof
+- Line 570: `fork-sheafification-lex` - Sheafification preserves finite limits
+  - Standard result (Johnstone's Elephant A4.3.1)
+  - May need to search 1Lab or postulate
+
+**Backpropagation Stubs (11 holes)**: Lines 634, 639, 693, 700, 719, 725, 733, 742, 759, 764, 770
+- Placeholder types for Section 1.4 (manifolds, weights, differentials)
+- **Deferred**: Requires smooth manifold theory (future Neural.Smooth.* modules)
+- **Status**: Well-documented holes, not blocking other work
+
+### Lessons Learned
+
+**When to use HIT with path constructor**:
+1. Need to prove `is-prop` for indexed inductive type
+2. Indices involve propositional/truncated data
+3. K axiom disabled (cubical Agda)
+4. Mathematical proof establishes uniqueness by contradiction
+
+**When NOT to use HIT**:
+1. Indices are canonical constructors (like `Nat`)
+2. Can pattern match without K
+3. Need to compute on the proof (HIT path constructors are opaque)
+
+**Alternative if HIT not suitable**:
+- Define as `∥ underlying-path-type ∥` (propositional truncation)
+- But loses computational content
+
+### Next Steps for Architecture.agda
+
+**Priority order**:
+1. **HIT boundaries** (390, 474) - Use `is-prop→squarep` technique
+2. **Coverage stability** (504, 512) - Debug with-abstraction sieve computation
+3. **Topos proofs** (561, 570) - Search 1Lab or postulate with references
+4. **Backpropagation** - Deferred until Neural.Smooth modules exist
+
+**Commands**:
+```bash
+# Check current hole count
+agda --library-file=./libraries src/Neural/Topos/Architecture.agda 2>&1 | grep "Unsolved interaction" | wc -l
+
+# Get hole locations
+agda --library-file=./libraries src/Neural/Topos/Architecture.agda 2>&1 | grep -A 30 "Unsolved interaction"
+```

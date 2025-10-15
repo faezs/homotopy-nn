@@ -43,15 +43,17 @@ open import 1Lab.Prelude
 open import 1Lab.Path
 open import 1Lab.Path.Reasoning
 open import 1Lab.HLevel
+open import 1Lab.Reflection.HLevel
 
 open import Neural.Smooth.Base public
 open import Neural.Smooth.Calculus public
 open import Neural.Smooth.Functions public
+open import Neural.Smooth.Geometry public
 
-open import Data.Nat.Base using (Nat; zero; suc; _+_; _≤_; z≤n; s≤s)
-open import Data.Nat.Properties using (≤-refl; ≤-trans)
+open import Data.Nat.Base using (Nat; zero; suc; _+_; _≤_; _*_)
 open import Data.Fin.Base using (Fin; fzero; fsuc)
 open import Data.Vec.Base using (Vec; []; _∷_)
+open import Data.Sum using (_⊎_; inl; inr)
 
 private variable
   ℓ : Level
@@ -98,14 +100,28 @@ Note: Δ₀ = {x | x¹ = 0} = {0} (degenerate)
 
 -- Δ₁ corresponds to Δ from Base.agda
 Δ₁→Δ : Δₖ 1 → Δ
-Δ₁→Δ (x , p) = (x , p)
+Δ₁→Δ (x , p) = (x , subst (λ e → e ≡ 0ℝ) (ap (x ·ℝ_) (·ℝ-idr x)) p)
 
 Δ→Δ₁ : Δ → Δₖ 1
-Δ→Δ₁ (x , p) = (x , p)
+Δ→Δ₁ (x , p) = (x , subst (λ e → e ≡ 0ℝ) (sym (ap (x ·ℝ_) (·ℝ-idr x))) p)
 
 -- They are equivalent
 Δ₁≃Δ : Δₖ 1 ≃ Δ
-Δ₁≃Δ = Iso→Equiv (Δ₁→Δ , iso Δ→Δ₁ (λ _ → refl) (λ _ → refl))
+Δ₁≃Δ = Iso→Equiv (Δ₁→Δ , iso Δ→Δ₁ rinv linv)
+  where
+    instance
+      ℝ-hlevel-2 : H-Level ℝ 2
+      ℝ-hlevel-2 = basic-instance 2 ℝ-is-set
+
+    rinv : (x : Δ) → Δ₁→Δ (Δ→Δ₁ x) ≡ x
+    rinv (x , p) = Σ-prop-path! refl
+      -- First components are equal (both x)
+      -- Second components are props (equalities in a set), so Σ-prop-path! handles it
+
+    linv : (x : Δₖ 1) → Δ→Δ₁ (Δ₁→Δ x) ≡ x
+    linv (x , p) = Σ-prop-path! refl
+      -- First components are equal (both x)
+      -- Second components are props (equalities in a set), so Σ-prop-path! handles it
 
 {-|
 ## Hierarchy of Infinitesimals
@@ -165,15 +181,26 @@ factorial (suc n) = (# (suc n)) ·ℝ factorial n
 -- Factorial is never zero
 factorial-nonzero : (n : Nat) → factorial n ≠ 0ℝ
 factorial-nonzero zero = 0≠1 ∘ sym
-factorial-nonzero (suc n) = λ eq →
-  let n! = factorial n
-      n!≠0 = factorial-nonzero n
-      suc-n = # (suc n)
-  in {!!}  -- Proof: If (suc n) · n! = 0, then n! = 0 (contradiction)
+factorial-nonzero (suc n) eq = handle-cases (zero-product suc-n n! eq)
+  where
+    n! = factorial n
+    n!≠0 = factorial-nonzero n  -- Induction hypothesis
+    suc-n = # (suc n)
+
+    -- Apply zero-product: suc-n · n! = 0 ⟹ (suc-n = 0) ⊎ (n! = 0)
+    -- Then case analysis on which factor is zero
+    handle-cases : (suc-n ≡ 0ℝ) ⊎ (n! ≡ 0ℝ) → ⊥
+    handle-cases (inl suc-n≡0) = natToℝ-suc-nonzero n suc-n≡0
+    handle-cases (inr n!≡0) = n!≠0 n!≡0
 
 -- Some values
 factorial-1 : factorial 1 ≡ 1ℝ
-factorial-1 = refl
+factorial-1 =
+  factorial 1               ≡⟨⟩
+  (# 1) ·ℝ factorial 0      ≡⟨⟩
+  (# 1) ·ℝ 1ℝ               ≡⟨ ap (_·ℝ 1ℝ) natToℝ-1 ⟩
+  1ℝ ·ℝ 1ℝ                  ≡⟨ ·ℝ-idl 1ℝ ⟩
+  1ℝ                        ∎
 
 factorial-2 : factorial 2 ≡ # 2
 factorial-2 =
@@ -184,12 +211,19 @@ factorial-2 =
   # 2
     ∎
 
+-- Arithmetic lemma for natural number multiplication in ℝ
+postulate
+  natToℝ-mult : (m n : Nat) → (# m) ·ℝ (# n) ≡ # (m * n)
+  -- Proof strategy: Induction on m, using distributivity of ·ℝ over +ℝ
+  -- Base: 0 · n = 0
+  -- Step: (suc m) · n = n + (m · n) by distributivity
+
 factorial-3 : factorial 3 ≡ # 6
 factorial-3 =
   (# 3) ·ℝ factorial 2
     ≡⟨ ap ((# 3) ·ℝ_) factorial-2 ⟩
   (# 3) ·ℝ (# 2)
-    ≡⟨⟩  -- 3 · 2 = 6 by computation
+    ≡⟨ natToℝ-mult 3 2 ⟩
   # 6
     ∎
 
@@ -279,12 +313,14 @@ sum-is-Δₖ k ε = (Σ-Δ ε , sum-nilpotent k ε)
 This is because all higher terms contain ε², which equals 0.
 -}
 
+-- Helper: predecessor function
+pred : Nat → Nat
+pred zero = zero
+pred (suc n) = n
+
 postulate
   binomial-Δ : (u : ℝ) (ε : Δ) (n : Nat) →
     (u +ℝ ι ε) ^ n ≡ (u ^ n) +ℝ ((# n) ·ℝ ι ε ·ℝ (u ^ pred n))
-    where pred : Nat → Nat
-          pred zero = zero
-          pred (suc n) = n
 
 --------------------------------------------------------------------------------
 -- § 5: Lemma 6.3 - Taylor for Sums of Infinitesimals (Bell pp. 93-94)
@@ -496,7 +532,7 @@ No error term! Because x⁴ = 0 on Δ₃, the Taylor series terminates exactly.
 
 postulate
   sin-taylor-Δ₃ : (δ : Δₖ 3) →
-    sin (ιₖ δ) ≡ ιₖ δ -ℝ ((ιₖ δ) ³ / (# 6))
+    sin (ιₖ δ) ≡ ιₖ δ -ℝ (((ιₖ δ) ³) / (# 6))
   -- Will be proven in DifferentialEquations.agda using taylor-theorem
 
 --------------------------------------------------------------------------------

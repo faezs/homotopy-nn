@@ -94,16 +94,20 @@ postulate
 
   √-one : value (√ (1ℝ , 0<1)) ≡ 1ℝ
 
-  √-product : ∀ (x₊ y₊ : ℝ₊) →
-    value (√ {!!}) ≡ value (√ x₊) ·ℝ value (√ y₊)
-    where
-      postulate product-positive : ℝ₊  -- x₊ · y₊ is positive
+  -- Helper: product of two positive reals is positive
+  ℝ₊-product : ℝ₊ → ℝ₊ → ℝ₊
 
--- Derivative of square root
-√-deriv : ∀ (x₊ : ℝ₊) →
-  (λ y₊ → value (√ y₊)) ′[ value x₊ ] ≡
-  (1ℝ /ℝ ((1ℝ +ℝ 1ℝ) ·ℝ value (√ x₊))) {!!}
-√-deriv x₊ = {!!}  -- Proof via inverse function rule
+  √-product : ∀ (x₊ y₊ : ℝ₊) →
+    value (√ (ℝ₊-product x₊ y₊)) ≡ value (√ x₊) ·ℝ value (√ y₊)
+
+-- Derivative of square root (stated as a postulate)
+-- In full: there exists a smooth extension f : ℝ → ℝ of √ such that
+-- f'(x) = 1/(2√x) for x > 0
+postulate
+  √-extends-to-ℝ : ℝ → ℝ
+  √-extension-correct : ∀ (x₊ : ℝ₊) → √-extends-to-ℝ (value x₊) ≡ value (√ x₊)
+  √-deriv : ∀ (x₊ : ℝ₊) (denominator-pos : 0ℝ <ℝ ((1ℝ +ℝ 1ℝ) ·ℝ value (√ x₊))) →
+    √-extends-to-ℝ ′[ value x₊ ] ≡ (1ℝ /ℝ ((1ℝ +ℝ 1ℝ) ·ℝ value (√ x₊))) (λ eq → <ℝ-irrefl (subst (0ℝ <ℝ_) eq denominator-pos))
 
 -- Alternative: √ as x^(1/2)
 postulate
@@ -200,8 +204,23 @@ we get sin'(x) = cos x.
 sin-deriv : ∀ (x : ℝ) → sin ′[ x ] ≡ cos x
 sin-deriv x =
   microcancellation _ _ λ δ →
-    ι δ ·ℝ sin ′[ x ]
-      ≡⟨ sym (ap₂ _-ℝ_ (fundamental-equation sin x δ) refl) ⟩
+    let -- fundamental-equation: sin(x + ιδ) = sin x + ιδ · sin'(x)
+        -- Rearrange: ιδ · sin'(x) = sin(x + ιδ) - sin x
+        fund-eq = fundamental-equation sin x δ
+    in ι δ ·ℝ sin ′[ x ]
+      ≡⟨ sym (+ℝ-idl (ι δ ·ℝ sin ′[ x ])) ⟩
+    0ℝ +ℝ (ι δ ·ℝ sin ′[ x ])
+      ≡⟨ ap (_+ℝ (ι δ ·ℝ sin ′[ x ])) (sym (+ℝ-invr (sin x))) ⟩
+    ((sin x) +ℝ (-ℝ sin x)) +ℝ (ι δ ·ℝ sin ′[ x ])
+      ≡⟨ +ℝ-assoc (sin x) (-ℝ sin x) (ι δ ·ℝ sin ′[ x ]) ⟩
+    (sin x) +ℝ ((-ℝ sin x) +ℝ (ι δ ·ℝ sin ′[ x ]))
+      ≡⟨ ap (sin x +ℝ_) (+ℝ-comm (-ℝ sin x) (ι δ ·ℝ sin ′[ x ])) ⟩
+    (sin x) +ℝ ((ι δ ·ℝ sin ′[ x ]) +ℝ (-ℝ sin x))
+      ≡⟨ sym (+ℝ-assoc (sin x) (ι δ ·ℝ sin ′[ x ]) (-ℝ sin x)) ⟩
+    ((sin x) +ℝ (ι δ ·ℝ sin ′[ x ])) +ℝ (-ℝ sin x)
+      ≡⟨ ap (_+ℝ (-ℝ sin x)) (sym fund-eq) ⟩
+    sin (x +ℝ ι δ) +ℝ (-ℝ sin x)
+      ≡⟨⟩
     sin (x +ℝ ι δ) -ℝ sin x
       ≡⟨ ap (_-ℝ sin x) (sin-add x (ι δ)) ⟩
     ((sin x ·ℝ cos (ι δ)) +ℝ (cos x ·ℝ sin (ι δ))) -ℝ sin x
@@ -215,8 +234,21 @@ sin-deriv x =
 cos-deriv : ∀ (x : ℝ) → cos ′[ x ] ≡ -ℝ sin x
 cos-deriv x =
   microcancellation _ _ λ δ →
-    ι δ ·ℝ cos ′[ x ]
-      ≡⟨ sym (ap₂ _-ℝ_ (fundamental-equation cos x δ) refl) ⟩
+    let fund-eq = fundamental-equation cos x δ
+    in ι δ ·ℝ cos ′[ x ]
+      ≡⟨ sym (+ℝ-idl (ι δ ·ℝ cos ′[ x ])) ⟩
+    0ℝ +ℝ (ι δ ·ℝ cos ′[ x ])
+      ≡⟨ ap (_+ℝ (ι δ ·ℝ cos ′[ x ])) (sym (+ℝ-invr (cos x))) ⟩
+    ((cos x) +ℝ (-ℝ cos x)) +ℝ (ι δ ·ℝ cos ′[ x ])
+      ≡⟨ +ℝ-assoc (cos x) (-ℝ cos x) (ι δ ·ℝ cos ′[ x ]) ⟩
+    (cos x) +ℝ ((-ℝ cos x) +ℝ (ι δ ·ℝ cos ′[ x ]))
+      ≡⟨ ap (cos x +ℝ_) (+ℝ-comm (-ℝ cos x) (ι δ ·ℝ cos ′[ x ])) ⟩
+    (cos x) +ℝ ((ι δ ·ℝ cos ′[ x ]) +ℝ (-ℝ cos x))
+      ≡⟨ sym (+ℝ-assoc (cos x) (ι δ ·ℝ cos ′[ x ]) (-ℝ cos x)) ⟩
+    ((cos x) +ℝ (ι δ ·ℝ cos ′[ x ])) +ℝ (-ℝ cos x)
+      ≡⟨ ap (_+ℝ (-ℝ cos x)) (sym fund-eq) ⟩
+    cos (x +ℝ ι δ) +ℝ (-ℝ cos x)
+      ≡⟨⟩
     cos (x +ℝ ι δ) -ℝ cos x
       ≡⟨ ap (_-ℝ cos x) (cos-add x (ι δ)) ⟩
     ((cos x ·ℝ cos (ι δ)) -ℝ (sin x ·ℝ sin (ι δ))) -ℝ cos x
@@ -327,16 +359,15 @@ So **exp(ε) = 1 + ε** for ε ∈ Δ.
 exp-on-Δ : ∀ (δ : Δ) → exp (ι δ) ≡ 1ℝ +ℝ ι δ
 exp-on-Δ δ =
   exp (ι δ)
-    ≡⟨ exp (0ℝ +ℝ ι δ)
-       ≡⟨ fundamental-equation exp 0ℝ δ ⟩
-       exp 0ℝ +ℝ (ι δ ·ℝ exp ′[ 0ℝ ])
-       ≡⟨ ap₂ _+ℝ_ exp-zero (ap (ι δ ·ℝ_) (exp-deriv 0ℝ)) ⟩
-       1ℝ +ℝ (ι δ ·ℝ exp 0ℝ)
-       ≡⟨ ap (1ℝ +ℝ_) (ap (ι δ ·ℝ_) exp-zero) ⟩
-       1ℝ +ℝ (ι δ ·ℝ 1ℝ)
-       ≡⟨ ap (1ℝ +ℝ_) (·ℝ-idr (ι δ)) ⟩
-       1ℝ +ℝ ι δ
-       ∎ ⟩
+    ≡⟨ ap exp (sym (+ℝ-idl (ι δ))) ⟩
+  exp (0ℝ +ℝ ι δ)
+    ≡⟨ fundamental-equation exp 0ℝ δ ⟩
+  exp 0ℝ +ℝ (ι δ ·ℝ exp ′[ 0ℝ ])
+    ≡⟨ ap₂ _+ℝ_ exp-zero (ap (ι δ ·ℝ_) (exp-deriv 0ℝ)) ⟩
+  1ℝ +ℝ (ι δ ·ℝ exp 0ℝ)
+    ≡⟨ ap (1ℝ +ℝ_) (ap (ι δ ·ℝ_) exp-zero) ⟩
+  1ℝ +ℝ (ι δ ·ℝ 1ℝ)
+    ≡⟨ ap (1ℝ +ℝ_) (·ℝ-idr (ι δ)) ⟩
   1ℝ +ℝ ι δ
     ∎
 
@@ -440,10 +471,13 @@ postulate
 
   log-e : log (e , exp-positive 1ℝ) ≡ 1ℝ
 
--- Derivative of logarithm
-log-deriv : ∀ (x₊ : ℝ₊) →
-  (λ y₊ → log y₊) ′[ value x₊ ] ≡ (1ℝ /ℝ value x₊) {!!}
-log-deriv x₊ = {!!}  -- Via inverse function rule
+-- Derivative of logarithm (stated as a postulate)
+-- The proper statement requires showing log extends to a smooth function on ℝ₊
+postulate
+  log-extends-to-ℝ : ℝ → ℝ  -- Extends log to all of ℝ (undefined for x ≤ 0)
+  log-extension-correct : ∀ (x₊ : ℝ₊) → log-extends-to-ℝ (value x₊) ≡ log x₊
+  log-deriv : ∀ (x₊ : ℝ₊) (x-pos : 0ℝ <ℝ value x₊) →
+    log-extends-to-ℝ ′[ value x₊ ] ≡ (1ℝ /ℝ value x₊) (λ eq → <ℝ-irrefl (subst (0ℝ <ℝ_) eq x-pos))
 
 --------------------------------------------------------------------------------
 -- § 5: Hyperbolic Functions
@@ -550,6 +584,25 @@ x ² = x ·ℝ x
 _³ : ℝ → ℝ
 x ³ = x ·ℝ x ·ℝ x
 
+-- Power and notation equivalence lemmas
+^2-is-² : (x : ℝ) → x ^ 2 ≡ x ²
+^2-is-² x =
+  x ^ 2                     ≡⟨⟩
+  x ·ℝ (x ^ 1)              ≡⟨⟩
+  x ·ℝ (x ·ℝ (x ^ 0))       ≡⟨⟩
+  x ·ℝ (x ·ℝ 1ℝ)            ≡⟨ ap (x ·ℝ_) (·ℝ-idr x) ⟩
+  x ·ℝ x                    ≡⟨⟩
+  x ²                       ∎
+
+^3-is-³ : (x : ℝ) → x ^ 3 ≡ x ³
+^3-is-³ x =
+  x ^ 3                     ≡⟨⟩
+  x ·ℝ (x ^ 2)              ≡⟨ ap (x ·ℝ_) (^2-is-² x) ⟩
+  x ·ℝ (x ²)                ≡⟨⟩
+  x ·ℝ (x ·ℝ x)             ≡⟨ sym (·ℝ-assoc x x x) ⟩
+  (x ·ℝ x) ·ℝ x             ≡⟨⟩
+  x ³                       ∎
+
 {-|
 ## Rational Powers
 
@@ -563,18 +616,19 @@ postulate
   _^3/2 : ℝ → ℝ
   _^-1 : ℝ → ℝ  -- Reciprocal for division
 
+  -- Inverse properties for ^-1 (axioms since ^-1 is postulated)
+  ^-1-invl : (a : ℝ) → (a ^-1) ·ℝ a ≡ 1ℝ
+  ^-1-invr : (a : ℝ) → a ·ℝ (a ^-1) ≡ 1ℝ
+
 {-|
 ## Converting Nat to ℝ
 
 To write constants like 1, 2, 3, 4 as real numbers.
 -}
 
-fromNat : Nat → ℝ
-fromNat zero = 0ℝ
-fromNat (suc n) = 1ℝ +ℝ fromNat n
-
+-- Natural number embedding (imported from Calculus.agda as natToℝ)
 #_ : Nat → ℝ
-# n = fromNat n
+# n = natToℝ n
 
 {-|
 ## Common Fractions

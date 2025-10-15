@@ -297,8 +297,21 @@ microsegment-rotation f x₀ δ = ι δ ·ℝ (f ′′[ x₀ ])
 microsegment-rotation-is-slope-difference : (f : ℝ → ℝ) (x₀ : ℝ) (δ : Δ) →
   microsegment-rotation f x₀ δ ≡ (f ′[ x₀ +ℝ ι δ ]) -ℝ (f ′[ x₀ ])
 microsegment-rotation-is-slope-difference f x₀ δ =
-  ι δ ·ℝ (f ′′[ x₀ ])
-    ≡⟨ sym (fundamental-equation (λ x → f ′[ x ]) x₀ δ) ⟩
+  let fund-eq = fundamental-equation (λ x → f ′[ x ]) x₀ δ
+  in ι δ ·ℝ (f ′′[ x₀ ])
+    ≡⟨ sym (+ℝ-idl (ι δ ·ℝ (f ′′[ x₀ ]))) ⟩
+  0ℝ +ℝ (ι δ ·ℝ (f ′′[ x₀ ]))
+    ≡⟨ ap (_+ℝ (ι δ ·ℝ (f ′′[ x₀ ]))) (sym (+ℝ-invr (f ′[ x₀ ]))) ⟩
+  ((f ′[ x₀ ]) +ℝ (-ℝ f ′[ x₀ ])) +ℝ (ι δ ·ℝ (f ′′[ x₀ ]))
+    ≡⟨ +ℝ-assoc (f ′[ x₀ ]) (-ℝ f ′[ x₀ ]) (ι δ ·ℝ (f ′′[ x₀ ])) ⟩
+  (f ′[ x₀ ]) +ℝ ((-ℝ f ′[ x₀ ]) +ℝ (ι δ ·ℝ (f ′′[ x₀ ])))
+    ≡⟨ ap (f ′[ x₀ ] +ℝ_) (+ℝ-comm (-ℝ f ′[ x₀ ]) (ι δ ·ℝ (f ′′[ x₀ ]))) ⟩
+  (f ′[ x₀ ]) +ℝ ((ι δ ·ℝ (f ′′[ x₀ ])) +ℝ (-ℝ f ′[ x₀ ]))
+    ≡⟨ sym (+ℝ-assoc (f ′[ x₀ ]) (ι δ ·ℝ (f ′′[ x₀ ])) (-ℝ f ′[ x₀ ])) ⟩
+  ((f ′[ x₀ ]) +ℝ (ι δ ·ℝ (f ′′[ x₀ ]))) +ℝ (-ℝ f ′[ x₀ ])
+    ≡⟨ ap (_+ℝ (-ℝ f ′[ x₀ ])) (sym fund-eq) ⟩
+  f ′[ x₀ +ℝ ι δ ] +ℝ (-ℝ f ′[ x₀ ])
+    ≡⟨⟩
   f ′[ x₀ +ℝ ι δ ] -ℝ f ′[ x₀ ]
     ∎
 
@@ -315,11 +328,11 @@ Curvature should be constant = 1/radius = 1.
 Let's compute it!
 -}
 
-postulate  -- We'll verify this numerically when we have √
-  unit-circle-curvature : ∀ (x : ℝ) →
-    -- For f(x) = √(1-x²)
-    -- κ(x) = 1 (constant curvature)
-    {!!}
+-- postulate  -- We'll verify this numerically when we have √
+--   unit-circle-curvature : ∀ (x : ℝ) →
+--     -- For f(x) = √(1-x²)
+--     -- κ(x) = 1 (constant curvature)
+--     ⊤  -- Placeholder type, proper statement requires √ and curvature formula
 
 {-|
 ## Example: Parabola y = x²
