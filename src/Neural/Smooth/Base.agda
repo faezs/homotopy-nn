@@ -275,6 +275,22 @@ _≥ℝ_ : ℝ → ℝ → Type
 a ≥ℝ b = b ≤ℝ a
 
 {-|
+## Ordering Properties
+
+Additional axioms about the order structure.
+-}
+
+postulate
+  -- Squares are non-negative: 0 ≤ a² for all a
+  -- This is a standard axiom in ordered fields
+  -- Proof sketch in classical setting: if a ≠ 0, then a² > 0 (by trichotomy and product rules)
+  square-nonneg : ∀ (a : ℝ) → 0ℝ ≤ℝ (a ·ℝ a)
+
+  -- Negative one is less than zero
+  -- Proof sketch: From 0 < 1, add (-1) to both sides: -1 < 0
+  -1<0 : (-ℝ 1ℝ) <ℝ 0ℝ
+
+{-|
 ## Closed Intervals
 
 A **closed interval** [a,b] consists of points x with a ≤ x ≤ b.

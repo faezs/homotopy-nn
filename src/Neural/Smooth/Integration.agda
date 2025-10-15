@@ -383,7 +383,11 @@ is-antiderivative F f = ∀ x → F ′[ x ] ≡ f x
   -- 6. = x^n  ✓
   microcancellation _ _ λ δ →
     (ι δ ·ℝ ((λ y → y ^ℝ suc n ·ℝ ((# (suc n)) ^-1)) ′[ x ]))
-      ≡⟨ {!scalar-rule issue: need (f·c)′ = c·f′!} ⟩
+      -- First rewrite (f·c) to (c·f) using commutativity inside the derivative
+      ≡⟨ ap (ι δ ·ℝ_) (ap (λ h → h ′[ x ]) (funext λ y → ·ℝ-comm (y ^ℝ suc n) ((# (suc n)) ^-1))) ⟩
+    (ι δ ·ℝ ((λ y → ((# (suc n)) ^-1) ·ℝ (y ^ℝ suc n)) ′[ x ]))
+      -- Now apply scalar-rule: (c·f)' = c·f'
+      ≡⟨ ap (ι δ ·ℝ_) (scalar-rule ((# (suc n)) ^-1) (λ y → y ^ℝ suc n) x) ⟩
     (ι δ ·ℝ (((# (suc n)) ^-1) ·ℝ ((λ y → y ^ℝ suc n) ′[ x ])))
       ≡⟨ ap (λ d → ι δ ·ℝ (((# (suc n)) ^-1) ·ℝ d)) (power-rule (suc n) x) ⟩
     (ι δ ·ℝ (((# (suc n)) ^-1) ·ℝ (natToℝ (suc n) ·ℝ (x ^ℝ n))))
@@ -395,8 +399,6 @@ is-antiderivative F f = ∀ x → F ′[ x ] ≡ f x
     (ι δ ·ℝ (1ℝ ·ℝ (x ^ℝ n)))
       ≡⟨ ap (ι δ ·ℝ_) (·ℝ-idl (x ^ℝ n)) ⟩
     (ι δ ·ℝ (x ^ℝ n))
-      ≡⟨ {!!} ⟩  -- TODO: Need to apply fundamental-equation properly
-    ((x +ℝ ι δ) ^ℝ n -ℝ (x ^ℝ n))
       ∎
 
 -- Exponential
@@ -414,7 +416,7 @@ is-antiderivative F f = ∀ x → F ′[ x ] ≡ f x
   -- From DifferentialEquations.agda: cos' x = -sin x
   -- Strategy: -cos = (-1) · cos, so (-cos)' = (-1) · cos' = (-1) · (-sin) = sin
   ((λ y → -ℝ (cos y)) ′[ x ])
-    ≡⟨⟩  -- -ℝ a = (-ℝ 1ℝ) ·ℝ a by definition
+    ≡⟨ ap (λ h → h ′[ x ]) (funext λ y → sym (neg-mult (cos y))) ⟩
   ((λ y → (-ℝ 1ℝ) ·ℝ cos y) ′[ x ])
     ≡⟨ scalar-rule (-ℝ 1ℝ) cos x ⟩
   ((-ℝ 1ℝ) ·ℝ (cos ′[ x ]))
@@ -449,13 +451,51 @@ Using these antiderivatives, we can compute definite integrals:
 -- Helper lemmas for example
 private
   1²-is-1 : 1ℝ ^ 2 ≡ 1ℝ
-  1²-is-1 = 1ℝ ·ℝ 1ℝ ≡⟨ ·ℝ-idl 1ℝ ⟩ 1ℝ ∎
+  1²-is-1 =
+    1ℝ ^ 2
+      ≡⟨⟩  -- 1ℝ ^ℝ suc 1 = 1ℝ · (1ℝ ^ 1)
+    1ℝ ·ℝ (1ℝ ^ 1)
+      ≡⟨⟩  -- 1ℝ ^ 1 = 1ℝ · (1ℝ ^ 0)
+    1ℝ ·ℝ (1ℝ ·ℝ (1ℝ ^ 0))
+      ≡⟨⟩  -- 1ℝ ^ 0 = 1ℝ
+    1ℝ ·ℝ (1ℝ ·ℝ 1ℝ)
+      ≡⟨ ap (1ℝ ·ℝ_) (·ℝ-idl 1ℝ) ⟩
+    1ℝ ·ℝ 1ℝ
+      ≡⟨ ·ℝ-idl 1ℝ ⟩
+    1ℝ
+      ∎
 
   0²-is-0 : 0ℝ ^ 2 ≡ 0ℝ
-  0²-is-0 = 0ℝ ·ℝ 0ℝ ≡⟨ ·ℝ-zerol 0ℝ ⟩ 0ℝ ∎
+  0²-is-0 =
+    0ℝ ^ 2
+      ≡⟨⟩  -- 0ℝ ^ℝ suc 1 = 0ℝ · (0ℝ ^ 1)
+    0ℝ ·ℝ (0ℝ ^ 1)
+      ≡⟨⟩  -- 0ℝ ^ 1 = 0ℝ · (0ℝ ^ 0)
+    0ℝ ·ℝ (0ℝ ·ℝ (0ℝ ^ 0))
+      ≡⟨⟩  -- 0ℝ ^ 0 = 1ℝ
+    0ℝ ·ℝ (0ℝ ·ℝ 1ℝ)
+      ≡⟨ ap (0ℝ ·ℝ_) (·ℝ-idr 0ℝ) ⟩
+    0ℝ ·ℝ 0ℝ
+      ≡⟨ ·ℝ-zerol 0ℝ ⟩
+    0ℝ
+      ∎
 
   1²/2-is-1/2 : (1ℝ ^ 2) / (# 2) ≡ 1/2
-  1²/2-is-1/2 = ap (_/ (# 2)) 1²-is-1
+  1²/2-is-1/2 =
+    (1ℝ ^ 2) / (# 2)
+      ≡⟨ ap (_/ (# 2)) 1²-is-1 ⟩
+    1ℝ / (# 2)
+      ≡⟨⟩  -- 1ℝ / x = 1ℝ · x^-1 by definition
+    1ℝ ·ℝ ((# 2) ^-1)
+      ≡⟨ sym (ap (_·ℝ ((# 2) ^-1)) (+ℝ-idr 1ℝ)) ⟩
+    (1ℝ +ℝ 0ℝ) ·ℝ ((# 2) ^-1)
+      ≡⟨⟩  -- natToℝ 0 = 0ℝ
+    (1ℝ +ℝ natToℝ 0) ·ℝ ((# 2) ^-1)
+      ≡⟨⟩  -- natToℝ 1 = 1ℝ +ℝ natToℝ 0 by definition
+    (# 1) ·ℝ ((# 2) ^-1)
+      ≡⟨⟩  -- 1/2 definition
+    1/2
+      ∎
 
   0²/2-is-0 : (0ℝ ^ 2) / (# 2) ≡ 0ℝ
   0²/2-is-0 =
@@ -482,16 +522,23 @@ example-∫-x =
   --          = 1/2 - 0
   --          = 1/2  ✓
   let F = λ x → (x ^ 2) / (# 2)
-      F-is-antideriv = ∫-power 1
+      F-is-antideriv = ∫-power 1  -- F'[x] = x^1 for all x
+      -- Use fundamental theorem to relate ∫[0,1] to F(1) - F(0)
+      F-deriv-in-range : ∀ x → (0ℝ ≤ℝ x) → (x ≤ℝ 1ℝ) → F ′[ x ] ≡ (λ y → y ^ 1) x
+      F-deriv-in-range x _ _ = F-is-antideriv x
   in ∫[ 0ℝ , 1ℝ ] (λ x → x)
-       ≡⟨⟩  -- x = x^1
+       ≡⟨ ap (∫[ 0ℝ , 1ℝ ]) (funext λ x → sym (^ℝ-1 x)) ⟩
      ∫[ 0ℝ , 1ℝ ] (λ x → x ^ 1)
-       ≡⟨⟩  -- Definition of ∫[a,b]
+       ≡⟨ fundamental-theorem 0ℝ 1ℝ (λ x → x ^ 1) F F-deriv-in-range ⟩
      F 1ℝ -ℝ F 0ℝ
-       ≡⟨⟩  -- F(1) = 1²/2
+       ≡⟨⟩  -- F(x) = x²/2, so F(1) = 1²/2, F(0) = 0²/2
      ((1ℝ ^ 2) / (# 2)) -ℝ ((0ℝ ^ 2) / (# 2))
        ≡⟨ ap₂ _-ℝ_ 1²/2-is-1/2 0²/2-is-0 ⟩
      1/2 -ℝ 0ℝ
+       ≡⟨⟩  -- x -ℝ y = x +ℝ (-ℝ y)
+     1/2 +ℝ (-ℝ 0ℝ)
+       ≡⟨ ap (1/2 +ℝ_) -ℝ-zero ⟩
+     1/2 +ℝ 0ℝ
        ≡⟨ +ℝ-idr 1/2 ⟩
      1/2
        ∎
