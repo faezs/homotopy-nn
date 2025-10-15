@@ -55,7 +55,8 @@ open import Data.Nat.Base using (Nat; zero; suc)
 open import Data.Power
 
 open import Neural.Topos.Architecture
-open import Neural.Topos.Category
+-- Note: Architecture.agda defines OrientedGraph, which we use here
+-- (Category.agda also defines OrientedGraph, but Architecture's is primary)
 
 private variable
   o ℓ : Level

@@ -52,6 +52,19 @@ An oriented graph is a directed graph that is:
 3. **Acyclic**: No cycles (ensures poset structure)
 -}
 
+-- Helper: Edge path in a graph (for defining reachability)
+module EdgePathDef (G : Graph o ℓ) where
+  open Graph G
+
+  data EdgePath : Vertex → Vertex → Type (o ⊔ ℓ) where
+    path-nil  : ∀ {x} → EdgePath x x
+    path-cons : ∀ {x y z} → Edge x y → EdgePath y z → EdgePath x z
+
+  -- EdgePath composition
+  _++ᵖ_ : ∀ {x y z} → EdgePath x y → EdgePath y z → EdgePath x z
+  path-nil ++ᵖ q = q
+  (path-cons e p) ++ᵖ q = path-cons e (p ++ᵖ q)
+
 record OrientedGraph (o ℓ : Level) : Type (lsuc (o ⊔ ℓ)) where
   field
     -- The underlying graph
@@ -63,21 +76,50 @@ record OrientedGraph (o ℓ : Level) : Type (lsuc (o ⊔ ℓ)) where
     -- Edges are propositions (classical)
     classical : ∀ {x y} → is-prop (Edge x y)
 
-    -- No self-loops
+    -- No self-loops on edges (direct connections)
     no-loops : ∀ {x} → ¬ Edge x x
 
-    -- Acyclic: Edge relation extends to a partial order
-    -- (We use ≤-refl/≤-trans/≤-antisym instead of full poset
-    --  because we need to add fork vertices later)
+  {-|
+  ## Reachability Relation (Path Ordering)
 
-    -- Reflexivity: every vertex connects to itself via empty path
-    ≤-refl-ᴸ : ∀ (x : Vertex) → x ≡ x
+  From Belfiore & Bennequin (2022), Definition 1.1:
+  > "An oriented graph Γ is directed when the relation a≤b between vertices,
+  >  defined by the existence of an oriented path, made by concatenation of
+  >  oriented edges, is a partial ordering on the set V(Γ) of vertices."
+
+  Key insight: Edge is NOT transitive (just direct connections),
+  but _≤_ (reachability) IS transitive (it's the reflexive-transitive closure of Edge).
+  -}
+
+  -- Open the EdgePath definitions for this graph
+  open EdgePathDef graph public
+
+  field
+    -- Reachability is propositional truncation of EdgePath
+    -- (We only care IF a path exists, not WHICH path)
+    _≤_ : Vertex → Vertex → Type (o ⊔ ℓ)
+    ≤-prop : ∀ {x y} → is-prop (x ≤ y)
+
+    -- EdgePath implies reachability
+    path→≤ : ∀ {x y} → EdgePath x y → x ≤ y
+
+    -- Reachability forms a partial order:
+
+    -- Reflexivity: empty path from x to itself
+    ≤-refl : ∀ (x : Vertex) → x ≤ x
 
     -- Transitivity: paths compose
-    ≤-trans-ᴸ : ∀ {x y z : Vertex} → Edge y z → Edge x y → Edge x z
+    ≤-trans : ∀ {x y z : Vertex} → x ≤ y → y ≤ z → x ≤ z
 
-    -- Antisymmetry: no cycles
-    ≤-antisym-ᴸ : ∀ {x y : Vertex} → Edge x y → Edge y x → x ≡ y
+    -- Antisymmetry: no cycles (directed = acyclic)
+    ≤-antisym : ∀ {x y : Vertex} → x ≤ y → y ≤ x → x ≡ y
+
+  -- Convenience: single edges give paths
+  edge→path : ∀ {x y} → Edge x y → EdgePath x y
+  edge→path e = path-cons e path-nil
+
+  edge→≤ : ∀ {x y} → Edge x y → x ≤ y
+  edge→≤ e = path→≤ (edge→path e)
 
 {-|
 ## Convergent Vertices
