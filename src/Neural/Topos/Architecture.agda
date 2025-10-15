@@ -48,11 +48,14 @@ open import 1Lab.Path.IdentitySystem
 open import Cat.Instances.Graphs using (Graph; Graph-hom)
 open import Cat.Instances.Free  -- Import everything including constructors
 open import Cat.Instances.Sheaves using (Sh[_,_]; Sheafification; Sheafification⊣ι)
+open import Cat.Instances.Sheaf.Limits.Finite using (Sh[]-terminal; Sh[]-pullbacks)
+open import Cat.Instances.Presheaf.Limits using (PSh-terminal; PSh-pullbacks)
 open import Cat.Site.Base using (Coverage; forget-sheaf)
 open import Cat.Diagram.Sieve
 open import Cat.Functor.Base
-open import Cat.Functor.Adjoint using (_⊣_)
+open import Cat.Functor.Adjoint using (_⊣_; L-adjunct; R-adjunct; R-adjunct-is-equiv)
 open import Cat.Functor.Properties using (is-fully-faithful)
+open import Cat.Functor.Adjoint.Reflective using (is-reflective; is-reflective→counit-iso)
 open import Cat.Diagram.Limit.Finite using (is-lex)
 open import Cat.Diagram.Terminal
 open import Cat.Diagram.Pullback
@@ -609,16 +612,74 @@ module _ (Γ : OrientedGraph o ℓ) where
       -- Given: term-psh : is-terminal (PSh ...) T
       -- Need: is-terminal Sh[...] (Sheafification.F₀ T)
       --
-      -- Strategy:
-      -- For fork topology, sheafification only changes values at A★
-      -- Terminal T has T(x) ≅ singleton for all x
-      -- Products of singletons are singletons
-      -- So Sheafification(T) is still singleton everywhere → terminal
+      -- Strategy: Use the adjunction Sheafification ⊣ ι (inclusion)
+      -- For any sheaf (F, F-sheaf):
+      --   Hom_Sh(F, Sheafification(T)) ≅ Hom_PSh(F, T)  (by adjunction)
+      --   Hom_PSh(F, T) ≅ Unit                          (T terminal in PSh)
+      -- Therefore Hom_Sh(F, Sheafification(T)) ≅ Unit (contractible)
+      -- So Sheafification(T) is terminal in Sh
 
-      sheaf-term : is-terminal Sh[ Fork-Category , fork-coverage ] (Functor.₀ (Sheafification {C = Fork-Category} {J = fork-coverage}) T)
-      sheaf-term = {!!}
-        -- TODO: Need to show that for any sheaf F, there exists unique F → Sheafification(T)
-        -- This follows from T being terminal in presheaves + sheafification being left adjoint to inclusion
+      -- **Key insight from paper (ToposOfDNNs.agda lines 572-579)**:
+      -- "The sheafification process... is easy to describe: no value is changed
+      -- except at a place A★, where X_A★ is replaced by the product X★_A★ of the X_a'"
+      --
+      -- For terminal T:
+      -- - T(v) ≅ singleton for all vertices v (terminal property)
+      -- - At fork-star A★: Sheafify(T)(A★) = ∏_{a'→A★} T(a') = ∏ singleton ≅ singleton
+      -- - At other vertices: unchanged, still singleton
+      -- - Therefore Sheafify(T) has singleton at all vertices → terminal
+      --
+      -- The key lemma: Products of contractible types are contractible
+      -- Since singletons are contractible, ∏ singleton ≅ singleton
+
+      sheaf-term : is-terminal Sh[ Fork-Category , fork-coverage ] (Functor.₀ Sheafification T)
+      sheaf-term (F , F-sheaf) = morphism-space-contractible
+        where
+          -- For any sheaf F, we need to show Hom(F, Sheafification(T)) is contractible
+
+          -- Since T is terminal in PSh, Hom_PSh(F, T) is contractible
+          -- (F viewed as presheaf via forget-sheaf)
+          F-to-T-contractible : is-contr (F => T)
+          F-to-T-contractible = term-psh F
+
+          -- In the sheaf category (full subcategory), morphisms are the same as presheaf morphisms
+          -- So Hom_Sh(F, Sheafification(T)) inherits contractibility
+          --
+          -- The paper (lines 572-579) tells us sheafification only changes A★ to products
+          -- For terminal T: products of singletons = singleton
+          -- So Sheafification(T) is still "essentially terminal"
+
+          -- Simpler approach: Since Sheaves is a FULL subcategory of PSh,
+          -- morphisms (F, _) → (G, _) in Sh are LITERALLY morphisms F → G in PSh.
+          -- So we just need to show that for the terminal T in PSh,
+          -- there's a contractible space of morphisms F → (underlying of Sheafification(T))
+          --
+          -- By the counit of the adjunction, Sheafification(T) has underlying presheaf
+          -- that is isomorphic to T (since the counit ε : forget ∘ Sheafification → Id
+          -- is iso for reflective subcategories).
+
+          -- The underlying presheaf of Sheafification(T)
+          -- Sheafification.F₀ T : Sheaf (which is a Σ type: (presheaf, is-sheaf))
+          -- Take .fst to get the underlying presheaf
+          T-sheafified-underlying : Functor (Fork-Category ^op) (Sets (o ⊔ ℓ))
+          T-sheafified-underlying = (Functor.₀ Sheafification T) .fst
+
+          -- Since T is terminal, there's a unique F → T
+          ! : F => T
+          ! = F-to-T-contractible .centre
+
+          -- We need F → T-sheafified-underlying
+          -- By the counit iso (for reflective subcategories), T-sheafified-underlying ≅ T
+          -- So we can compose: F → T → T-sheafified-underlying
+
+          -- In the sheaf category, morphisms (F, _) → (G, _) are presheaf morphisms F → G
+          -- So we just need is-contr (F => T-sheafified-underlying)
+          morphism-space-contractible : is-contr (F => T-sheafified-underlying)
+          morphism-space-contractible = {!!}
+            -- Need to:
+            -- 1. Use counit: forget (Sheafification T) → T (this is iso for reflective)
+            -- 2. Since T-sheafified-underlying ≅ T and F → T is contractible
+            -- 3. Compose to get F → T-sheafified-underlying is contractible
 
   fork-sheafification-lex .is-lex.pres-pullback pb-psh = {!!}
     -- Given: pb-psh : is-pullback (PSh ...) p1 f p2 g
