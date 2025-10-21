@@ -139,6 +139,7 @@ class SheafNetwork(nn.Module):
         - F(U) = neural network applied to object U's features
         - Restriction = learned linear map
         - Sheaf condition = differentiable consistency constraint
+        - **SHAPE POLYMORPHIC**: Adapts to any input dimension
 
     Attributes:
         hidden_dim: Hidden dimension for sheaf network
@@ -147,29 +148,39 @@ class SheafNetwork(nn.Module):
     hidden_dim: int
     output_dim: int
 
-    def setup(self):
-        """Initialize layers for computing sections."""
-        self.section_net = nn.Sequential([
-            nn.Dense(self.hidden_dim),
-            nn.relu,
-            nn.Dense(self.hidden_dim),
-            nn.relu,
-            nn.Dense(self.output_dim)
-        ])
+    @nn.compact
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+        """Forward pass with shape polymorphism.
 
-        # Restriction maps (one per morphism type)
-        self.restriction = nn.Dense(self.output_dim)
+        Args:
+            x: Input features of ANY dimension
+
+        Returns:
+            Output section of dimension output_dim
+        """
+        # Ensure input is at least 1D
+        if x.ndim == 0:
+            x = x.reshape(1)
+
+        # Three-layer MLP that adapts to input shape
+        h1 = nn.Dense(self.hidden_dim)(x)
+        h1 = nn.relu(h1)
+        h2 = nn.Dense(self.hidden_dim)(h1)
+        h2 = nn.relu(h2)
+        out = nn.Dense(self.output_dim)(h2)
+
+        return out
 
     def section_at(self, object_features: jnp.ndarray) -> jnp.ndarray:
         """Compute section F(U) at object U.
 
         Args:
-            object_features: (feature_dim,) - embedding of object U
+            object_features: (feature_dim,) - embedding of object U (any dim)
 
         Returns:
             section: (output_dim,) - F(U)
         """
-        return self.section_net(object_features)
+        return self(object_features)
 
     def restrict(self, section: jnp.ndarray,
                  from_obj: jnp.ndarray, to_obj: jnp.ndarray) -> jnp.ndarray:
@@ -184,8 +195,10 @@ class SheafNetwork(nn.Module):
             restricted: (output_dim,) - restricted section at U
         """
         # Contextual restriction (depends on both objects)
-        context = jnp.concatenate([from_obj, to_obj, section])
-        return self.restriction(context)
+        # This is shape polymorphic too!
+        context = jnp.concatenate([from_obj.flatten(), to_obj.flatten(), section.flatten()])
+        restricted = nn.Dense(self.output_dim, name='restriction')(context)
+        return restricted
 
 
 def sheaf_violation(site: Site, sheaf: SheafNetwork, params: Dict,
@@ -209,7 +222,7 @@ def sheaf_violation(site: Site, sheaf: SheafNetwork, params: Dict,
     """
     # Get section at U
     U_features = site.object_features[object_idx]
-    section_U = sheaf.apply({'params': params}, method=sheaf.section_at)(U_features)
+    section_U = sheaf.apply({'params': params}, U_features)
 
     # Get covering families
     covers = site.get_covers(object_idx)  # (max_covers, num_objects)
@@ -224,12 +237,15 @@ def sheaf_violation(site: Site, sheaf: SheafNetwork, params: Dict,
         for i in range(site.num_objects):
             if cover_weights[i] > 0.01:  # Only include if in cover
                 U_i_features = site.object_features[i]
-                section_U_i = sheaf.apply({'params': params}, method=sheaf.section_at)(U_i_features)
+                section_U_i = sheaf.apply({'params': params}, U_i_features)
 
                 # Restrict to U (if morphism U_i → U exists)
                 if site.adjacency[i, object_idx] > 0.5:
-                    restricted = sheaf.apply({'params': params}, method=sheaf.restrict)(
-                        section_U_i, U_features, U_i_features
+                    # Use restrict method via apply
+                    restricted = sheaf.apply(
+                        {'params': params},
+                        section_U_i, U_features, U_i_features,
+                        method=sheaf.restrict
                     )
                     cover_section += cover_weights[i] * restricted
 
@@ -246,14 +262,15 @@ def sheaf_violation(site: Site, sheaf: SheafNetwork, params: Dict,
 
 def topos_fitness(site: Site, sheaf: SheafNetwork, params: Dict,
                   meta_tasks: List[Tuple[jnp.ndarray, jnp.ndarray]],
-                  α: float = 1.0, β: float = 0.5, γ: float = 0.01) -> float:
+                  α: float = 1.0, β: float = 0.1, γ: float = 0.01,
+                  skip_sheaf_violation: bool = False, max_input_dim: int = None) -> float:
     """Fitness function for a topos on meta-learning tasks.
 
     Fitness = α · accuracy - β · sheaf_violation - γ · complexity
 
     Components:
     1. Accuracy: Few-shot performance across meta_tasks
-    2. Sheaf violation: How well sheaf condition is satisfied
+    2. Sheaf violation: How well sheaf condition is satisfied (DISABLED for ARC)
     3. Complexity: Number of parameters / sparsity penalty
 
     Args:
@@ -262,6 +279,7 @@ def topos_fitness(site: Site, sheaf: SheafNetwork, params: Dict,
         params: Network parameters
         meta_tasks: List of (X, Y) few-shot tasks
         α, β, γ: Weight coefficients
+        skip_sheaf_violation: If True, skip sheaf violation (for ARC tasks)
 
     Returns:
         fitness: Scalar (higher = better topos for these tasks)
@@ -269,27 +287,47 @@ def topos_fitness(site: Site, sheaf: SheafNetwork, params: Dict,
     # 1. Meta-learning accuracy
     accuracies = []
     for X, Y in meta_tasks:
-        # Simple forward pass (could be more sophisticated inner loop)
-        predictions = []
-        for x in X:
-            # Encode x using site structure, compute sheaf section
-            # (This is simplified - real version would train inner loop)
-            pred = sheaf.apply({'params': params}, method=sheaf.section_at)(x)
-            predictions.append(pred)
+        # X and Y are single vectors (one example each), not batches
+        # Ensure X has correct shape for network
+        if X.ndim == 0:  # Scalar
+            X = X.reshape(1)
+        pred = sheaf.apply({'params': params}, X)
 
-        preds = jnp.array(predictions)
-        accuracy = jnp.mean((preds - Y) ** 2)  # MSE (lower is better, so negate)
+        # Ensure Y has same shape as pred for comparison
+        if Y.ndim == 0:
+            Y = Y.reshape(1)
+        if Y.shape != pred.shape:
+            # Truncate/pad to match
+            min_len = min(len(Y), len(pred))
+            Y = Y[:min_len]
+            pred = pred[:min_len]
+
+        accuracy = jnp.mean((pred - Y) ** 2)  # MSE (lower is better, so negate)
         accuracies.append(-accuracy)
 
     mean_accuracy = jnp.mean(jnp.array(accuracies))
 
     # 2. Sheaf condition violations across all objects
-    violations = []
-    for obj_idx in range(site.num_objects):
-        viol = sheaf_violation(site, sheaf, params, obj_idx)
-        violations.append(viol)
-
-    mean_violation = jnp.mean(jnp.array(violations))
+    # SKIP for ARC tasks if explicitly requested
+    if skip_sheaf_violation or β == 0.0:
+        mean_violation = 0.0
+    else:
+        violations = []
+        for obj_idx in range(site.num_objects):
+            # Pad site features to match max_input_dim if provided
+            if max_input_dim and site.object_features.shape[1] < max_input_dim:
+                # Skip sheaf violation if dimensions don't match
+                # (site structure is abstract, not tied to input space)
+                mean_violation = 0.0
+                break
+            else:
+                viol = sheaf_violation(site, sheaf, params, obj_idx)
+                violations.append(viol)
+        else:
+            if violations:
+                mean_violation = jnp.mean(jnp.array(violations))
+            else:
+                mean_violation = 0.0
 
     # 3. Complexity penalty
     num_params = sum(p.size for p in jax.tree_util.tree_leaves(params))
@@ -408,6 +446,7 @@ class EvolutionaryToposSolver:
         mutation_rate: Probability of mutation
         elite_fraction: Fraction of population to keep unchanged
         meta_tasks: List of few-shot learning tasks
+        max_input_dim: Maximum input dimension (for zero-padding)
     """
 
     def __init__(self,
@@ -435,8 +474,9 @@ class EvolutionaryToposSolver:
         # Initialize sheaf network
         self.sheaf = SheafNetwork(hidden_dim=hidden_dim, output_dim=output_dim)
 
-        # Will store meta-tasks
+        # Will store meta-tasks and max dimension
         self.meta_tasks = []
+        self.max_input_dim = None
 
     def initialize_population(self, key: jax.random.PRNGKey) -> List[Site]:
         """Create initial random population of sites."""
@@ -470,12 +510,22 @@ class EvolutionaryToposSolver:
         keys = random.split(key, len(population))
 
         for site, k in zip(population, keys):
-            # Initialize sheaf parameters for this site
-            dummy_input = site.object_features[0]
+            # Initialize sheaf parameters with ACTUAL task input dimension
+            # Use the first meta-task's input to get the correct shape
+            if self.meta_tasks and len(self.meta_tasks) > 0:
+                dummy_input = self.meta_tasks[0][0]  # First task's X
+                # Ensure it's at least 1D
+                if dummy_input.ndim == 0:
+                    dummy_input = dummy_input.reshape(1)
+            else:
+                # Fallback to site features if no meta-tasks
+                dummy_input = site.object_features[0]
+
             params = self.sheaf.init(k, dummy_input)['params']
 
-            # Compute fitness
-            fitness = topos_fitness(site, self.sheaf, params, self.meta_tasks)
+            # Compute fitness (pass max_input_dim for proper padding)
+            fitness = topos_fitness(site, self.sheaf, params, self.meta_tasks,
+                                  max_input_dim=self.max_input_dim)
             fitnesses.append(fitness)
 
         return fitnesses
@@ -542,6 +592,39 @@ class EvolutionaryToposSolver:
 
         return offspring
 
+    def _compute_max_input_dim(self, meta_tasks: List[Tuple[jnp.ndarray, jnp.ndarray]]) -> int:
+        """Compute maximum input dimension across all meta-tasks.
+
+        Args:
+            meta_tasks: List of (X, Y) task pairs
+
+        Returns:
+            max_dim: Maximum input dimension
+        """
+        max_dim = 0
+        for X, Y in meta_tasks:
+            X_size = X.size if hasattr(X, 'size') else len(X.flatten())
+            Y_size = Y.size if hasattr(Y, 'size') else len(Y.flatten())
+            max_dim = max(max_dim, X_size, Y_size)
+        return max_dim
+
+    def _pad_to_max_dim(self, x: jnp.ndarray, max_dim: int) -> jnp.ndarray:
+        """Zero-pad input to maximum dimension.
+
+        Args:
+            x: Input array
+            max_dim: Target dimension
+
+        Returns:
+            Padded array of shape (max_dim,)
+        """
+        x_flat = x.flatten()
+        if len(x_flat) < max_dim:
+            padding = jnp.zeros(max_dim - len(x_flat))
+            return jnp.concatenate([x_flat, padding])
+        else:
+            return x_flat[:max_dim]
+
     def evolve(self, key: jax.random.PRNGKey,
                meta_tasks: List[Tuple[jnp.ndarray, jnp.ndarray]],
                verbose: bool = True) -> Tuple[Site, List[float]]:
@@ -556,7 +639,20 @@ class EvolutionaryToposSolver:
             best_site: Optimal topos structure found
             fitness_history: Best fitness per generation
         """
-        self.meta_tasks = meta_tasks
+        # Compute max dimension and pad all tasks
+        self.max_input_dim = self._compute_max_input_dim(meta_tasks)
+
+        if verbose:
+            print(f"Max input dimension across tasks: {self.max_input_dim}")
+
+        # Pad all meta-tasks to max dimension
+        padded_tasks = []
+        for X, Y in meta_tasks:
+            X_padded = self._pad_to_max_dim(X, self.max_input_dim)
+            Y_padded = self._pad_to_max_dim(Y, self.max_input_dim)
+            padded_tasks.append((X_padded, Y_padded))
+
+        self.meta_tasks = padded_tasks
 
         # Initialize population
         k1, k2 = random.split(key, 2)

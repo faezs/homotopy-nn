@@ -426,27 +426,56 @@ def evaluate_prediction(predicted: ARCGrid, ground_truth: ARCGrid) -> Dict:
     Returns:
         metrics: Dictionary with evaluation metrics
     """
-    # Exact match
-    exact_match = np.array_equal(predicted.cells, ground_truth.cells)
-
-    # Cell-wise accuracy
-    correct_cells = np.sum(predicted.cells == ground_truth.cells)
-    total_cells = ground_truth.height * ground_truth.width
-    accuracy = correct_cells / total_cells
-
-    # Size match
+    # Size match check FIRST
     size_match = (predicted.height == ground_truth.height and
                  predicted.width == ground_truth.width)
 
-    return {
-        'exact_match': exact_match,
-        'accuracy': accuracy,
-        'correct_cells': int(correct_cells),
-        'total_cells': int(total_cells),
-        'size_match': size_match,
-        'predicted_size': (predicted.height, predicted.width),
-        'ground_truth_size': (ground_truth.height, ground_truth.width)
-    }
+    # Handle shape mismatches gracefully - give worst possible reward
+    if not size_match:
+        total_cells = ground_truth.height * ground_truth.width
+        return {
+            'exact_match': False,
+            'accuracy': 0.0,  # Worst possible accuracy
+            'correct_cells': 0,
+            'total_cells': int(total_cells),
+            'size_match': False,
+            'predicted_size': (predicted.height, predicted.width),
+            'ground_truth_size': (ground_truth.height, ground_truth.width),
+            'error': f'Shape mismatch: predicted {predicted.height}×{predicted.width} vs ground truth {ground_truth.height}×{ground_truth.width}'
+        }
+
+    # Try to compute accuracy (with error handling for any other issues)
+    try:
+        # Exact match
+        exact_match = np.array_equal(predicted.cells, ground_truth.cells)
+
+        # Cell-wise accuracy
+        correct_cells = np.sum(predicted.cells == ground_truth.cells)
+        total_cells = ground_truth.height * ground_truth.width
+        accuracy = correct_cells / total_cells
+
+        return {
+            'exact_match': exact_match,
+            'accuracy': accuracy,
+            'correct_cells': int(correct_cells),
+            'total_cells': int(total_cells),
+            'size_match': True,
+            'predicted_size': (predicted.height, predicted.width),
+            'ground_truth_size': (ground_truth.height, ground_truth.width)
+        }
+    except Exception as e:
+        # Any other error - give worst possible reward
+        total_cells = ground_truth.height * ground_truth.width
+        return {
+            'exact_match': False,
+            'accuracy': 0.0,  # Worst possible accuracy
+            'correct_cells': 0,
+            'total_cells': int(total_cells),
+            'size_match': size_match,
+            'predicted_size': (predicted.height, predicted.width),
+            'ground_truth_size': (ground_truth.height, ground_truth.width),
+            'error': f'Evaluation error: {str(e)}'
+        }
 
 
 def evaluate_task(task: ARCTask,

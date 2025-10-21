@@ -149,69 +149,113 @@ def train_single_task(task_id: str,
 
     # Evolve topos
     print(f"\nEvolving topos structure...")
-    best_site, prediction, fitness_history = solver.solve_arc_task(
-        key, task, verbose=True
-    )
+    try:
+        best_site, prediction, fitness_history = solver.solve_arc_task(
+            key, task, verbose=True
+        )
 
-    # Evaluate prediction
-    evaluation = evaluate_task(task, [prediction])
+        # Evaluate prediction
+        evaluation = evaluate_task(task, [prediction])
 
-    print(f"\n{'='*70}")
-    print("RESULTS")
-    print(f"{'='*70}")
-    print(f"Task solved: {'✓ YES' if evaluation['task_solved'] else '✗ NO'}")
-    print(f"Accuracy: {evaluation['avg_accuracy']:.1%}")
-    print(f"Final fitness: {fitness_history[-1]:.4f}")
-    print(f"{'='*70}\n")
+        print(f"\n{'='*70}")
+        print("RESULTS")
+        print(f"{'='*70}")
+        print(f"Task solved: {'✓ YES' if evaluation['task_solved'] else '✗ NO'}")
+        print(f"Accuracy: {evaluation['avg_accuracy']:.1%}")
+        print(f"Final fitness: {fitness_history[-1]:.4f}")
 
-    # Prepare results
-    results = {
-        'task_id': task_id,
-        'solved': evaluation['task_solved'],
-        'accuracy': evaluation['avg_accuracy'],
-        'fitness_history': fitness_history,
-        'best_site': best_site,
-        'prediction': prediction,
-        'evaluation': evaluation
-    }
+        # Check for errors in evaluation
+        if 'error' in evaluation.get('example_results', [{}])[0]:
+            error_msg = evaluation['example_results'][0]['error']
+            print(f"⚠ Warning: {error_msg}")
 
-    # Save visualizations
+        print(f"{'='*70}\n")
+
+        # Prepare results
+        results = {
+            'task_id': task_id,
+            'solved': evaluation['task_solved'],
+            'accuracy': evaluation['avg_accuracy'],
+            'fitness_history': fitness_history,
+            'best_site': best_site,
+            'prediction': prediction,
+            'evaluation': evaluation
+        }
+
+    except Exception as e:
+        # Prediction failed - return worst possible results
+        print(f"\n✗ Error during prediction: {str(e)}")
+        print(f"Returning 0% accuracy (worst possible reward)\n")
+
+        # Create dummy results with worst possible scores
+        results = {
+            'task_id': task_id,
+            'solved': False,
+            'accuracy': 0.0,  # Worst possible accuracy
+            'fitness_history': [-1000.0],  # Worst possible fitness
+            'best_site': None,
+            'prediction': None,
+            'error': str(e),
+            'evaluation': {
+                'task_solved': False,
+                'avg_accuracy': 0.0,
+                'num_examples': len(task.test_outputs),
+                'exact_matches': 0,
+                'size_matches': 0
+            }
+        }
+
+    # Save visualizations (even for failures!)
     if config.save_visualizations:
         vis_dir = config.run_dir / "visualizations" / task_id
         vis_dir.mkdir(parents=True, exist_ok=True)
 
-        # Task visualization
+        # Task visualization (always works)
         fig = visualize_task(task, task_id)
         fig.savefig(vis_dir / "task.png", dpi=150, bbox_inches='tight')
         plt.close(fig)
 
-        # Prediction visualization
-        fig = visualize_prediction(
-            task.test_inputs[0],
-            prediction,
-            task.test_outputs[0],
-            title=f"Task {task_id} - Prediction"
-        )
-        fig.savefig(vis_dir / "prediction.png", dpi=150, bbox_inches='tight')
-        plt.close(fig)
+        # Prediction visualization (show error if failed)
+        if results.get('prediction') is not None:
+            fig = visualize_prediction(
+                task.test_inputs[0],
+                results['prediction'],
+                task.test_outputs[0],
+                title=f"Task {task_id} - Prediction"
+            )
+            fig.savefig(vis_dir / "prediction.png", dpi=150, bbox_inches='tight')
+            plt.close(fig)
+        else:
+            # Create error visualization
+            fig, ax = plt.subplots(figsize=(10, 6))
+            error_msg = results.get('error', 'Unknown error')
+            ax.text(0.5, 0.5, f"❌ PREDICTION FAILED\n\n{error_msg}",
+                   ha='center', va='center', fontsize=14,
+                   bbox=dict(boxstyle='round', facecolor='red', alpha=0.2))
+            ax.axis('off')
+            ax.set_title(f"Task {task_id} - ERROR", fontsize=16, fontweight='bold', color='red')
+            fig.savefig(vis_dir / "prediction_error.png", dpi=150, bbox_inches='tight')
+            plt.close(fig)
 
-        # Site structure visualization
-        fig = visualize_site_structure(
-            best_site,
-            title=f"Learned Topos for Task {task_id}"
-        )
-        fig.savefig(vis_dir / "topos_structure.png", dpi=150, bbox_inches='tight')
-        plt.close(fig)
+        # Site structure visualization (if available)
+        if results.get('best_site') is not None:
+            fig = visualize_site_structure(
+                results['best_site'],
+                title=f"Learned Topos for Task {task_id}"
+            )
+            fig.savefig(vis_dir / "topos_structure.png", dpi=150, bbox_inches='tight')
+            plt.close(fig)
 
-        # Fitness evolution
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(fitness_history, linewidth=2)
-        ax.set_xlabel("Generation", fontsize=12)
-        ax.set_ylabel("Fitness", fontsize=12)
-        ax.set_title(f"Fitness Evolution - Task {task_id}", fontsize=14, fontweight='bold')
-        ax.grid(True, alpha=0.3)
-        fig.savefig(vis_dir / "fitness_evolution.png", dpi=150, bbox_inches='tight')
-        plt.close(fig)
+        # Fitness evolution (if available)
+        if results.get('fitness_history') is not None and len(results['fitness_history']) > 0:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.plot(results['fitness_history'], linewidth=2)
+            ax.set_xlabel("Generation", fontsize=12)
+            ax.set_ylabel("Fitness", fontsize=12)
+            ax.set_title(f"Fitness Evolution - Task {task_id}", fontsize=14, fontweight='bold')
+            ax.grid(True, alpha=0.3)
+            fig.savefig(vis_dir / "fitness_evolution.png", dpi=150, bbox_inches='tight')
+            plt.close(fig)
 
         print(f"✓ Saved visualizations to {vis_dir}")
 
@@ -309,10 +353,27 @@ def save_results(results: dict, config: TrainingConfig):
     # Save summary JSON (without site objects)
     summary = {}
     for task_id, task_results in results.items():
+        # Convert JAX arrays to Python types for JSON serialization
+        accuracy = task_results.get('accuracy', 0.0)
+        if hasattr(accuracy, 'item'):
+            accuracy = float(accuracy.item())
+        else:
+            accuracy = float(accuracy)
+
+        fitness_history = task_results.get('fitness_history', [0])
+        if fitness_history:
+            final_fitness = fitness_history[-1]
+            if hasattr(final_fitness, 'item'):
+                final_fitness = float(final_fitness.item())
+            else:
+                final_fitness = float(final_fitness)
+        else:
+            final_fitness = 0.0
+
         summary[task_id] = {
-            'solved': task_results.get('solved', False),
-            'accuracy': task_results.get('accuracy', 0.0),
-            'final_fitness': task_results.get('fitness_history', [0])[-1] if 'fitness_history' in task_results else 0,
+            'solved': bool(task_results.get('solved', False)),
+            'accuracy': accuracy,
+            'final_fitness': final_fitness,
             'error': task_results.get('error', None)
         }
 

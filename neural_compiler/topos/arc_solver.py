@@ -260,24 +260,46 @@ class ARCReasoningNetwork(nn.Module):
             nn.Dense(self.num_colors)
         ])
 
-    def encode_grid(self, grid: ARCGrid, site: Site) -> jnp.ndarray:
-        """Encode grid as sheaf section.
+    def encode_grid(self, grid: ARCGrid, site: Site, max_cells: int = None) -> jnp.ndarray:
+        """Encode grid as sheaf section with optional zero-padding.
 
         Args:
             grid: Input ARC grid
             site: Topos structure for grid
+            max_cells: Maximum number of cells (for zero-padding)
 
         Returns:
-            section: (num_cells, hidden_dim) - sheaf section
+            section: (max_cells or num_cells, hidden_dim) - sheaf section
         """
         # Get cell colors as features
         cell_colors = grid.cells.reshape(-1)  # Flatten
-        one_hot = jax.nn.one_hot(cell_colors, num_classes=self.num_colors)
+        num_cells = len(cell_colors)
 
-        # Combine with site object features
+        # Determine target size
+        if max_cells is None:
+            max_cells = num_cells
+
+        # Zero-pad cell colors if needed
+        if num_cells < max_cells:
+            padding = jnp.zeros(max_cells - num_cells, dtype=cell_colors.dtype)
+            cell_colors_padded = jnp.concatenate([cell_colors, padding])
+        else:
+            cell_colors_padded = cell_colors[:max_cells]
+
+        # One-hot encode padded colors
+        one_hot = jax.nn.one_hot(cell_colors_padded, num_classes=self.num_colors)
+
+        # Combine with site object features (pad site features too if needed)
+        if len(site.object_features) < max_cells:
+            # Pad site features with zeros
+            site_padding = jnp.zeros((max_cells - len(site.object_features), site.object_features.shape[1]))
+            site_features_padded = jnp.concatenate([site.object_features, site_padding], axis=0)
+        else:
+            site_features_padded = site.object_features[:max_cells]
+
         combined = jnp.concatenate([
             one_hot,
-            site.object_features[:len(cell_colors)]  # Match grid size
+            site_features_padded
         ], axis=-1)
 
         # Encode
@@ -348,23 +370,49 @@ class ARCReasoningNetwork(nn.Module):
         Returns:
             output_grid: Predicted output grid
         """
-        # Encode input
-        input_section = self.encode_grid(input_grid, site)
+        # Compute max cells across all grids for zero-padding
+        all_grids = [input_grid] + [g for pair in example_grids for g in pair]
+        max_cells = max(g.height * g.width for g in all_grids)
 
-        # Encode examples
+        # Infer output dimensions from training examples
+        # Check if all examples have output = input (identity transformation on size)
+        if example_grids:
+            # Check if all examples preserve dimensions
+            all_preserve_dims = all(
+                (inp.height == out.height and inp.width == out.width)
+                for inp, out in example_grids
+            )
+
+            if all_preserve_dims:
+                # Identity transformation: output size = input size
+                output_height = input_grid.height
+                output_width = input_grid.width
+            else:
+                # Non-identity: use first example's output size
+                output_height = example_grids[0][1].height
+                output_width = example_grids[0][1].width
+        else:
+            # Fallback: same as input
+            output_height = input_grid.height
+            output_width = input_grid.width
+
+        # Encode input with padding
+        input_section = self.encode_grid(input_grid, site, max_cells)
+
+        # Encode examples with padding
         example_sections = [
-            (self.encode_grid(inp, site), self.encode_grid(out, site))
+            (self.encode_grid(inp, site, max_cells), self.encode_grid(out, site, max_cells))
             for inp, out in example_grids
         ]
 
         # Apply pattern
         output_section = self.apply_pattern(input_section, example_sections)
 
-        # Decode
+        # Decode using inferred output dimensions
         output_grid = self.decode_grid(
             output_section,
-            input_grid.height,
-            input_grid.width
+            output_height,
+            output_width
         )
 
         return output_grid
@@ -375,7 +423,7 @@ class ARCReasoningNetwork(nn.Module):
 ################################################################################
 
 def arc_fitness(site: Site, network: ARCReasoningNetwork, params: Dict,
-                task: ARCTask, α: float = 1.0, β: float = 0.5) -> float:
+                task: ARCTask, α: float = 1.0, β: float = 0.0) -> float:
     """Fitness function for ARC task.
 
     Fitness = α · accuracy_on_training - β · sheaf_violations
@@ -385,7 +433,7 @@ def arc_fitness(site: Site, network: ARCReasoningNetwork, params: Dict,
         network: ARC reasoning network
         params: Network parameters
         task: ARC task with train/test examples
-        α, β: Weight coefficients
+        α, β: Weight coefficients (β=0 disables sheaf violations for ARC)
 
     Returns:
         fitness: Score (higher = better)
@@ -417,37 +465,49 @@ def arc_fitness(site: Site, network: ARCReasoningNetwork, params: Dict,
     mean_accuracy = jnp.mean(jnp.array(train_accuracies))
 
     # 2. Sheaf violations (consistency penalty)
-    # Check that sections glue properly according to coverage
-    violations = []
-    for inp_grid in task.train_inputs:
-        section = network.apply(
-            {'params': params},
-            method=network.encode_grid
-        )(inp_grid, site)
+    # DISABLED for ARC tasks (β=0 by default) due to dimension mismatch
+    # between abstract site structure and variable-sized task data
+    if β > 0.0:
+        # Compute max cells for padding
+        max_cells = max(g.height * g.width for g in task.train_inputs)
 
-        # Check sheaf condition at each cell
-        for cell_idx in range(site.num_objects):
-            # Get section at this cell
-            s_cell = section[cell_idx]
+        violations = []
+        for inp_grid in task.train_inputs:
+            # Use encode_grid with max_cells parameter
+            section = network.apply(
+                {'params': params},
+                inp_grid,
+                site,
+                max_cells,
+                method=network.encode_grid
+            )
 
-            # Get covering families
-            covers = site.get_covers(cell_idx)
+            # Check sheaf condition at each cell (up to actual grid size)
+            num_actual_cells = inp_grid.height * inp_grid.width
+            for cell_idx in range(min(num_actual_cells, site.num_objects)):
+                # Get section at this cell
+                s_cell = section[cell_idx]
 
-            # Check gluing for each cover
-            for k in range(site.max_covers):
-                cover_weights = covers[k]
+                # Get covering families
+                covers = site.get_covers(cell_idx)
 
-                # Glued section from cover
-                s_glued = jnp.zeros_like(s_cell)
-                for j in range(site.num_objects):
-                    if cover_weights[j] > 0.01:
-                        s_glued += cover_weights[j] * section[j]
+                # Check gluing for each cover
+                for k in range(site.max_covers):
+                    cover_weights = covers[k]
 
-                # Violation = difference
-                viol = jnp.sum((s_cell - s_glued) ** 2)
-                violations.append(viol)
+                    # Glued section from cover
+                    s_glued = jnp.zeros_like(s_cell)
+                    for j in range(site.num_objects):
+                        if cover_weights[j] > 0.01:
+                            s_glued += cover_weights[j] * section[j]
 
-    mean_violation = jnp.mean(jnp.array(violations)) if violations else 0.0
+                    # Violation = difference
+                    viol = jnp.sum((s_cell - s_glued) ** 2)
+                    violations.append(viol)
+
+        mean_violation = jnp.mean(jnp.array(violations)) if violations else 0.0
+    else:
+        mean_violation = 0.0
 
     # Combined fitness
     fitness = α * mean_accuracy - β * mean_violation

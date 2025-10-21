@@ -17,7 +17,7 @@ __version__ = "0.1.0"
 
 from .parser import parse_ir, NeuralIR
 from .polyfunctor import PolynomialFunctor, compile_to_polyfunctor
-from .jax_backend import JAXBackend, compile_to_jax
+from .jax_backend import JAXBackend
 from .compiler import compile_architecture
 
 __all__ = [
@@ -26,6 +26,5 @@ __all__ = [
     "PolynomialFunctor",
     "compile_to_polyfunctor",
     "JAXBackend",
-    "compile_to_jax",
     "compile_architecture",
 ]
