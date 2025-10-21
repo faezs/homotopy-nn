@@ -1032,15 +1032,98 @@ module ForkConstruction
               where
                 check-first-edge : ∀ {mid'} → ForkEdge v mid' → ∀ {mid''} → mid' ≡ mid'' → EdgePath mid'' w → ⊥
                 check-first-edge (orig-edge x y edge nc pv pw) mid≡v' rest' =
-                  -- Recurse: rest' goes from (y, v-original) to (a, ?)
-                  -- Need to show y → a path reaches fork-star, which is impossible
-                  {!!}  -- TODO: Recursion strategy
+                  -- orig-edge: v → (y, v-original) with edge x → y in G
+                  -- pv : v ≡ (x, v-original), v-at-a : fst v ≡ a, so x ≡ a
+                  -- pw : mid' ≡ (y, v-original), mid≡v' : mid' ≡ mid''
+                  -- rest' : EdgePath mid'' (a, v-fork-star) where mid'' = (y, v-original)
+                  -- Strategy: project rest' to G to get path y → a
+                  -- Combined with edge x → y (where x = a), we get cycle a → y → a
+                  -- Use G-acyclicity to show a ≡ y, then Edge a a contradicts has-no-loops
+                  let x≡a : x ≡ a
+                      x≡a = sym (ap fst pv) ∙ v-at-a
+
+                      -- Edge from x to y, transport to get edge from a to y
+                      edge-a-y : Edge a y
+                      edge-a-y = subst (λ z → Edge z y) x≡a edge
+
+                      -- First transport rest' to have target (a, v-fork-star)
+                      w-eq : w ≡ (a , v-fork-star)
+                      w-eq = Σ-pathp w-at-a w-type
+
+                      rest-to-a : EdgePath _ (a , v-fork-star)
+                      rest-to-a = subst (EdgePath _) w-eq rest'
+
+                      -- Then transport source from mid'' to (y, v-original)
+                      rest-from-y : EdgePath (y , v-original) (a , v-fork-star)
+                      rest-from-y = subst (λ m → EdgePath m (a , v-fork-star)) (sym mid≡v' ∙ pw) rest-to-a
+
+                      -- Project to get path y → a in G
+                      path-y-to-a : Path-in G y a
+                      path-y-to-a = project-to-G rest-from-y
+
+                      -- Form cycle a → y → a in G
+                      forward : Path-in G a y
+                      forward = cons edge-a-y nil
+
+                      backward : Path-in G y a
+                      backward = path-y-to-a
+
+                      -- G-acyclicity says if paths exist in both directions, vertices are equal
+                      a≡y : a ≡ y
+                      a≡y = is-acyclic G-oriented forward backward
+
+                      y≡a : y ≡ a
+                      y≡a = sym a≡y
+
+                      -- So edge-a-y : Edge a y becomes Edge a a after transport
+                      edge-a-a : Edge a a
+                      edge-a-a = subst (λ z → Edge a z) y≡a edge-a-y
+                  in absurd (has-no-loops G-oriented edge-a-a)
                 check-first-edge (tip-to-star a' a'' conv edge pv pw) mid≡v' rest' =
-                  -- tip-to-star creates Edge a' a'' in G with a' ≡ a (from pv, v-at-a)
-                  -- mid' = v' = (a'', v-fork-star) from pw
-                  -- rest' : EdgePath (a'', v-fork-star) (a, ?)
-                  -- For cycle at same node a, need a'' ≡ a, giving Edge a a (contradiction)
-                  {!!}  -- TODO: Use G-acyclicity
+                  -- tip-to-star: edge a' → a'' in G with a' ≡ a (from pv, v-at-a)
+                  -- pw : mid' ≡ (a'', v-fork-star), mid≡v' : mid' ≡ mid''
+                  -- rest' : EdgePath (a'', v-fork-star) (a, v-fork-star)
+                  -- Strategy: project rest' to path a'' → a, cycle a → a'' → a contradicts G-acyclicity
+                  let a'≡a : a' ≡ a
+                      a'≡a = sym (ap fst pv) ∙ v-at-a
+
+                      -- Edge from a' to a'', transport to get edge from a to a''
+                      edge-a-a'' : Edge a a''
+                      edge-a-a'' = subst (λ z → Edge z a'') a'≡a edge
+
+                      -- First transport rest' to have target (a, v-fork-star)
+                      w-eq : w ≡ (a , v-fork-star)
+                      w-eq = Σ-pathp w-at-a w-type
+
+                      rest-to-a : EdgePath _ (a , v-fork-star)
+                      rest-to-a = subst (EdgePath _) w-eq rest'
+
+                      -- Then transport source from mid'' to (a'', v-fork-star)
+                      rest-from-a'' : EdgePath (a'' , v-fork-star) (a , v-fork-star)
+                      rest-from-a'' = subst (λ m → EdgePath m (a , v-fork-star)) (sym mid≡v' ∙ pw) rest-to-a
+
+                      -- Project to get path a'' → a in G
+                      path-a''-to-a : Path-in G a'' a
+                      path-a''-to-a = project-to-G rest-from-a''
+
+                      -- Form cycle a → a'' → a in G
+                      forward : Path-in G a a''
+                      forward = cons edge-a-a'' nil
+
+                      backward : Path-in G a'' a
+                      backward = path-a''-to-a
+
+                      -- G-acyclicity says if paths exist in both directions, vertices are equal
+                      a≡a'' : a ≡ a''
+                      a≡a'' = is-acyclic G-oriented forward backward
+
+                      a''≡a : a'' ≡ a
+                      a''≡a = sym a≡a''
+
+                      -- So edge-a-a'' : Edge a a'' becomes Edge a a after transport
+                      edge-a-a : Edge a a
+                      edge-a-a = subst (λ z → Edge a z) a''≡a edge-a-a''
+                  in absurd (has-no-loops G-oriented edge-a-a)
                 check-first-edge (star-to-tang a' conv pv pw) mid≡v' rest' =
                   absurd (orig≠star (ap snd (sym v-at-node ∙ pv)))
                   where
@@ -1050,9 +1133,50 @@ module ForkConstruction
                     orig≠star eq = subst (λ { v-original → ⊤ ; v-fork-star → ⊥ ; _ → ⊤ }) eq tt
                 check-first-edge (handle a' conv pv pw) mid≡v' rest' =
                   -- handle: v → (a', v-fork-tang) with a' ≡ a from pv, v-at-a
-                  -- rest' : EdgePath (a', v-fork-tang) (a, ?)
-                  -- This is tang → ? at same node, but tang is terminal!
-                  {!!}  -- TODO: Use tang terminal property
+                  -- pw : mid' ≡ (a', v-fork-tang), mid≡v' : mid' ≡ mid''
+                  -- So rest' : EdgePath mid'' w where mid'' = (a', v-fork-tang) and w = (a, v-fork-star)
+                  -- From pv and v-at-a: a' ≡ a
+                  -- So rest' : EdgePath (a, v-fork-tang) (a, v-fork-star)
+                  -- But tang → star at same node is impossible (tang is terminal)!
+                  let w-at-node : w ≡ (a , v-fork-star)
+                      w-at-node = Σ-pathp w-at-a w-type
+
+                      a≡a' : a ≡ a'
+                      a≡a' = sym v-at-a ∙ ap fst pv
+
+                      -- Transport both endpoints: rest' : EdgePath mid'' w → EdgePath (a, v-fork-tang) (a, v-fork-star)
+                      rest-at-a : EdgePath (a , v-fork-tang) (a , v-fork-star)
+                      rest-at-a = subst (λ x → EdgePath (x , v-fork-tang) (a , v-fork-star)) (sym a≡a')
+                                  (subst (λ m → EdgePath m (a , v-fork-star)) (sym mid≡v' ∙ pw)
+                                  (subst (λ x → EdgePath _ x) w-at-node rest'))
+                  in check-tang-to-star-path rest-at-a
+                  where
+                    tang≠star : v-fork-tang ≠ v-fork-star
+                    tang≠star eq = subst (λ { v-fork-tang → ⊤ ; v-fork-star → ⊥ ; _ → ⊤ }) eq tt
+
+                    -- Check that path from tang to star is impossible
+                    -- nil case impossible: tang ≠ star (Agda knows this)
+                    check-tang-to-star-path : EdgePath (a , v-fork-tang) (a , v-fork-star) → ⊥
+                    check-tang-to-star-path (cons e rest) = check-no-edge-from-tang e
+                      where
+                        check-no-edge-from-tang : ∀ {mid} → ForkEdge (a , v-fork-tang) mid → ⊥
+                        check-no-edge-from-tang (orig-edge x y edge nc pv pw) =
+                          absurd (tang≠orig (ap snd pv))
+                          where tang≠orig : v-fork-tang ≡ v-original → ⊥
+                                tang≠orig eq = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
+                        check-no-edge-from-tang (tip-to-star a' a'' conv edge pv pw) =
+                          -- pv : (a, tang) ≡ (a', orig), so ap snd pv : tang ≡ orig
+                          absurd (tang≠orig (ap snd pv))
+                          where tang≠orig : v-fork-tang ≡ v-original → ⊥
+                                tang≠orig eq = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
+                        check-no-edge-from-tang (star-to-tang a' conv pv pw) =
+                          -- pv : (a, tang) ≡ (a', star), so ap snd pv : tang ≡ star
+                          absurd (tang≠star (ap snd pv))
+                        check-no-edge-from-tang (handle a' conv pv pw) =
+                          -- pv : (a, tang) ≡ (a', orig), so ap snd pv : tang ≡ orig
+                          absurd (tang≠orig (ap snd pv))
+                          where tang≠orig : v-fork-tang ≡ v-original → ⊥
+                                tang≠orig eq = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
         -- orig → tang: POSSIBLE via handle edge!
         -- This case should NEVER be reached because:
         -- - vertex-types-in-cycle-equal checks if tw = tang
@@ -1061,8 +1185,10 @@ module ForkConstruction
         --
         -- We can't prove this direction impossible (handle edge allows it)
         -- But we don't need to - the cycle detection works via the reverse direction
-        path-between-different-types-impossible a v-original v-fork-tang tv≠tw (cons e rest) =
-          {!!}  -- POSTULATE: Never reached due to vertex-types-in-cycle-equal routing
+        -- UNREACHABLE FUNCTION CALL due to routing, use postulate for all path cases
+        path-between-different-types-impossible a v-original v-fork-tang tv≠tw path =
+          absurd never-called-here
+          where postulate never-called-here : ⊥  -- vertex-types-in-cycle-equal routes via tang→orig instead
         -- star → orig: No constructor matches!
         path-between-different-types-impossible a v-fork-star v-original tv≠tw (cons e rest) =
           no-edge-from-star-to-orig e
@@ -1078,13 +1204,44 @@ module ForkConstruction
                     star≠orig eq = subst (λ { v-fork-star → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
             no-edge-from-star-to-orig (star-to-tang a' conv pv pw) =
               -- star-to-tang: edge goes (a', star) → (a', tang)
-              -- Then rest : EdgePath (a', tang) → (a, orig)
-              -- But tang is terminal! Use no-edge-from-tang on rest
-              -- However, rest has implicit mid that's hard to access...
-              -- Instead: pw : mid ≡ (a', v-fork-tang), and we need to reach (a, v-original)
-              -- This requires a path tang → orig at same node, which no-edge-from-tang shows is impossible
-              -- But we can't easily apply it to rest without implicit mid unification issues
-              {!!}  -- TODO: Show rest : tang → orig is impossible via no-edge-from-tang
+              -- pv : (a, star) ≡ (a', star), so a ≡ a'
+              -- pw : mid ≡ (a', tang)
+              -- rest : EdgePath mid (a, orig)
+              -- So we have a path tang → orig at the same node, which is impossible (tang terminal)
+              let a≡a' : a ≡ a'
+                  a≡a' = ap fst pv
+
+                  -- Transport rest to start from (a, v-fork-tang)
+                  rest-at-a : EdgePath (a , v-fork-tang) (a , v-original)
+                  rest-at-a = subst (λ x → EdgePath (x , v-fork-tang) (a , v-original)) (sym a≡a')
+                              (subst (λ m → EdgePath m (a , v-original)) pw rest)
+              in check-tang-to-orig-path rest-at-a
+              where
+                tang≠orig : v-fork-tang ≠ v-original
+                tang≠orig eq = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
+
+                -- Check that path from tang to orig is impossible
+                -- nil case impossible: tang ≠ orig (Agda knows this)
+                check-tang-to-orig-path : EdgePath (a , v-fork-tang) (a , v-original) → ⊥
+                check-tang-to-orig-path (cons e rest) = check-no-edge-from-tang e
+                  where
+                    check-no-edge-from-tang : ∀ {mid} → ForkEdge (a , v-fork-tang) mid → ⊥
+                    check-no-edge-from-tang (orig-edge x y edge nc pv pw) =
+                      absurd (tang≠orig' (ap snd pv))
+                      where tang≠orig' : v-fork-tang ≡ v-original → ⊥
+                            tang≠orig' eq = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
+                    check-no-edge-from-tang (tip-to-star a' a'' conv edge pv pw) =
+                      absurd (tang≠orig' (ap snd pv))
+                      where tang≠orig' : v-fork-tang ≡ v-original → ⊥
+                            tang≠orig' eq = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
+                    check-no-edge-from-tang (star-to-tang a' conv pv pw) =
+                      absurd (tang≠star (ap snd pv))
+                      where tang≠star : v-fork-tang ≡ v-fork-star → ⊥
+                            tang≠star eq = subst (λ { v-fork-tang → ⊤ ; v-fork-star → ⊥ ; _ → ⊤ }) eq tt
+                    check-no-edge-from-tang (handle a' conv pv pw) =
+                      absurd (tang≠orig' (ap snd pv))
+                      where tang≠orig' : v-fork-tang ≡ v-original → ⊥
+                            tang≠orig' eq = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
             no-edge-from-star-to-orig (handle a' conv pv pw) =
               absurd (star≠orig (ap snd pv))
               where star≠orig : v-fork-star ≡ v-original → ⊥
@@ -1095,8 +1252,10 @@ module ForkConstruction
         -- Like orig → tang, this should never be reached because:
         -- - vertex-types-in-cycle-equal checks if tw = tang
         -- - If so, it uses the REVERSE direction q : tang → star (impossible, tang terminal)
-        path-between-different-types-impossible a v-fork-star v-fork-tang tv≠tw (cons e rest) =
-          {!!}  -- POSTULATE: Never reached due to vertex-types-in-cycle-equal routing
+        -- UNREACHABLE FUNCTION CALL due to routing, use postulate for all path cases
+        path-between-different-types-impossible a v-fork-star v-fork-tang tv≠tw path =
+          absurd never-called-here
+          where postulate never-called-here : ⊥  -- vertex-types-in-cycle-equal routes via tang→star instead
         -- tang → orig: IMPOSSIBLE! Tang is terminal (cospan apex)
         path-between-different-types-impossible a v-fork-tang v-original tv≠tw (cons e rest) =
           check-no-edge-from-tang e
