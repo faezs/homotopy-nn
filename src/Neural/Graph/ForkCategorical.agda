@@ -697,8 +697,116 @@ module ForkConstruction
     ((x , v-original) , (y , v-original) , orig-edge x y e ¬conv-y refl refl) ∷ []
 
   {-|
+  ## Phase 2: Γ̄ is Oriented
+
+  We prove that the fork construction preserves orientation by showing:
+  1. **Classical**: At most one edge between any two vertices
+  2. **No-loops**: No self-edges
+  3. **Acyclic**: No cycles (path-based antisymmetry)
+  -}
+
+  module Γ̄-Orientation where
+    open EdgePath Γ̄
+
+    {-|
+    ### 2.1 Classical Property
+
+    **Theorem**: For any two vertices v, w in Γ̄, there is at most one edge from v to w.
+
+    **Proof strategy**: Case analysis on vertex types.
+    For each (source-type, target-type) pair, check which ForkEdge constructors
+    can apply. By construction, at most ONE constructor can produce an edge
+    between any specific pair of vertices.
+    -}
+
+    Γ̄-classical : ∀ (v w : ForkVertex) → is-prop (ForkEdge v w)
+    -- Same constructor cases: directly construct equality like ForkEdge-eq? does
+    Γ̄-classical v w (orig-edge x₁ y₁ edge₁ nc₁ pv₁ pw₁) (orig-edge x₂ y₂ edge₂ nc₂ pv₂ pw₂) =
+      let x≡x' = extract-node pv₁ pv₂
+          y≡y' = extract-node pw₁ pw₂
+      in λ i → orig-edge (x≡x' i) (y≡y' i)
+              (is-prop→pathp (λ j → G-oriented .fst (x≡x' j) (y≡y' j)) edge₁ edge₂ i)
+              (is-prop→pathp (λ j → Π-is-hlevel {A = ∥ is-convergent (y≡y' j) ∥} 1 (λ _ → hlevel 1)) nc₁ nc₂ i)
+              (is-prop→pathp (λ j → ForkVertex-is-set v (x≡x' j , v-original)) pv₁ pv₂ i)
+              (is-prop→pathp (λ j → ForkVertex-is-set w (y≡y' j , v-original)) pw₁ pw₂ i)
+
+    Γ̄-classical v w (tip-to-star a'₁ a₁ conv₁ edge₁ pv₁ pw₁) (tip-to-star a'₂ a₂ conv₂ edge₂ pv₂ pw₂) =
+      let a'≡a'' = extract-node pv₁ pv₂
+          a≡a''' = extract-node pw₁ pw₂
+      in λ i → tip-to-star (a'≡a'' i) (a≡a''' i)
+              (is-prop→pathp (λ j → hlevel {T = ∥ is-convergent (a≡a''' j) ∥} 1) conv₁ conv₂ i)
+              (is-prop→pathp (λ j → G-oriented .fst (a'≡a'' j) (a≡a''' j)) edge₁ edge₂ i)
+              (is-prop→pathp (λ j → ForkVertex-is-set v (a'≡a'' j , v-original)) pv₁ pv₂ i)
+              (is-prop→pathp (λ j → ForkVertex-is-set w (a≡a''' j , v-fork-star)) pw₁ pw₂ i)
+
+    Γ̄-classical v w (star-to-tang a₁ conv₁ pv₁ pw₁) (star-to-tang a₂ conv₂ pv₂ pw₂) =
+      let a≡a' = extract-node pv₁ pv₂
+      in λ i → star-to-tang (a≡a' i)
+              (is-prop→pathp (λ j → hlevel {T = ∥ is-convergent (a≡a' j) ∥} 1) conv₁ conv₂ i)
+              (is-prop→pathp (λ j → ForkVertex-is-set v (a≡a' j , v-fork-star)) pv₁ pv₂ i)
+              (is-prop→pathp (λ j → ForkVertex-is-set w (a≡a' j , v-fork-tang)) pw₁ pw₂ i)
+
+    Γ̄-classical v w (tang-to-handle a₁ conv₁ pv₁ pw₁) (tang-to-handle a₂ conv₂ pv₂ pw₂) =
+      let a≡a' = extract-node pv₁ pv₂
+      in λ i → tang-to-handle (a≡a' i)
+              (is-prop→pathp (λ j → hlevel {T = ∥ is-convergent (a≡a' j) ∥} 1) conv₁ conv₂ i)
+              (is-prop→pathp (λ j → ForkVertex-is-set v (a≡a' j , v-fork-tang)) pv₁ pv₂ i)
+              (is-prop→pathp (λ j → ForkVertex-is-set w (a≡a' j , v-original)) pw₁ pw₂ i)
+
+    -- Mixed constructor cases - impossible by type constraints
+    -- The contradiction comes from target vertex types (pw, pw')
+    Γ̄-classical v w (orig-edge _ _ _ _ _ pw) (tip-to-star _ _ _ _ _ pw') =
+      absurd (orig≠star (ap snd (sym pw ∙ pw')))
+        where orig≠star : v-original ≡ v-fork-star → ⊥
+              orig≠star p = subst (λ { v-original → ⊤ ; v-fork-star → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (orig-edge _ _ _ _ _ pw) (star-to-tang _ _ _ pw') =
+      absurd (orig≠tang (ap snd (sym pw ∙ pw')))
+        where orig≠tang : v-original ≡ v-fork-tang → ⊥
+              orig≠tang p = subst (λ { v-original → ⊤ ; v-fork-tang → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (orig-edge _ _ _ _ pv _) (tang-to-handle _ _ pv' _) =
+      absurd (orig≠tang (ap snd (sym pv ∙ pv')))
+        where orig≠tang : v-original ≡ v-fork-tang → ⊥
+              orig≠tang p = subst (λ { v-original → ⊤ ; v-fork-tang → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (tip-to-star _ _ _ _ _ pw) (orig-edge _ _ _ _ _ pw') =
+      absurd (star≠orig (ap snd (sym pw ∙ pw')))
+        where star≠orig : v-fork-star ≡ v-original → ⊥
+              star≠orig p = subst (λ { v-fork-star → ⊤ ; v-original → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (tip-to-star _ _ _ _ _ pw) (star-to-tang _ _ _ pw') =
+      absurd (star≠tang (ap snd (sym pw ∙ pw')))
+        where star≠tang : v-fork-star ≡ v-fork-tang → ⊥
+              star≠tang p = subst (λ { v-fork-star → ⊤ ; v-fork-tang → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (tip-to-star _ _ _ _ _ pw) (tang-to-handle _ _ _ pw') =
+      absurd (star≠orig (ap snd (sym pw ∙ pw')))
+        where star≠orig : v-fork-star ≡ v-original → ⊥
+              star≠orig p = subst (λ { v-fork-star → ⊤ ; v-original → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (star-to-tang _ _ _ pw) (orig-edge _ _ _ _ _ pw') =
+      absurd (tang≠orig (ap snd (sym pw ∙ pw')))
+        where tang≠orig : v-fork-tang ≡ v-original → ⊥
+              tang≠orig p = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (star-to-tang _ _ _ pw) (tip-to-star _ _ _ _ _ pw') =
+      absurd (tang≠star (ap snd (sym pw ∙ pw')))
+        where tang≠star : v-fork-tang ≡ v-fork-star → ⊥
+              tang≠star p = subst (λ { v-fork-tang → ⊤ ; v-fork-star → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (star-to-tang _ _ pv _) (tang-to-handle _ _ pv' _) =
+      absurd (star≠tang (ap snd (sym pv ∙ pv')))
+        where star≠tang : v-fork-star ≡ v-fork-tang → ⊥
+              star≠tang p = subst (λ { v-fork-star → ⊤ ; v-fork-tang → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (tang-to-handle _ _ pv _) (orig-edge _ _ _ _ pv' _) =
+      absurd (tang≠orig (ap snd (sym pv ∙ pv')))
+        where tang≠orig : v-fork-tang ≡ v-original → ⊥
+              tang≠orig p = subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (tang-to-handle _ _ _ pw) (tip-to-star _ _ _ _ _ pw') =
+      absurd (orig≠star (ap snd (sym pw ∙ pw')))
+        where orig≠star : v-original ≡ v-fork-star → ⊥
+              orig≠star p = subst (λ { v-original → ⊤ ; v-fork-star → ⊥ ; _ → ⊤ }) p tt
+    Γ̄-classical v w (tang-to-handle _ _ _ pw) (star-to-tang _ _ _ pw') =
+      absurd (orig≠tang (ap snd (sym pw ∙ pw')))
+        where orig≠tang : v-original ≡ v-fork-tang → ⊥
+              orig≠tang p = subst (λ { v-original → ⊤ ; v-fork-tang → ⊥ ; _ → ⊤ }) p tt
+
+  {-|
   ## Next Steps
-  
+
   In this file, we will prove:
   1. **Γ̄-oriented**: Γ̄ is an oriented graph (Phase 2)
   2. **X-construction**: Define X via Ωᴳ (Phase 3)
