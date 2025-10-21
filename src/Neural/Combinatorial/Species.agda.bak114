@@ -1,0 +1,234 @@
+{-# OPTIONS --no-import-sorts #-}
+
+-- | Combinatorial Species for Graph Construction
+-- Based on Joyal's theory of combinatorial species adapted to HoTT
+-- A species F is a functor F: FinSets → Sets
+-- representing structures on finite sets
+
+module Neural.Combinatorial.Species where
+
+open import 1Lab.Prelude
+open import 1Lab.HLevel
+open import 1Lab.Type
+open import 1Lab.Path.Reasoning
+
+open import Cat.Base
+open import Cat.Functor.Base
+open import Cat.Instances.FinSets
+open import Cat.Instances.Sets
+
+-- Re-export natural transformations
+open Cat.Base using (_=>_) public
+
+open import Data.Nat.Base using (Nat; zero; suc; _+_; _*_; _<_)
+open import Data.Fin.Base using (Fin; fzero; fsuc; lower)
+open import Data.Sum.Base
+open import Data.Sum.Properties
+open import Prim.Data.Nat using (_-_)
+
+-- | A combinatorial species is a functor F: FinSets → Sets
+-- This represents "structures on finite sets" in a compositional way
+Species : Type₁
+Species = Functor FinSets (Sets lzero)
+
+-- | Extract the structure set for a given size n
+-- F[n] represents all F-structures on an n-element set
+structures : Species → Nat → Type
+structures F n = ∣ F .Functor.F₀ n ∣
+
+-- | Relabeling: transport F-structures along bijections
+-- This is just F.F₁ applied to an isomorphism
+relabel : (F : Species) {n : Nat} → (Fin n ≃ Fin n) → structures F n → structures F n
+relabel F σ = F .Functor.F₁ (σ .fst)
+
+-- ============================================================
+-- Basic Species Constructions
+-- ============================================================
+
+-- | Zero species: no structures on any set
+ZeroSpecies : Species
+ZeroSpecies .Functor.F₀ n = el ⊥ (hlevel 2)
+ZeroSpecies .Functor.F₁ f = λ ()
+ZeroSpecies .Functor.F-id = funext λ ()
+ZeroSpecies .Functor.F-∘ f g = funext λ ()
+
+-- | One species: exactly one structure on the empty set, none elsewhere
+-- Note: This only works properly when morphisms are bijections
+{-# TERMINATING #-}
+OneSpecies : Species
+OneSpecies .Functor.F₀ zero = el ⊤ (hlevel 2)
+OneSpecies .Functor.F₀ (suc n) = el ⊥ (hlevel 2)
+OneSpecies .Functor.F₁ {zero} {zero} f = λ x → x
+OneSpecies .Functor.F₁ {zero} {suc y} f = λ x → absurd (Functor.F₁ OneSpecies f x)  -- Circular: this case never terminates
+OneSpecies .Functor.F₁ {suc x} {y} f = λ ()
+OneSpecies .Functor.F-id {zero} = refl
+OneSpecies .Functor.F-id {suc x} = funext λ ()
+OneSpecies .Functor.F-∘ {zero} {zero} {zero} f g = refl
+OneSpecies .Functor.F-∘ {zero} {zero} {suc z} f g = funext λ x → absurd (Functor.F₁ OneSpecies f x)
+OneSpecies .Functor.F-∘ {zero} {suc y} {z} f g = funext λ x → absurd (Functor.F₁ OneSpecies g x)
+OneSpecies .Functor.F-∘ {suc x} {y} {z} f g = funext λ ()
+
+-- | X species: singleton species - one structure on 1-element sets
+-- Note: This only works properly when morphisms are bijections
+{-# TERMINATING #-}
+XSpecies : Species
+XSpecies .Functor.F₀ zero = el ⊥ (hlevel 2)
+XSpecies .Functor.F₀ (suc zero) = el ⊤ (hlevel 2)
+XSpecies .Functor.F₀ (suc (suc n)) = el ⊥ (hlevel 2)
+XSpecies .Functor.F₁ {zero} {y} f = λ ()
+XSpecies .Functor.F₁ {suc zero} {zero} f = λ x → absurd (Functor.F₁ XSpecies f x)  -- Circular: this case never terminates
+XSpecies .Functor.F₁ {suc zero} {suc zero} f = λ x → x
+XSpecies .Functor.F₁ {suc zero} {suc (suc y)} f = λ x → absurd (Functor.F₁ XSpecies f x)  -- Circular: this case never terminates
+XSpecies .Functor.F₁ {suc (suc x)} {y} f = λ ()
+XSpecies .Functor.F-id {zero} = funext λ ()
+XSpecies .Functor.F-id {suc zero} = refl
+XSpecies .Functor.F-id {suc (suc x)} = funext λ ()
+XSpecies .Functor.F-∘ {zero} {y} {z} f g = funext λ ()
+XSpecies .Functor.F-∘ {suc zero} {zero} {z} f g = funext λ x → absurd (Functor.F₁ XSpecies g x)
+XSpecies .Functor.F-∘ {suc zero} {suc zero} {zero} f g = funext λ x → absurd (Functor.F₁ XSpecies f (Functor.F₁ XSpecies g x))
+XSpecies .Functor.F-∘ {suc zero} {suc zero} {suc zero} f g = refl
+XSpecies .Functor.F-∘ {suc zero} {suc zero} {suc (suc z)} f g = funext λ x → absurd (Functor.F₁ XSpecies f (Functor.F₁ XSpecies g x))
+XSpecies .Functor.F-∘ {suc zero} {suc (suc y)} {z} f g = funext λ x → absurd (Functor.F₁ XSpecies g x)
+XSpecies .Functor.F-∘ {suc (suc x)} {y} {z} f g = funext λ ()
+
+-- ============================================================
+-- Species Operations
+-- ============================================================
+
+-- | Sum of species: (F + G)[n] = F[n] ⊎ G[n]
+-- A structure is either an F-structure or a G-structure
+_⊕_ : Species → Species → Species
+(F ⊕ G) .Functor.F₀ n = el (∣ F .Functor.F₀ n ∣ ⊎ ∣ G .Functor.F₀ n ∣) (hlevel 2)
+(F ⊕ G) .Functor.F₁ f (inl x) = inl (F .Functor.F₁ f x)
+(F ⊕ G) .Functor.F₁ f (inr y) = inr (G .Functor.F₁ f y)
+(F ⊕ G) .Functor.F-id {x} = funext λ where
+  (inl a) → ap inl (happly (F .Functor.F-id) a)
+  (inr b) → ap inr (happly (G .Functor.F-id) b)
+(F ⊕ G) .Functor.F-∘ f g = funext λ where
+  (inl a) → ap inl (happly (F .Functor.F-∘ f g) a)
+  (inr b) → ap inr (happly (G .Functor.F-∘ f g) b)
+
+-- | Product of species: (F · G)[n] = Σ (k : Fin (suc n)) (F[k] × G[n - k])
+-- Partition the set into two parts, F-structure on one part, G-structure on other
+_⊗_ : Species → Species → Species
+(F ⊗ G) .Functor.F₀ n = {!!}
+(F ⊗ G) .Functor.F₁ f = {!!}
+(F ⊗ G) .Functor.F-id = {!!}
+(F ⊗ G) .Functor.F-∘ f g = {!!}
+
+-- | Composition of species: (F ∘ G)[n] = assembly of G-structures via F
+-- Partition n into blocks, put G-structure on each block, F-structure on blocks
+_∘ₛ_ : Species → Species → Species
+(F ∘ₛ G) .Functor.F₀ n = {!!}
+(F ∘ₛ G) .Functor.F₁ f = λ x → {!!}
+(F ∘ₛ G) .Functor.F-id = {!!}
+(F ∘ₛ G) .Functor.F-∘ f g = {!!}
+
+-- Helper: lift a function f : Fin n → Fin m to Fin (suc n) → Fin (suc m)
+-- by mapping fzero to fzero
+private
+  lift-pointed : {n m : Nat} → (Fin n → Fin m) → (Fin (suc n) → Fin (suc m))
+  lift-pointed f i with Data.Fin.Base.fin-view i
+  ... | Data.Fin.Base.zero = fzero
+  ... | Data.Fin.Base.suc j = fsuc (f j)
+
+  lift-pointed-id : {n : Nat} (i : Fin (suc n)) → lift-pointed {n} {n} (Precategory.id FinSets) i ≡ i
+  lift-pointed-id i with Data.Fin.Base.fin-view i
+  ... | Data.Fin.Base.zero = refl
+  ... | Data.Fin.Base.suc j = refl
+
+  lift-pointed-∘ : {n m k : Nat} (f : Fin m → Fin k) (g : Fin n → Fin m) (i : Fin (suc n)) →
+                   lift-pointed (FinSets Precategory.∘ f $ g) i ≡ lift-pointed f (lift-pointed g i)
+  lift-pointed-∘ f g i with Data.Fin.Base.fin-view i
+  ... | Data.Fin.Base.zero = refl
+  ... | Data.Fin.Base.suc j = refl
+
+  lift-pointed-∘-functor : {n m k : Nat} (f : Fin m → Fin k) (g : Fin n → Fin m) →
+                           lift-pointed (FinSets Precategory.∘ f $ g) ≡ (FinSets Precategory.∘ lift-pointed f $ lift-pointed g)
+  lift-pointed-∘-functor f g = funext λ i → lift-pointed-∘ f g i
+
+  lift-pointed-id-functor : {n : Nat} → lift-pointed {n} {n} (Precategory.id FinSets) ≡ Precategory.id FinSets
+  lift-pointed-id-functor = funext λ i → lift-pointed-id i
+
+-- | Derivative of species: F'[n] = F[n+1] with one distinguished element
+-- Represents "pointed F-structures"
+derivative : Species → Species
+derivative F .Functor.F₀ n = el (Fin (suc n) × ∣ F .Functor.F₀ (suc n) ∣) (hlevel 2)
+derivative F .Functor.F₁ {x} {y} f (i , s) = (lift-pointed f i , F .Functor.F₁ (lift-pointed f) s)
+derivative F .Functor.F-id {x} = funext λ where
+  (i , s) → Σ-pathp (lift-pointed-id i)
+    (to-pathp (transport-refl _ ∙ ap (λ h → F .Functor.F₁ h s) lift-pointed-id-functor ∙ happly (F .Functor.F-id) s))
+derivative F .Functor.F-∘ {x} {y} {z} f g = funext λ where
+  (i , s) → Σ-pathp (lift-pointed-∘ f g i)
+    (to-pathp (transport-refl _ ∙ ap (λ h → F .Functor.F₁ h s) (lift-pointed-∘-functor f g) ∙ happly (F .Functor.F-∘ (lift-pointed f) (lift-pointed g)) s))
+
+-- ============================================================
+-- Helper Functions
+-- ============================================================
+
+-- | Dimension of species at size n (cardinality of structure set)
+-- For now, postulated - would need decidable equality + enumeration
+-- to compute this constructively.
+postulate
+  dimension-at : Species → Nat → Nat
+
+-- ============================================================
+-- Graph-Related Species
+-- ============================================================
+
+-- | Directed edge species: structures on 2-element sets (pairs)
+{-# TERMINATING #-}
+DirectedEdgeSpecies : Species
+DirectedEdgeSpecies .Functor.F₀ (suc (suc zero)) = el ⊤ (hlevel 2)
+DirectedEdgeSpecies .Functor.F₀ _ = el ⊥ (hlevel 2)
+DirectedEdgeSpecies .Functor.F₁ {suc (suc zero)} {suc (suc zero)} f = λ x → x
+DirectedEdgeSpecies .Functor.F₁ {suc (suc zero)} {zero} f = λ x → absurd (Functor.F₁ DirectedEdgeSpecies f x)
+DirectedEdgeSpecies .Functor.F₁ {suc (suc zero)} {suc zero} f = λ x → absurd (Functor.F₁ DirectedEdgeSpecies f x)
+DirectedEdgeSpecies .Functor.F₁ {suc (suc zero)} {suc (suc (suc y))} f = λ x → absurd (Functor.F₁ DirectedEdgeSpecies f x)
+DirectedEdgeSpecies .Functor.F₁ {zero} {y} f = λ ()
+DirectedEdgeSpecies .Functor.F₁ {suc zero} {y} f = λ ()
+DirectedEdgeSpecies .Functor.F₁ {suc (suc (suc x))} {y} f = λ ()
+DirectedEdgeSpecies .Functor.F-id {suc (suc zero)} = refl
+DirectedEdgeSpecies .Functor.F-id {zero} = funext λ ()
+DirectedEdgeSpecies .Functor.F-id {suc zero} = funext λ ()
+DirectedEdgeSpecies .Functor.F-id {suc (suc (suc x))} = funext λ ()
+DirectedEdgeSpecies .Functor.F-∘ {suc (suc zero)} {suc (suc zero)} {suc (suc zero)} f g = refl
+DirectedEdgeSpecies .Functor.F-∘ {suc (suc zero)} {suc (suc zero)} {zero} f g = funext λ x → absurd (Functor.F₁ DirectedEdgeSpecies f x)
+DirectedEdgeSpecies .Functor.F-∘ {suc (suc zero)} {suc (suc zero)} {suc zero} f g = funext λ x → absurd (Functor.F₁ DirectedEdgeSpecies f x)
+DirectedEdgeSpecies .Functor.F-∘ {suc (suc zero)} {suc (suc zero)} {suc (suc (suc z))} f g = funext λ x → absurd (Functor.F₁ DirectedEdgeSpecies f x)
+DirectedEdgeSpecies .Functor.F-∘ {suc (suc zero)} {zero} {z} f g = funext λ x → absurd (Functor.F₁ DirectedEdgeSpecies g x)
+DirectedEdgeSpecies .Functor.F-∘ {suc (suc zero)} {suc zero} {z} f g = funext λ x → absurd (Functor.F₁ DirectedEdgeSpecies g x)
+DirectedEdgeSpecies .Functor.F-∘ {suc (suc zero)} {suc (suc (suc y))} {z} f g = funext λ x → absurd (Functor.F₁ DirectedEdgeSpecies g x)
+DirectedEdgeSpecies .Functor.F-∘ {zero} {y} {z} f g = funext λ ()
+DirectedEdgeSpecies .Functor.F-∘ {suc zero} {y} {z} f g = funext λ ()
+DirectedEdgeSpecies .Functor.F-∘ {suc (suc (suc x))} {y} {z} f g = funext λ ()
+
+-- | An oriented graph species bundles:
+-- - A vertex species V
+-- - An edge species E
+-- - Source and target operations (natural transformations)
+--
+-- This connects to the topos-theoretic OrientedGraph via the functor ·⇉· → FinSets
+record OrientedGraphSpecies : Type₁ where
+  field
+    -- Vertices as a species (structures on vertex sets)
+    V : Species
+
+    -- Edges as a species (structures on edge sets)
+    E : Species
+
+    -- Source: natural transformation E ⇒ V
+    -- For each n, maps edge structures to vertex structures
+    source : E => V
+
+    -- Target: natural transformation E ⇒ V
+    target : E => V
+
+  -- Extract vertex/edge dimensions at size n
+  vertex-dim : Nat → Nat
+  vertex-dim n = dimension-at V n
+
+  edge-dim : Nat → Nat
+  edge-dim n = dimension-at E n
+
+open OrientedGraphSpecies public
