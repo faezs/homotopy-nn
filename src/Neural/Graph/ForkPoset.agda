@@ -116,27 +116,36 @@ module _ (G : Graph o ℓ)
   {-|
   ### Step 3.2: Characteristic Morphism to Ωᴳ
 
-  TODO: Build the characteristic morphism χ : Γ̄ → Ωᴳ that classifies
+  Build the characteristic morphism χ : Γ̄ → Ωᴳ that classifies
   the subgraph of non-star vertices.
 
-  For now, we'll use a postulate and implement this properly after
-  understanding 1Lab's work.name construction better.
+  **Construction**:
+  - Map vertices to is-non-star proposition
+  - Map edges to span: (is-non-star v ∧ is-non-star w) with projections
   -}
 
-  postulate
-    χ-non-star : Graph-hom Γ̄ (Ωᴳ {o ⊔ ℓ} {o ⊔ ℓ})
+  -- Helper: An edge is in the subgraph if both endpoints are non-star
+  is-non-star-edge : {v w : ForkVertex} → ForkEdge v w → Ω
+  is-non-star-edge {v} {w} e = (is-non-star v) ∧Ω (is-non-star w)
 
-  {-|
-  **Implementation strategy** (from Cat.Instances.Graphs.Omega):
-  ```agda
+  χ-non-star : Graph-hom Γ̄ (Ωᴳ {o ⊔ ℓ} {o ⊔ ℓ})
   χ-non-star .Graph-hom.node v = lift (is-non-star v)
   χ-non-star .Graph-hom.edge {v} {w} e =
-    record { fst = lift (edge-preserves-non-star e)
-           ; snd = (λ _ → ?) , (λ _ → ?)
-           }
-  ```
+    record
+      { fst = lift (is-non-star-edge e)
+      ; snd = (λ { (pv , pw) → pv }) , (λ { (pv , pw) → pw })
+      }
 
-  Need to prove that edges preserve the non-star property.
+  {-|
+  **Explanation**:
+  - Node part: v ↦ is-non-star v (proposition that v is not a star vertex)
+  - Edge part: e : v → w maps to:
+    - Edge prop: (is-non-star v) ∧ (is-non-star w)
+    - Witness 1: (pv, pw) ⊢ pv (edge implies source is non-star)
+    - Witness 2: (pv, pw) ⊢ pw (edge implies target is non-star)
+
+  This is the standard construction from Cat.Instances.Graphs.Omega,
+  specialized to our is-non-star predicate.
   -}
 
   {-|
