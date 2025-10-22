@@ -50,13 +50,14 @@ open import Neural.Graph.Path
 open import Cat.Instances.Graphs
 open import Cat.Instances.Graphs.Omega
 open import Cat.Instances.Graphs.Limits
+open import Cat.Base  -- For Precategory
 
 open import Order.Base
 
 open import 1Lab.Prelude
 open import 1Lab.HLevel
 
-open import Data.List
+open import Data.List hiding (_++_; ++-idr; ++-assoc)  -- Hide list ops to avoid ambiguity with path ops
 open import Data.Dec.Base
 
 private variable
@@ -139,15 +140,20 @@ module _ (G : Graph o ℓ)
   -}
 
   {-|
-  ### Step 3.3: X as Pullback
+  ### Step 3.3: X as Subgraph
 
-  TODO: Define X as the pullback of χ-non-star along trueᴳ.
+  X is the subgraph of Γ̄ excluding A★ vertices.
+  We define it directly as a Σ-type for simplicity.
 
-  For now postulated - need to use Graphs-pullbacks from 1Lab.
+  **Note**: This is equivalent to the pullback construction via Ωᴳ,
+  but more direct for proving inheritance properties.
   -}
 
-  postulate
-    X : Graph o ℓ
+  X : Graph o (o ⊔ ℓ)
+  X .Graph.Node = Σ[ v ∈ ForkVertex ] (⌞ is-non-star v ⌟)
+  X .Graph.Edge (v , _) (w , _) = ForkEdge v w
+  X .Graph.Node-set = Σ-is-hlevel 2 ForkVertex-is-set (λ _ → is-prop→is-set (hlevel 1))
+  X .Graph.Edge-set {v , _} {w , _} = ForkEdge-is-set {v} {w}
 
   {-|
   **Mathematical interpretation**:
@@ -160,26 +166,62 @@ module _ (G : Graph o ℓ)
   ## Phase 4: X inherits Orientation from Γ̄
 
   Since X is a subgraph of Γ̄, it inherits the orientation properties.
+  We prove each property by showing that X edges/paths are just Γ̄ edges/paths.
   -}
-
-  postulate
-    subgraph-classical : is-oriented Γ̄ → is-classical X
-    subgraph-no-loops : is-oriented Γ̄ → no-loops X
-    subgraph-acyclic : is-oriented Γ̄ → acyclic X
 
   {-|
-  **Proof strategy**:
-  - **Classical**: Subgraph has fewer edges, so at-most-one property preserved
-  - **No-loops**: Self-edges in X would be self-edges in Γ̄
-  - **Acyclic**: Cycles in X would be cycles in Γ̄
+  ### 4.1: X inherits classical property
 
-  All three follow from the fact that X ⊆ Γ̄ and morphisms are restrictions.
+  Edges in X are ForkEdges in Γ̄, which are propositions.
+  -}
+  subgraph-classical : is-oriented Γ̄ → (∀ {x y} → is-prop (Graph.Edge X x y))
+  subgraph-classical Γ̄-or {(v , _)} {(w , _)} =
+    -- Edges in X are ForkEdges v w
+    -- Γ̄ is classical, so ForkEdge v w is a proposition
+    is-classical Γ̄-or {v} {w}
+
+  {-|
+  ### 4.2: X inherits no-loops property
+
+  A loop in X would be a ForkEdge v v in Γ̄, contradicting Γ̄'s no-loops.
+  -}
+  subgraph-no-loops : is-oriented Γ̄ → (∀ {x} → ¬ (Graph.Edge X x x))
+  subgraph-no-loops Γ̄-or {(v , _)} edge =
+    -- edge : ForkEdge v v
+    -- But Γ̄ has no loops!
+    has-no-loops Γ̄-or edge
+
+  {-|
+  ### 4.3: X inherits acyclicity
+
+  Paths in X are paths in Γ̄ (just forgetting the is-non-star proofs).
+  Γ̄'s acyclicity gives vertex equality, which lifts to X via Σ-path.
   -}
 
+  -- Helper: Project paths from X to Γ̄ by forgetting is-non-star proofs
+  project-path : ∀ {x y : Graph.Node X} → Path-in X x y → Path-in Γ̄ (fst x) (fst y)
+  project-path {(v , _)} {(w , _)} nil = nil
+  project-path {(v , _)} {(w , _)} (cons e rest) = cons e (project-path rest)
+
+  subgraph-acyclic : is-oriented Γ̄ → (∀ {x y} → Path-in X x y → Path-in X y x → x ≡ y)
+  subgraph-acyclic Γ̄-or {(v , pv)} {(w , pw)} path-fwd path-bwd =
+    -- Project paths from X to Γ̄
+    let path-fwd-Γ̄ : Path-in Γ̄ v w
+        path-fwd-Γ̄ = project-path path-fwd
+
+        path-bwd-Γ̄ : Path-in Γ̄ w v
+        path-bwd-Γ̄ = project-path path-bwd
+
+        -- Use Γ̄'s acyclicity to get v ≡ w
+        v≡w : v ≡ w
+        v≡w = is-acyclic Γ̄-or path-fwd-Γ̄ path-bwd-Γ̄
+    -- Lift to Σ-path (equality of pairs)
+    in Σ-pathp v≡w (is-prop→pathp (λ i → is-non-star-is-prop (v≡w i)) pv pw)
+
   X-oriented : is-oriented X
-  X-oriented = subgraph-classical Γ̄-oriented ,
-               subgraph-no-loops Γ̄-oriented ,
-               subgraph-acyclic Γ̄-oriented
+  X-oriented .fst x y = subgraph-classical Γ̄-oriented {x} {y}
+  X-oriented .snd .fst x = subgraph-no-loops Γ̄-oriented {x}
+  X-oriented .snd .snd x y = subgraph-acyclic Γ̄-oriented {x} {y}
 
   {-|
   ## Phase 5: Poset and Category Structures on X
@@ -192,11 +234,16 @@ module _ (G : Graph o ℓ)
 
   X-Poset : Poset o (o ⊔ ℓ)
   X-Poset .Poset.Ob = Graph.Node X
-  X-Poset .Poset._≤_ x y = Path-in X x y
-  X-Poset .Poset.≤-thin {x} {y} = path-is-set X {x} {y}
-  X-Poset .Poset.≤-refl {x} = nil
-  X-Poset .Poset.≤-trans {x} {y} {z} p q = p ++ q
-  X-Poset .Poset.≤-antisym {x} {y} p q = is-acyclic X-oriented p q
+  X-Poset .Poset._≤_ x y = ∥ Path-in X x y ∥
+  X-Poset .Poset.≤-thin = hlevel 1  -- Propositional truncation is a proposition
+  X-Poset .Poset.≤-refl {x} = inc nil
+  X-Poset .Poset.≤-trans {x} {y} {z} = ∥-∥-map₂ _++_
+  X-Poset .Poset.≤-antisym {x} {y} p q =
+    ∥-∥-rec (X .Graph.Node-set x y)
+      (λ p' → ∥-∥-rec (X .Graph.Node-set x y)
+        (λ q' → is-acyclic X-oriented p' q')
+        q)
+      p
 
   {-|
   **Key insight**: The antisymmetry law uses acyclicity!
@@ -209,10 +256,10 @@ module _ (G : Graph o ℓ)
   X-Category .Precategory.Hom x y = Path-in X x y
   X-Category .Precategory.Hom-set x y = path-is-set X
   X-Category .Precategory.id = nil
-  X-Category .Precategory._∘_ q p = p ++ q
-  X-Category .Precategory.idr f = ++-idr f
-  X-Category .Precategory.idl f = refl
-  X-Category .Precategory.assoc f g h = ++-assoc f g h
+  X-Category .Precategory._∘_ q p = p ++ q  -- Diagram order: q ∘ p = "first p, then q"
+  X-Category .Precategory.idr f = refl       -- f ∘ id = f → nil ++ f = f (trivial)
+  X-Category .Precategory.idl f = ++-idr f   -- id ∘ f = f → f ++ nil = f
+  X-Category .Precategory.assoc f g h = ++-assoc h g f  -- (f∘g)∘h = f∘(g∘h) → h++(g++f) = (h++g)++f
 
   {-|
   **Note**: This is a thin category (poset-as-category) since paths are
