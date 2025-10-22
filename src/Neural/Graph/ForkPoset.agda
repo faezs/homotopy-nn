@@ -79,13 +79,13 @@ In our formalization:
 - Excluded: v-fork-star vertices (A★)
 -}
 
-module _ (G : Graph o ℓ)
-         (G-oriented : is-oriented G)
-         (nodes : List (Graph.Node G))
-         (nodes-complete : ∀ (n : Graph.Node G) → n ∈ nodes)
-         (edge? : ∀ (x y : Graph.Node G) → Dec (Graph.Edge G x y))
-         (node-eq? : ∀ (x y : Graph.Node G) → Dec (x ≡ y))
-         where
+module ForkPosetDefs (G : Graph o ℓ)
+                     (G-oriented : is-oriented G)
+                     (nodes : List (Graph.Node G))
+                     (nodes-complete : ∀ (n : Graph.Node G) → n ∈ nodes)
+                     (edge? : ∀ (x y : Graph.Node G) → Dec (Graph.Edge G x y))
+                     (node-eq? : ∀ (x y : Graph.Node G) → Dec (x ≡ y))
+                     where
 
   open ForkConstruction G G-oriented nodes nodes-complete edge? node-eq?
 

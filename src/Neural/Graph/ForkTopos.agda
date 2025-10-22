@@ -96,11 +96,10 @@ module _ (G : Graph o ℓ)
 
   open ForkConstruction G G-oriented nodes nodes-complete edge? node-eq?
 
-  -- TODO: Import properly from ForkPoset (postulated for now)
-  postulate
-    X : Graph o (o ⊔ ℓ)  -- Subgraph excluding fork-star vertices
-    X-Category : Precategory (o ⊔ ℓ) (o ⊔ ℓ)  -- Free category on X
-    X-Poset : Poset (o ⊔ ℓ) (o ⊔ ℓ)  -- X as a poset
+  -- Import X, X-Category, X-Poset from ForkPoset
+  import Neural.Graph.ForkPoset as FP
+  open FP.ForkPosetDefs G G-oriented nodes nodes-complete edge? node-eq?
+    using (X; X-Category; X-Poset)
 
   {-|
   ### Γ̄ as a Category
@@ -352,21 +351,16 @@ module _ (G : Graph o ℓ)
   **Status**: Structural type only, proof postulated.
   -}
 
-  -- First convert X-Poset to a category
-  X-Category-from-Poset : Precategory (o ⊔ ℓ) (o ⊔ ℓ)
-  X-Category-from-Poset = poset→category X-Poset
-
   {-|
-  **Note**: X-Category (from ForkPoset) uses paths, while X-Category-from-Poset
-  uses the order relation. These should be equivalent for a poset, but we use
-  the original X-Category for consistency.
+  **Note**: We use X-Category directly from ForkPoset, which is defined using
+  paths in X. This is already a category structure on the poset X.
   -}
 
   postulate
     alexandrov-topology : Coverage X-Category (o ⊔ ℓ)
 
   postulate
-    topos≃alexandrov : DNN-Topos ≃ᶜ Sh[ X-Category , alexandrov-topology ]
+    topos≃alexandrov : DNN-Topos ≃ᶜ Sheaves alexandrov-topology (o ⊔ ℓ)
 
   {-|
   **TODO**: Define alexandrov-topology and prove topos≃alexandrov
