@@ -659,6 +659,16 @@ module _ (G : Graph o ℓ)
                 → Σ[ α ∈ (F => G) ] (restrict .F₁ α ≡ γ)
   restrict-full {F} {G} Fsh Gsh γ = α , {!!}
     where
+      patch-compat-orig : ∀ {v-node fst₁ fst₂}
+                        {x : ∣ F₀ F (fst₂ , v-fork-star) ∣}
+                        {f : Path-in Γ̄ (v-node , v-original) (fst₂ , v-fork-star)}
+                        {hf : is-nil-type (fst₂ , v-fork-star) (lift tt) f → ⊥}
+                        {g : Path-in Γ̄ (fst₁ , v-original) (v-node , v-original)}
+                        {hgf : is-nil-type (fst₂ , v-fork-star) (lift tt) (g ++ f) → ⊥}
+                        → F₁ G g (γ .η ((v-node , v-original) , inc tt) (F₁ F f x))
+                          ≡ γ .η ((fst₁ , v-original) , inc tt) (F₁ F (g ++ f) x)
+      patch-compat-orig = {!!}
+
       α : F => G
       α .η (fst₁ , ForkConstruction.v-original) = γ .η ((fst₁ , v-original) , inc tt)
       α .η (fst₁ , ForkConstruction.v-fork-star) = λ x → Gsh .whole (lift false) (patch-at-star x)
