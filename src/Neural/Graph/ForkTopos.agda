@@ -614,6 +614,10 @@ module _ (G : Graph o ℓ)
   star≠tang : v-fork-star ≡ v-fork-tang → ⊥
   star≠tang eq with () ← subst (λ { v-fork-star → ⊤ ; v-fork-tang → ⊥ ; _ → ⊤ }) eq tt
 
+  -- Helper: v-fork-tang ≠ v-original
+  tang≠orig : v-fork-tang ≡ v-original → ⊥
+  tang≠orig eq with () ← subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
+
   -- Helper: Star vertices can only go to tang (same node)
   star-only-to-tang : ∀ {a w} → ForkEdge (a , v-fork-star) w → w ≡ (a , v-fork-tang)
   star-only-to-tang (orig-edge x y e nc pv pw) = absurd (star≠orig (ap snd pv))
@@ -680,9 +684,20 @@ module _ (G : Graph o ℓ)
             in absurd (star≠tang (sym tang≡star))
           patch-at-star x .part {fst₁ , ForkConstruction.v-fork-tang} f f-in-sieve = γ .η ((fst₁ , v-fork-tang) , inc tt) (F ⟪ f ⟫ x)
           patch-at-star x .Patch.patch {V} {W} f hf g hgf with V
+          {-|
+          **Patch compatibility proof for orig→orig case**
+
+          Need to prove: G.F₁ g (γ .η (...) (F.F₁ f x)) ≡ γ .η (...) (F.F₁ (g ++ f) x)
+
+          Strategy:
+          1. Use functoriality: F.F₁ (g ++ f) = F.F₁ f ∘ F.F₁ g
+          2. Since both vertices are original (in X), g corresponds to X-morphism
+          3. Apply naturality of γ on the X-morphism
+          4. May need to use properties of lift-path or restrict
+          -}
           patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-original} f hf g hgf | v-node , ForkConstruction.v-original = ?
-          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-fork-star} f hf g hgf | v-node , ForkConstruction.v-original = ?
-          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-fork-tang} f hf g hgf | v-node , ForkConstruction.v-original = ?
+          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-fork-star} f hf (cons x₁ g) hgf | v-node , ForkConstruction.v-original = absurd (tang≠orig (ap snd (tang-path-nil (subst (λ w → Path-in Γ̄ w (v-node , v-original)) (star-only-to-tang x₁) g))))
+          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-fork-tang} f hf g hgf | v-node , ForkConstruction.v-original = absurd (tang≠orig (ap snd (tang-path-nil g)))
           patch-at-star x .patch {V} {W} nil hf g hgf | v-node , ForkConstruction.v-fork-star = absurd (hf tt)
           patch-at-star x .patch {V} {W} (cons x₁ f) hf g hgf | v-node , ForkConstruction.v-fork-star = absurd (star≠tang (sym (ap snd (tang-path-nil (subst (λ w → Path-in Γ̄ w _) (star-only-to-tang x₁) f)))))
           ... | (v-node , v-fork-tang) = absurd (star≠tang (sym (ap snd (tang-path-nil f))))
