@@ -679,7 +679,13 @@ module _ (G : Graph o ℓ)
                 tang≡star = ap snd tang-eq-star  -- v-fork-tang ≡ v-fork-star
             in absurd (star≠tang (sym tang≡star))
           patch-at-star x .part {fst₁ , ForkConstruction.v-fork-tang} f f-in-sieve = γ .η ((fst₁ , v-fork-tang) , inc tt) (F ⟪ f ⟫ x)
-          patch-at-star x .Patch.patch {V} {W} f hf g hgf = {!!}
+          patch-at-star x .Patch.patch {V} {W} f hf g hgf with V
+          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-original} f hf g hgf | v-node , ForkConstruction.v-original = ?
+          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-fork-star} f hf g hgf | v-node , ForkConstruction.v-original = ?
+          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-fork-tang} f hf g hgf | v-node , ForkConstruction.v-original = ?
+          patch-at-star x .patch {V} {W} nil hf g hgf | v-node , ForkConstruction.v-fork-star = absurd (hf tt)
+          patch-at-star x .patch {V} {W} (cons x₁ f) hf g hgf | v-node , ForkConstruction.v-fork-star = absurd (star≠tang (sym (ap snd (tang-path-nil (subst (λ w → Path-in Γ̄ w _) (star-only-to-tang x₁) f)))))
+          ... | (v-node , v-fork-tang) = absurd (star≠tang (sym (ap snd (tang-path-nil f))))
       α .η (fst₁ , ForkConstruction.v-fork-tang) = γ .η ((fst₁ , v-fork-tang) , inc tt)
       α .is-natural x y f = {!!}
 
