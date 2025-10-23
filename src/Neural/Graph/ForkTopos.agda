@@ -657,7 +657,7 @@ module _ (G : Graph o ℓ)
                 → (Gsh : is-sheaf fork-coverage G)
                 → (γ : restrict .F₀ (F , Fsh) => restrict .F₀ (G , Gsh))
                 → Σ[ α ∈ (F => G) ] (restrict .F₁ α ≡ γ)
-  restrict-full {F} {G} Fsh Gsh γ = α , {!!}
+  restrict-full {F} {G} Fsh Gsh γ = α , Nat-path λ x → ext λ y → refl
     where
       patch-compat-orig : ∀ {v-node fst₁ fst₂}
                         {x : ∣ F₀ F (fst₂ , v-fork-star) ∣}
@@ -667,7 +667,7 @@ module _ (G : Graph o ℓ)
                         {hgf : is-nil-type (fst₂ , v-fork-star) (lift tt) (g ++ f) → ⊥}
                         → F₁ G g (γ .η ((v-node , v-original) , inc tt) (F₁ F f x))
                           ≡ γ .η ((fst₁ , v-original) , inc tt) (F₁ F (g ++ f) x)
-      patch-compat-orig = {!!}
+      patch-compat-orig = refl ∙ ?
 
       α : F => G
       α .η (fst₁ , ForkConstruction.v-original) = γ .η ((fst₁ , v-original) , inc tt)
