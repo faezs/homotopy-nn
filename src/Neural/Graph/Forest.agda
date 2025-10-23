@@ -40,6 +40,7 @@ module Neural.Graph.Forest where
 open import Neural.Graph.Base
 open import Neural.Graph.Path
 open import Neural.Graph.Oriented
+-- Don't open OrientedPath at top level to avoid name clashes, import qualified where needed
 
 open import 1Lab.Prelude
 open import 1Lab.HLevel
@@ -257,35 +258,46 @@ module TreePathUniqueness {o ℓ} (G : Graph o ℓ)
     * By IH, continuations are equal
   -}
 
-  postulate
-    path-unique : ∀ {x y} (p q : EdgePath x y) → p ≡ q
-
   {-|
-  **Proof strategy** (K axiom issues prevent direct implementation):
+  **Path uniqueness via OrientedPath HIT**
 
-  The proof should proceed by induction on path structure:
-  1. nil nil: refl (but requires K axiom to pattern match on reflexive index)
-  2. nil vs cons: Impossible (creates cycle via acyclic)
-  3. cons vs cons:
-     - Show first edges must go to same target (divergence-impossible lemma)
-     - Use classical property: edges to same target are equal
-     - Recurse on tails (IH)
+  Instead of proving path-unique directly (blocked by K axiom), we use
+  OrientedPath from OrientedPath.agda which encodes uniqueness via HIT.
 
-  **K axiom blocker**: Pattern matching on `nil : EdgePath x x` requires
-  eliminating the reflexive equation `x ≡ x`, which needs the K axiom.
-  Cubical Agda disables K for univalence.
+  **Strategy**:
+  1. Convert EdgePath to OrientedPath (both represent same paths)
+  2. Apply OrientedPath.path-unique (HIT constructor)
+  3. Convert back to EdgePath equality
 
-  **Alternative approaches**:
-  1. Use J (path induction) instead of pattern matching
-  2. Reformulate EdgePath to avoid indexed types
-  3. Use rewrite pragmas
-  4. Accept as postulate with clear documentation
-
-  For now, we postulate this lemma since:
-  - The mathematical argument is sound (oriented → forest → unique paths)
-  - Implementation difficulty is purely technical (K axiom)
-  - The result is used consistently throughout the codebase
+  This bypasses K axiom by using HIT path constructor axiomatically.
   -}
+
+  -- Use OrientedPath for uniqueness
+  import Neural.Graph.OrientedPath as OP
+  module OPC = OP.OrientedPathConstruction G oriented
+
+  -- Helper: Convert EdgePath to OrientedPath
+  to-oriented : ∀ {x y} → EdgePath x y → OPC.OrientedPath x y
+  to-oriented nil = OPC.nil
+  to-oriented (cons e p) = OPC.cons e (to-oriented p)
+
+  -- Helper: Convert OrientedPath back to EdgePath
+  -- TERMINATING needed because HIT case confuses termination checker (ap from-oriented mentions itself)
+  {-# TERMINATING #-}
+  from-oriented : ∀ {x y} → OPC.OrientedPath x y → EdgePath x y
+  from-oriented OPC.nil = nil
+  from-oriented (OPC.cons e p) = cons e (from-oriented p)
+  from-oriented (OPC.path-unique p q i) = ap from-oriented (OPC.path-unique p q) i
+
+  -- Round-trip lemma
+  from-to : ∀ {x y} (p : EdgePath x y) → from-oriented (to-oriented p) ≡ p
+  from-to nil = refl
+  from-to (cons e p) = ap (cons e) (from-to p)
+
+  -- Main theorem using OrientedPath
+  path-unique : ∀ {x y} (p q : EdgePath x y) → p ≡ q
+  path-unique p q =
+    sym (from-to p) ∙ ap from-oriented (OPC.OrientedPath-is-prop (to-oriented p) (to-oriented q)) ∙ from-to q
 
   {-|
   **Export**: Paths form propositions (h-level 1)
@@ -304,40 +316,39 @@ forests have unique paths within each component.
 For oriented graphs, we can apply this directly.
 -}
 
+-- Helper module for forest path uniqueness (can't use where clause with TERMINATING)
+module ForestPathHelpers {o ℓ} (G : Graph o ℓ) (oriented : is-oriented G) where
+  open EdgePath G
+  import Neural.Graph.OrientedPath as OP-forest
+  module OPC-forest = OP-forest.OrientedPathConstruction G oriented
+
+  to-oriented-forest : ∀ {x y} → EdgePath x y → OPC-forest.OrientedPath x y
+  to-oriented-forest nil = OPC-forest.nil
+  to-oriented-forest (cons e p) = OPC-forest.cons e (to-oriented-forest p)
+
+  {-# TERMINATING #-}
+  from-oriented-forest : ∀ {x y} → OPC-forest.OrientedPath x y → EdgePath x y
+  from-oriented-forest OPC-forest.nil = nil
+  from-oriented-forest (OPC-forest.cons e p) = cons e (from-oriented-forest p)
+  from-oriented-forest (OPC-forest.path-unique p q i) = ap from-oriented-forest (OPC-forest.path-unique p q) i
+
+  from-to-forest : ∀ {x y} (p : EdgePath x y) → from-oriented-forest (to-oriented-forest p) ≡ p
+  from-to-forest nil = refl
+  from-to-forest (cons e p) = ap (cons e) (from-to-forest p)
+
 forest→path-unique : ∀ {o ℓ} (G : Graph o ℓ)
                    → (oriented : is-oriented G)
                    → (forest : is-forest G)
                    → (Node-discrete : Discrete (Graph.Node G))
                    → ∀ {x y} → is-prop (EdgePath.EdgePath G x y)
-forest→path-unique G oriented forest Node-discrete {x} {y} = path-unique
+forest→path-unique G oriented forest Node-discrete {x} {y} p q =
+  sym (from-to p) ∙ ap from-oriented (OPC.OrientedPath-is-prop (to-oriented p) (to-oriented q)) ∙ from-to q
   where
-    open EdgePath G
-
-    {-|
-    We need to show that any two paths from x to y are equal.
-
-    **Proof strategy**:
-    1. If there exists a path from x to y, they're in the same connected component
-    2. That component is a tree (by `is-forest.components-are-trees`)
-    3. Within a tree, paths are unique (by `TreePathUniqueness.path-unique`)
-    4. Therefore paths in G from x to y are unique
-
-    **Implementation blocker**: To apply TreePathUniqueness to the component subgraph,
-    we'd need to:
-    - Show EdgePath G x y lifts to EdgePath (component-subgraph) (x, p₁) (y, p₂)
-    - Apply TreePathUniqueness to the subgraph
-    - Project uniqueness back to G
-
-    This is tedious but straightforward. The fundamental blocker is the K axiom
-    in TreePathUniqueness.path-unique (line 261).
-
-    **Mathematical justification**:
-    - Forests decompose into disjoint trees
-    - Trees have unique paths (acyclic + classical property)
-    - Therefore forests have unique paths within each component
-    -}
-    postulate
-      path-unique : (p q : EdgePath x y) → p ≡ q
+    open ForestPathHelpers G oriented
+    module OPC = ForestPathHelpers.OPC-forest G oriented
+    to-oriented = ForestPathHelpers.to-oriented-forest G oriented
+    from-oriented = ForestPathHelpers.from-oriented-forest G oriented
+    from-to = ForestPathHelpers.from-to-forest G oriented
 
 {-|
 ## Main Result: Oriented Graphs Have Unique Paths
