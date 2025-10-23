@@ -81,9 +81,17 @@ open import Cat.Instances.Sheaves
 open import Cat.Diagram.Sieve
 open import Cat.Site.Base
 open import Cat.Site.Grothendieck
-open import Cat.Functor.Equivalence
+open import Cat.Functor.Equivalence using (is-equivalence; ff+split-eso→is-equivalence)
+open import Cat.Functor.Properties using (is-fully-faithful; is-split-eso)
 open import Cat.Functor.Base using (PSh)
+open import Cat.Functor.Compose
 open import Cat.Base
+open import Cat.Functor.Kan.Base
+
+open Functor
+open _=>_
+open import Cat.Functor.Naturality using (Nat-path; _≅ⁿ_)
+open import Cat.Site.Sheafification
 
 open import Order.Base
 open import Order.Cat  -- For poset→category
@@ -123,7 +131,8 @@ module _ (G : Graph o ℓ)
          (node-eq? : ∀ (x y : Graph.Node G) → Dec (x ≡ y))
          where
 
-  open ForkConstruction G G-oriented nodes nodes-complete edge? node-eq?
+  -- Use ForkConstruction from ForkCategorical for Γ̄ and categorical structure
+  open Neural.Graph.ForkCategorical.ForkConstruction G G-oriented nodes nodes-complete edge? node-eq?
 
   -- Import X, X-Category, X-Poset from ForkPoset
   import Neural.Graph.ForkPoset as FP
@@ -437,7 +446,263 @@ module _ (G : Graph o ℓ)
   -}
 
   {-|
-  ## Phase 6.4: Equivalence with Presheaves on X
+  ## Phase 6.4: Embedding X ↪ Γ̄
+
+  To prove DNN-Topos ≃ PSh(X), we first define the embedding of X into Γ̄.
+  This is a functor that includes X as a full subcategory of Γ̄.
+
+  **Objects**: (v, non-star-proof) ↦ v (forget the proof)
+  **Morphisms**: Lift X-paths to Γ̄-paths (edges are the same type)
+  -}
+
+  -- Helper: Lift X-paths to Γ̄-paths
+  lift-path : ∀ {x y} → Path-in X x y → Path-in Γ̄ (fst x) (fst y)
+  lift-path nil = nil
+  lift-path (cons e p) = cons e (lift-path p)
+
+  -- Lemma: Lifting respects concatenation
+  lift-path-++ : ∀ {x y z} (p : Path-in X x y) (q : Path-in X y z)
+               → lift-path (p ++ q) ≡ lift-path p ++ lift-path q
+  lift-path-++ nil q = refl
+  lift-path-++ (cons e p) q = ap (cons e) (lift-path-++ p q)
+
+  -- The embedding functor X-Category ↪ Γ̄-Category
+  embed : Functor X-Category Γ̄-Category
+  embed .Functor.F₀ (v , _) = v
+  embed .Functor.F₁ = lift-path
+  embed .Functor.F-id = refl
+  embed .Functor.F-∘ f g = lift-path-++ g f
+
+  {-|
+  **Why this works**:
+  - X .Graph.Edge (v, _) (w, _) = ForkEdge v w
+  - Γ̄ .Graph.Edge v w = ForkEdge v w
+  - So edges in X are literally the same as edges in Γ̄
+  - Paths just lift by forgetting non-star proofs
+  -}
+
+  {-|
+  ### Restriction Functor Φ : DNN-Topos → PSh(X)
+
+  The restriction functor takes a sheaf on Γ̄ and restricts it to X by
+  precomposition with the embedding.
+
+  **Construction**: Φ(F) = F ∘ embed^op
+
+  This works because:
+  - embed : X-Category → Γ̄-Category
+  - embed^op : Γ̄-Category^op → X-Category^op
+  - F : Γ̄-Category^op → Sets (sheaf on Γ̄)
+  - F ∘ embed^op : X-Category^op → Sets (presheaf on X)
+  -}
+
+  -- Helper: restrict a presheaf from Γ̄ to X
+  make-restricted : Functor (Γ̄-Category ^op) (Sets (o ⊔ ℓ)) → Functor (X-Category ^op) (Sets (o ⊔ ℓ))
+  make-restricted G .F₀ x = G .F₀ (fst x)
+  make-restricted G .F₁ {x} {y} f = G .F₁ (lift-path f)
+  make-restricted G .F-id {x} = G .F-id
+  make-restricted G .F-∘ {x} {y} {z} f g = ap (G .F₁) (lift-path-++ f g) ∙ G .F-∘ (lift-path f) (lift-path g)
+
+  -- Restriction: forget sheaf structure, then restrict to X
+  restrict : Functor DNN-Topos (PSh (o ⊔ ℓ) X-Category)
+  restrict .F₀ F = make-restricted (forget .F₀ F)
+    where forget = forget-sheaf fork-coverage (o ⊔ ℓ)
+
+  restrict .F₁ {F} {G} α .η x = α .η (fst x)
+  restrict .F₁ {F} {G} α .is-natural x y f =
+    α .η (fst y) ∘ forget .F₀ F .F₁ (lift-path f)  ≡⟨ α .is-natural (fst x) (fst y) (lift-path f) ⟩
+    forget .F₀ G .F₁ (lift-path f) ∘ α .η (fst x)  ∎
+    where
+      open import 1Lab.Path.Reasoning
+      forget = forget-sheaf fork-coverage (o ⊔ ℓ)
+
+  restrict .F-id {F} = Nat-path λ x → ext λ y → refl
+  restrict .F-∘ {F} {G} {H} α β = Nat-path λ x → ext λ y → refl
+
+  {-|
+  **Key property**: restrict forgets the sheaf condition and restricts to X.
+
+  **Construction**: For a sheaf F on Γ̄:
+  - restrict(F)(x) = F(fst x) for x : X.Node (forgetting non-star proof)
+  - restrict(F)(p) = F(lift-path p) for paths p in X
+  -}
+
+  {-|
+  ### Extension Functor Ψ : PSh(X) → DNN-Topos
+
+  The extension functor takes a presheaf P on X and extends it to a sheaf on Γ̄.
+
+  **Strategy**:
+  1. Extend P to a presheaf P̄ on Γ̄ using Kan extension
+  2. At fork-star vertices A★: P̄(A★) = colimit over incoming arrows from X
+  3. Sheafify P̄ to get a sheaf
+
+  **Key insight**: The fork coverage forces the sheafification to satisfy:
+    Ψ(P)(A★) ≅ ∏_{a'→A★} P(a')
+
+  This is exactly the product decomposition from the paper.
+  -}
+
+  {-|
+  ### Strategy for Proving Equivalence
+
+  Instead of explicitly constructing extend using Kan extension (which is complex),
+  we prove the equivalence by showing restrict is:
+  1. **Fully faithful**: Hom(F, G) ≅ Hom(restrict F, restrict G)
+  2. **Essentially surjective**: Every presheaf P on X is (F|_X) for some sheaf F
+
+  The extension functor then comes from essential surjectivity + axiom of choice.
+
+  **Key insight**: The fork coverage forces sheaves to be determined by their
+  restriction to X, because fork-star values must satisfy:
+    F(A★) ≅ lim_{tips → A★} F(tip)
+  -}
+
+  {-|
+  #### Fully Faithful Proof
+
+  For sheaves F, G on Γ̄, a natural transformation α : F ⇒ G is determined by
+  its components on X-vertices, because:
+  - At fork-star A★: α_{A★} is determined by the sheaf condition
+  - Naturality at edges to A★ forces α_{A★} to be the unique map compatible
+    with the α values on tips
+
+  **Proof**: By sheaf gluing, α_{A★} = glue({α_{tip}})
+  -}
+
+  restrict-faithful : ∀ {F G : Functor (Γ̄-Category ^op) (Sets (o ⊔ ℓ))}
+                    → is-sheaf fork-coverage F
+                    → is-sheaf fork-coverage G
+                    → (α β : F => G)
+                    → restrict .F₁ α ≡ restrict .F₁ β
+                    → α ≡ β
+  restrict-faithful {F} {G} Fsh Gsh α β eq = Nat-path faithful-at
+    where
+      faithful-at : (v : ForkVertex) → α .η v ≡ β .η v
+      faithful-at (fst₁ , ForkConstruction.v-original) = ap (λ f → f .η ((fst₁ , v-original) , inc tt)) eq
+      faithful-at (fst₁ , ForkConstruction.v-fork-tang) = ap (λ f → f .η ((fst₁ , v-fork-tang) , inc tt)) eq
+      {-|
+      **Fork-star case**: Uses sheaf separation condition.
+
+      **Proof strategy**:
+      1. At fork-star vertex (a, v-fork-star), get the covering sieve from fork-coverage (lift false)
+      2. This sieve consists of edges from tips {a' → a★} (incoming-sieve)
+      3. For each tip a', we have α .η (a', v-fork-tang) ≡ β .η (a', v-fork-tang) (from tang case)
+      4. By naturality: G ⟪ f ⟫ ∘ α .η (star) = α .η V ∘ F ⟪ f ⟫
+      5. Apply faithful-at V to show α .η V = β .η V
+      6. By sheaf separation, if α and β agree on a covering sieve, they agree at the whole
+
+      **Proof**: Uses naturality of α and β combined with sheaf separation on incoming sieve.
+      -}
+      faithful-at (fst₁ , ForkConstruction.v-fork-star) = ext λ x → Gsh .separate (lift false) λ {V} f f-in-sieve →
+        sym (happly (α .is-natural (fst₁ , v-fork-star) V f) x) ∙
+        happly (faithful-at V) (F ⟪ f ⟫ x) ∙
+        happly (β .is-natural (fst₁ , v-fork-star) V f) x
+
+  {-|
+  ### Impossible Edge Cases for restrict-full
+
+  These helpers prove that certain edges cannot exist from fork-star vertices.
+  The proofs use the structural constraints from ForkEdge constructors.
+  -}
+
+  -- Helper: v-fork-star ≠ v-original
+  star≠orig : v-fork-star ≡ v-original → ⊥
+  star≠orig eq with () ← subst (λ { v-fork-star → ⊤ ; v-original → ⊥ ; _ → ⊤ }) eq tt
+
+  -- Helper: v-fork-star ≠ v-fork-tang
+  star≠tang : v-fork-star ≡ v-fork-tang → ⊥
+  star≠tang eq with () ← subst (λ { v-fork-star → ⊤ ; v-fork-tang → ⊥ ; _ → ⊤ }) eq tt
+
+  -- Helper: Star vertices can only go to tang (same node)
+  star-only-to-tang : ∀ {a w} → ForkEdge (a , v-fork-star) w → w ≡ (a , v-fork-tang)
+  star-only-to-tang (orig-edge x y e nc pv pw) = absurd (star≠orig (ap snd pv))
+  star-only-to-tang (tip-to-star a' a conv e pv pw) = absurd (star≠orig (ap snd pv))
+  star-only-to-tang (star-to-tang a' conv pv pw) =
+    let a≡a' = ap fst pv  -- pv : (a, star) ≡ (a', star), so a ≡ a'
+    in subst (λ n → _ ≡ (n , v-fork-tang)) (sym a≡a') pw
+  star-only-to-tang (handle a conv pv pw) = absurd (star≠orig (ap snd pv))
+
+  -- Helper: Tang vertices have no outgoing edges
+  tang-no-outgoing : ∀ {a w} → ¬ ForkEdge (a , v-fork-tang) w
+  tang-no-outgoing (orig-edge x y e nc pv pw) with () ← subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; v-fork-star → ⊥ }) (ap snd pv) tt
+  tang-no-outgoing (tip-to-star a' a conv e pv pw) with () ← subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; v-fork-star → ⊥ }) (ap snd pv) tt
+  tang-no-outgoing (star-to-tang a conv pv pw) with () ← subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; v-fork-star → ⊥ }) (ap snd pv) tt
+  tang-no-outgoing (handle a conv pv pw) with () ← subst (λ { v-fork-tang → ⊤ ; v-original → ⊥ ; v-fork-star → ⊥ }) (ap snd pv) tt
+
+  -- Helper: Tang path must be nil
+  tang-path-nil : ∀ {a w} → Path-in Γ̄ (a , v-fork-tang) w → (a , v-fork-tang) ≡ w
+  tang-path-nil nil = refl
+  tang-path-nil (cons e p) = absurd (tang-no-outgoing e)
+
+  {-|
+  **Fullness**: Every natural transformation γ on X lifts to Γ̄.
+
+  **Construction strategy**:
+  1. Define α .η on non-star vertices using γ directly
+  2. Define α .η on fork-star vertices using sheaf gluing:
+     - For each fork-star (a, v-fork-star), collect γ values from incoming tips
+     - Use Gsh .whole (incoming-sieve) to glue into α .η (a, v-fork-star)
+  3. Prove naturality using sheaf gluing properties
+  4. Prove restrict .F₁ α ≡ γ by construction on non-star vertices
+
+  **Key tool**: is-sheaf.whole for gluing sections over covering sieves
+  -}
+  restrict-full : ∀ {F G : Functor (Γ̄-Category ^op) (Sets (o ⊔ ℓ))}
+                → (Fsh : is-sheaf fork-coverage F)
+                → (Gsh : is-sheaf fork-coverage G)
+                → (γ : restrict .F₀ (F , Fsh) => restrict .F₀ (G , Gsh))
+                → Σ[ α ∈ (F => G) ] (restrict .F₁ α ≡ γ)
+  restrict-full {F} {G} Fsh Gsh γ = α , {!!}
+    where
+      α : F => G
+      α .η (fst₁ , ForkConstruction.v-original) = γ .η ((fst₁ , v-original) , inc tt)
+      α .η (fst₁ , ForkConstruction.v-fork-star) = λ x → Gsh .whole (lift false) (patch-at-star x)
+        where
+          patch-at-star : ∣ F .F₀ (fst₁ , v-fork-star) ∣ → Patch G (fork-cover (lift false))
+          patch-at-star x .part {fst₁ , ForkConstruction.v-original} f f-in-sieve = γ .η ((fst₁ , v-original) , inc tt) (F ⟪ f ⟫ x)
+          patch-at-star x .part {fst₂ , ForkConstruction.v-fork-star} nil f-in-sieve = absurd (f-in-sieve tt)
+          patch-at-star x .part {fst₂ , ForkConstruction.v-fork-star} (cons (ForkConstruction.orig-edge x₁ y x₂ x₃ x₄ x₅) nil) f-in-sieve = absurd (star≠orig (ap snd x₄))
+          patch-at-star x .part {fst₂ , ForkConstruction.v-fork-star} (cons (ForkConstruction.tip-to-star a' a x₁ x₂ x₃ x₄) nil) f-in-sieve = absurd (star≠orig (ap snd x₃))
+          patch-at-star x .part {fst₂ , ForkConstruction.v-fork-star} (cons (ForkConstruction.star-to-tang a x₁ x₂ x₃) nil) f-in-sieve = absurd (star≠tang (ap snd x₃))
+          patch-at-star x .part {fst₂ , ForkConstruction.v-fork-star} (cons (ForkConstruction.handle a x₁ x₂ x₃) nil) f-in-sieve = absurd (star≠orig (ap snd x₂))
+          patch-at-star x .part {src-node , ForkConstruction.v-fork-star} (cons e₁ (cons e₂ rest)) f-in-sieve =
+            -- Path of length ≥ 2 from (src-node, v-fork-star) to (fst₁, v-fork-star)
+            -- e₁ : ForkEdge (src-node, v-fork-star) w  for some w
+            -- By star-only-to-tang: w ≡ (src-node, v-fork-tang)
+            -- So cons e₂ rest : Path (src-node, v-fork-tang) (fst₁, v-fork-star)
+            -- But tang has no outgoing edges, so this is impossible!
+            let w-eq = star-only-to-tang e₁  -- w ≡ (src-node, v-fork-tang)
+                p' : Path-in Γ̄ _ (fst₁ , v-fork-star)
+                p' = subst (λ w → Path-in Γ̄ w (fst₁ , v-fork-star)) w-eq (cons e₂ rest)
+                tang-eq-star = tang-path-nil p'  -- (src-node, v-fork-tang) ≡ (fst₁, v-fork-star) - impossible!
+                tang≡star = ap snd tang-eq-star  -- v-fork-tang ≡ v-fork-star
+            in absurd (star≠tang (sym tang≡star))
+          patch-at-star x .part {fst₁ , ForkConstruction.v-fork-tang} f f-in-sieve = γ .η ((fst₁ , v-fork-tang) , inc tt) (F ⟪ f ⟫ x)
+          patch-at-star x .Patch.patch {V} {W} f hf g hgf = {!!}
+      α .η (fst₁ , ForkConstruction.v-fork-tang) = γ .η ((fst₁ , v-fork-tang) , inc tt)
+      α .is-natural x y f = {!!}
+
+  {-|
+  #### Essential Surjectivity
+
+  Every presheaf P on X extends to a unique sheaf F on Γ̄.
+
+  **Construction**:
+  - F(v) = P(v, proof) for v non-star
+  - F(A★) = lim_{tips to A★} P(tip)
+
+  **Proof that F is a sheaf**: Fork coverage satisfied by construction.
+  -}
+
+  restrict-ess-surj : ∀ (P : Functor (X-Category ^op) (Sets (o ⊔ ℓ)))
+                    → Σ[ F ∈ Functor (Γ̄-Category ^op) (Sets (o ⊔ ℓ)) ]
+                      Σ[ Fsh ∈ is-sheaf fork-coverage F ]
+                      (restrict .F₀ (F , Fsh) ≅ⁿ P)
+  restrict-ess-surj P = {!!}
+
+  {-|
+  ## Phase 6.6: Equivalence with Presheaves on X
 
   **Corollary (line 749)**: C∼ ≃ C∧_X
 
@@ -453,20 +718,40 @@ module _ (G : Graph o ℓ)
   **Status**: Structural type only, proof postulated.
   -}
 
-  postulate
-    topos≃presheaves : DNN-Topos ≃ᶜ PSh (o ⊔ ℓ) X-Category
+  {-|
+  ### Assembling the Equivalence
+
+  Using 1Lab's `ff+split-eso→is-equivalence`, we can construct the equivalence from:
+  1. `restrict` is fully faithful (from restrict-faithful + restrict-full)
+  2. `restrict` is split essentially surjective (from restrict-ess-surj)
+  -}
+
+  -- Assemble fully-faithful from faithful + full
+  restrict-ff : is-fully-faithful restrict
+  restrict-ff {x} {y} = is-iso→is-equiv λ where
+    .is-iso.from γ → restrict-full (x .snd) (y .snd) γ .fst
+    .is-iso.rinv γ → restrict-full (x .snd) (y .snd) γ .snd
+    .is-iso.linv α → restrict-faithful (x .snd) (y .snd) α _ refl
+
+  -- Assemble split-eso from essential surjectivity
+  restrict-split-eso : is-split-eso restrict
+  restrict-split-eso P =
+    (restrict-ess-surj P .fst , restrict-ess-surj P .snd .fst) ,
+    restrict-ess-surj P .snd .snd
+
+  -- The main equivalence using 1Lab's theorem
+  topos≃presheaves : DNN-Topos ≃ᶜ PSh (o ⊔ ℓ) X-Category
+  topos≃presheaves .fst = restrict
+  topos≃presheaves .snd = ff+split-eso→is-equivalence restrict-ff restrict-split-eso
 
   {-|
-  **TODO**: Prove topos≃presheaves
+  **Status**: Equivalence constructed modulo 3 postulates:
+  - `restrict-faithful`: Sheaf maps determined by restriction to X
+  - `restrict-full`: Every presheaf map on X lifts to sheaf map
+  - `restrict-ess-surj`: Every presheaf extends to a sheaf
 
-  Outline:
-  1. Define functor Φ : DNN-Topos → PSh(X) by restriction
-  2. Define functor Ψ : PSh(X) → DNN-Topos by sheafification
-  3. Show Φ ∘ Ψ ≅ id (presheaf extends uniquely to sheaf)
-  4. Show Ψ ∘ Φ ≅ id (sheaf restriction to X recovers sheaf)
-  5. Use that X ⊆ Γ̄ is dense (every vertex connects to X)
-
-  **Reference**: Friedman, "Sheaf semantics for analysis"
+  These are the essential mathematical content of the equivalence.
+  Proving them requires detailed sheaf gluing arguments using the fork coverage.
   -}
 
   {-|
