@@ -883,7 +883,11 @@ module _ (G : Graph o ℓ)
           3. Apply naturality of γ on the X-morphism
           4. May need to use properties of lift-path or restrict
           -}
-          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-original} f hf g hgf | v-node , ForkConstruction.v-original = ?
+          patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-original} f hf g hgf | v-node , ForkConstruction.v-original =
+            -- This is exactly what patch-compat-orig proves!
+            -- patch-at-star x .part f hf = γ .η ((v-node , v-original) , inc tt) (F ⟪ f ⟫ x)
+            -- Goal: F₁ G g (γ .η ... (F ⟪ f ⟫ x)) ≡ γ .η ... (F ⟪ g ++ f ⟫ x)
+            patch-compat-orig {v-node} {fst₁} {_} {x} {f} {hf} {g} {hgf}
           patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-fork-star} f hf (cons x₁ g) hgf | v-node , ForkConstruction.v-original = absurd (tang≠orig (ap snd (tang-path-nil (subst (λ w → Path-in Γ̄ w (v-node , v-original)) (star-only-to-tang x₁) g))))
           patch-at-star x .patch {V} {fst₁ , ForkConstruction.v-fork-tang} f hf g hgf | v-node , ForkConstruction.v-original = absurd (tang≠orig (ap snd (tang-path-nil g)))
           patch-at-star x .patch {V} {W} nil hf g hgf | v-node , ForkConstruction.v-fork-star = absurd (hf tt)
