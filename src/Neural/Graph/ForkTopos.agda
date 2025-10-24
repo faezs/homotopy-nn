@@ -847,6 +847,26 @@ module _ (G : Graph o ℓ)
            -- Use functoriality: F(g ++ f)(x) = F(g)(F(f)(x))
            ∙ ap (γ .η ((fst₁ , v-original) , inc tt)) (sym (happly (F .F-∘ g f) x))
 
+      {-|
+      **Naturality proof helper**
+
+      Extract as a separate function to handle vertex type matching properly.
+      -}
+      prove-naturality : ∀ (x y : ForkVertex) (f : Path-in Γ̄ y x)
+                       → (α-x : ∣ F .F₀ x ∣ → ∣ G .F₀ x ∣)
+                       → (α-y : ∣ F .F₀ y ∣ → ∣ G .F₀ y ∣)
+                       → (α-y ∘ (F .F₁ f)) ≡ ((G .F₁ f) ∘ α-x)
+      prove-naturality (x-node , v-original) (y-node , v-original) f α-x α-y = {!!}
+      prove-naturality (x-node , v-original) (y-node , v-fork-star) (cons e p) α-x α-y =
+        absurd (tang≠orig (ap snd (tang-path-nil (subst (λ w → Path-in Γ̄ w (x-node , v-original)) (star-only-to-tang e) p))))
+      prove-naturality (x-node , v-original) (y-node , v-fork-tang) (cons e p) α-x α-y = absurd (tang-no-outgoing e)
+      prove-naturality (x-node , v-fork-star) (y-node , v-original) f α-x α-y = {!!}
+      prove-naturality (x-node , v-fork-star) (y-node , v-fork-star) f α-x α-y = {!!}
+      prove-naturality (x-node , v-fork-star) (y-node , v-fork-tang) (cons e p) α-x α-y = absurd (tang-no-outgoing e)
+      prove-naturality (x-node , v-fork-tang) (y-node , v-original) f α-x α-y = {!!}
+      prove-naturality (x-node , v-fork-tang) (y-node , v-fork-star) f α-x α-y = {!!}
+      prove-naturality (x-node , v-fork-tang) (y-node , v-fork-tang) f α-x α-y = {!!}
+
       α : F => G
       α .η (fst₁ , ForkConstruction.v-original) = γ .η ((fst₁ , v-original) , inc tt)
       α .η (fst₁ , ForkConstruction.v-fork-star) = λ x → Gsh .whole (lift false) (patch-at-star x)
@@ -894,7 +914,18 @@ module _ (G : Graph o ℓ)
           patch-at-star x .patch {V} {W} (cons x₁ f) hf g hgf | v-node , ForkConstruction.v-fork-star = absurd (star≠tang (sym (ap snd (tang-path-nil (subst (λ w → Path-in Γ̄ w _) (star-only-to-tang x₁) f)))))
           ... | (v-node , v-fork-tang) = absurd (star≠tang (sym (ap snd (tang-path-nil f))))
       α .η (fst₁ , ForkConstruction.v-fork-tang) = γ .η ((fst₁ , v-fork-tang) , inc tt)
-      α .is-natural x y f = {!!}
+
+      {-|
+      **Naturality of α**
+
+      Need to prove: α .η y ∘ F.F₁ f ≡ G.F₁ f ∘ α .η x
+
+      IMPORTANT: In opposite category, f : Hom^op(x, y) = Path-in Γ̄ y x
+      So we're case-splitting on where f goes FROM (y) and TO (x).
+
+      Strategy: Delegate to prove-naturality helper which pattern matches on vertex types.
+      -}
+      α .is-natural x y f = prove-naturality x y f (α .η x) (α .η y)
 
   {-|
   #### Essential Surjectivity
