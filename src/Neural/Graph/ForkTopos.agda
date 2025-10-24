@@ -830,7 +830,22 @@ module _ (G : Graph o ℓ)
                         → F₁ G g (γ .η ((v-node , v-original) , inc tt) (F₁ F f x))
                           ≡ γ .η ((fst₁ , v-original) , inc tt) (F₁ F (g ++ f) x)
       patch-compat-orig {v-node} {fst₁} {_} {x} {f} {_} {g} {_} =
-        {! Goal: Use project-path-orig g, then γ naturality, then lift-project-roundtrip !}
+        let -- Project g to X-path (g : fst₁ → v-node in Γ̄, so g-X : fst₁ → v-node in X)
+            g-X : Path-in X ((fst₁ , v-original) , inc tt) ((v-node , v-original) , inc tt)
+            g-X = project-path-orig g
+
+            -- Roundtrip: lift-path g-X = g
+            roundtrip : lift-path g-X ≡ g
+            roundtrip = lift-project-roundtrip g
+
+        in -- Rewrite G.F₁ g as G.F₁ (lift-path g-X) using roundtrip
+           ap (λ p → F₁ G p (γ .η ((v-node , v-original) , inc tt) (F₁ F f x))) (sym roundtrip)
+           -- Apply naturality of γ on g-X (naturality in opposite category)
+           ∙ sym (happly (γ .is-natural ((v-node , v-original) , inc tt) ((fst₁ , v-original) , inc tt) g-X) (F₁ F f x))
+           -- Rewrite F.F₁ (lift-path g-X) as F.F₁ g using roundtrip
+           ∙ ap (γ .η ((fst₁ , v-original) , inc tt)) (ap (λ p → F₁ F p (F₁ F f x)) roundtrip)
+           -- Use functoriality: F(g ++ f)(x) = F(g)(F(f)(x))
+           ∙ ap (γ .η ((fst₁ , v-original) , inc tt)) (sym (happly (F .F-∘ g f) x))
 
       α : F => G
       α .η (fst₁ , ForkConstruction.v-original) = γ .η ((fst₁ , v-original) , inc tt)
