@@ -712,6 +712,31 @@ module _ (G : Graph o ℓ)
   project-path-tang (cons e p) = absurd (tang-no-outgoing e)  -- tang has no outgoing edges
 
   {-|
+  **Roundtrip property**: Projecting Γ̄-paths to X and lifting back gives the original path.
+
+  **Why needed**: To use γ's naturality (defined on X-paths) for Γ̄-paths between original vertices.
+
+  **Technical challenge**: The mutual recursion between project-path-orig and project-path-tang,
+  combined with `subst` usage in the cons case, prevents definitional reduction.
+
+  **Conceptual proof**:
+  - Edges are syntactically the same (orig-edges in X = ForkEdges in Γ̄)
+  - Only difference is witness proofs (is-non-star), which are propositional
+  - Therefore paths should be equal up to witness transport
+
+  **Possible solutions**:
+  1. Refactor project-path-orig to avoid mutual recursion (challenging due to edge cases)
+  2. Use heterogeneous equality (PathP) to handle witness transport
+  3. Prove by induction with explicit transport lemmas
+  4. Use HIT quotient to make witness proofs definitionally irrelevant
+  -}
+  lift-project-roundtrip : ∀ {v w}
+                         → (p : Path-in Γ̄ (v , v-original) (w , v-original))
+                         → lift-path (project-path-orig p) ≡ p
+  lift-project-roundtrip nil = {! nil case: lift-path (project-path-orig nil) ≡ nil !}
+  lift-project-roundtrip (cons e p) = {! cons case: need transport via Σ-pathp for witnesses !}
+
+  {-|
   **Fullness**: Every natural transformation γ on X lifts to Γ̄.
 
   **Construction strategy**:
@@ -731,6 +756,19 @@ module _ (G : Graph o ℓ)
                 → Σ[ α ∈ (F => G) ] (restrict .F₁ α ≡ γ)
   restrict-full {F} {G} Fsh Gsh γ = α , Nat-path λ x → ext λ y → refl
     where
+      {-|
+      **Patch compatibility for orig→orig case**:
+      When g : fst₁ → v-node is a path between original vertices,
+      show that γ is natural with respect to this path.
+
+      **Strategy**:
+      1. Convert g to g-X : X-path using project-path-orig
+      2. Apply γ .is-natural on g-X (gives naturality for lift-path g-X)
+      3. Use lift-project-roundtrip to transport from lift-path g-X to g
+      4. Use F .F-∘ for functoriality of path concatenation
+
+      **Blocked on**: lift-project-roundtrip (technical challenge with witness transport)
+      -}
       patch-compat-orig : ∀ {v-node fst₁ fst₂}
                         {x : ∣ F₀ F (fst₂ , v-fork-star) ∣}
                         {f : Path-in Γ̄ (v-node , v-original) (fst₂ , v-fork-star)}
@@ -739,7 +777,8 @@ module _ (G : Graph o ℓ)
                         {hgf : is-nil-type (fst₂ , v-fork-star) (lift tt) (g ++ f) → ⊥}
                         → F₁ G g (γ .η ((v-node , v-original) , inc tt) (F₁ F f x))
                           ≡ γ .η ((fst₁ , v-original) , inc tt) (F₁ F (g ++ f) x)
-      patch-compat-orig = refl ∙ ?
+      patch-compat-orig {v-node} {fst₁} {_} {x} {f} {_} {g} {_} =
+        {! Goal: Use project-path-orig g, then γ naturality, then lift-project-roundtrip !}
 
       α : F => G
       α .η (fst₁ , ForkConstruction.v-original) = γ .η ((fst₁ , v-original) , inc tt)
