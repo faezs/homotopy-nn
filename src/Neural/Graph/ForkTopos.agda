@@ -733,8 +733,20 @@ module _ (G : Graph o ℓ)
   lift-project-roundtrip : ∀ {v w}
                          → (p : Path-in Γ̄ (v , v-original) (w , v-original))
                          → lift-path (project-path-orig p) ≡ p
-  lift-project-roundtrip nil = {! nil case: lift-path (project-path-orig nil) ≡ nil !}
-  lift-project-roundtrip (cons e p) = {! cons case: need transport via Σ-pathp for witnesses !}
+  lift-project-roundtrip {v} nil =
+    -- project-path-orig nil = nil : Path-in X ((v, v-original), inc tt) ((v, v-original), inc tt)
+    -- lift-path nil = nil : Path-in Γ̄ (v, v-original) (v, v-original)
+    -- But fst ((v, v-original), inc tt) = (v, v-original), so types match
+    -- This should be definitional equality, but mutual recursion blocks it
+    refl i1
+  lift-project-roundtrip (cons (ForkConstruction.orig-edge x y x₁ x₂ x₃ x₄) p) =
+    {! Inductive case: use IH on tail p after transporting via x₄ !}
+  lift-project-roundtrip (cons (ForkConstruction.tip-to-star a' a x x₁ x₂ x₃) p)
+    with subst (λ z → Path-in Γ̄ z _) x₃ p
+  ... | cons e p' = absurd (tang≠orig (ap snd (tang-path-nil (subst (λ z → Path-in Γ̄ z _) (star-only-to-tang e) p'))))
+  lift-project-roundtrip (cons (ForkConstruction.star-to-tang a x x₁ x₂) p) = absurd (star≠orig (sym (ap snd x₁)))
+  lift-project-roundtrip (cons (ForkConstruction.handle a x x₁ x₂) p) =
+    absurd (tang≠orig (ap snd (tang-path-nil (subst (λ z → Path-in Γ̄ z _) x₂ p))))
 
   {-|
   **Fullness**: Every natural transformation γ on X lifts to Γ̄.
