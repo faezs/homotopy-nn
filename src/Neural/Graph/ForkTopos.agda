@@ -848,24 +848,10 @@ module _ (G : Graph o ℓ)
            ∙ ap (γ .η ((fst₁ , v-original) , inc tt)) (sym (happly (F .F-∘ g f) x))
 
       {-|
-      **Naturality proof helper**
+      **Naturality proof**
 
-      Extract as a separate function to handle vertex type matching properly.
+      Prove directly using pattern matching on vertex types.
       -}
-      prove-naturality : ∀ (x y : ForkVertex) (f : Path-in Γ̄ y x)
-                       → (α-x : ∣ F .F₀ x ∣ → ∣ G .F₀ x ∣)
-                       → (α-y : ∣ F .F₀ y ∣ → ∣ G .F₀ y ∣)
-                       → (α-y ∘ (F .F₁ f)) ≡ ((G .F₁ f) ∘ α-x)
-      prove-naturality (x-node , v-original) (y-node , v-original) f α-x α-y = {!!}
-      prove-naturality (x-node , v-original) (y-node , v-fork-star) (cons e p) α-x α-y =
-        absurd (tang≠orig (ap snd (tang-path-nil (subst (λ w → Path-in Γ̄ w (x-node , v-original)) (star-only-to-tang e) p))))
-      prove-naturality (x-node , v-original) (y-node , v-fork-tang) (cons e p) α-x α-y = absurd (tang-no-outgoing e)
-      prove-naturality (x-node , v-fork-star) (y-node , v-original) f α-x α-y = {!!}
-      prove-naturality (x-node , v-fork-star) (y-node , v-fork-star) f α-x α-y = {!!}
-      prove-naturality (x-node , v-fork-star) (y-node , v-fork-tang) (cons e p) α-x α-y = absurd (tang-no-outgoing e)
-      prove-naturality (x-node , v-fork-tang) (y-node , v-original) f α-x α-y = {!!}
-      prove-naturality (x-node , v-fork-tang) (y-node , v-fork-star) f α-x α-y = {!!}
-      prove-naturality (x-node , v-fork-tang) (y-node , v-fork-tang) f α-x α-y = {!!}
 
       α : F => G
       α .η (fst₁ , ForkConstruction.v-original) = γ .η ((fst₁ , v-original) , inc tt)
@@ -923,9 +909,35 @@ module _ (G : Graph o ℓ)
       IMPORTANT: In opposite category, f : Hom^op(x, y) = Path-in Γ̄ y x
       So we're case-splitting on where f goes FROM (y) and TO (x).
 
-      Strategy: Delegate to prove-naturality helper which pattern matches on vertex types.
+      Strategy: Pattern match directly on vertex types.
       -}
-      α .is-natural x y f = prove-naturality x y f (α .η x) (α .η y)
+      α .is-natural (x-node , v-original) (y-node , v-original) f =
+        -- Path: orig→orig. Use path projection + γ naturality
+        let f-X = project-path-orig f
+            roundtrip = lift-project-roundtrip f
+        in ext λ z →
+           ap (γ .η ((y-node , v-original) , inc tt)) (ap (λ p → F₁ F p z) (sym roundtrip))
+           ∙ happly (γ .is-natural ((x-node , v-original) , inc tt) ((y-node , v-original) , inc tt) f-X) z
+           ∙ ap (λ p → F₁ G p (γ .η ((x-node , v-original) , inc tt) z)) roundtrip
+      α .is-natural (x-node , v-original) (y-node , v-fork-star) (cons e p) =
+        -- Path: star→orig (IMPOSSIBLE)
+        absurd (tang≠orig (ap snd (tang-path-nil (subst (λ w → Path-in Γ̄ w (x-node , v-original)) (star-only-to-tang e) p))))
+      α .is-natural (x-node , v-original) (y-node , v-fork-tang) (cons e p) =
+        -- Path: tang→orig (IMPOSSIBLE)
+        absurd (tang-no-outgoing e)
+      α .is-natural (x-node , v-fork-star) (y-node , v-original) f = {!!}
+        -- Path: orig→star (sheaf gluing case)
+      α .is-natural (x-node , v-fork-star) (y-node , v-fork-star) f = {!!}
+        -- Path: star→star (may be impossible)
+      α .is-natural (x-node , v-fork-star) (y-node , v-fork-tang) (cons e p) =
+        -- Path: tang→star (IMPOSSIBLE)
+        absurd (tang-no-outgoing e)
+      α .is-natural (x-node , v-fork-tang) (y-node , v-original) f = {!!}
+        -- Path: orig→tang (use path projection)
+      α .is-natural (x-node , v-fork-tang) (y-node , v-fork-star) f = {!!}
+        -- Path: star→tang (sheaf gluing case)
+      α .is-natural (x-node , v-fork-tang) (y-node , v-fork-tang) f = {!!}
+        -- Path: tang→tang (identity case, f must be nil)
 
   {-|
   #### Essential Surjectivity
