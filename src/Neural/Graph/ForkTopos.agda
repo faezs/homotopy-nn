@@ -137,7 +137,7 @@ module _ (G : Graph o ℓ)
   -- Import X, X-Category, X-Poset from ForkPoset
   import Neural.Graph.ForkPoset as FP
   open FP.ForkPosetDefs G G-oriented nodes nodes-complete edge? node-eq?
-    using (X; X-Category; X-Poset)
+    using (X; X-Category; X-Poset; is-non-star)
 
   {-|
   ### Γ̄ as a Category
@@ -638,6 +638,45 @@ module _ (G : Graph o ℓ)
   tang-path-nil : ∀ {a w} → Path-in Γ̄ (a , v-fork-tang) w → (a , v-fork-tang) ≡ w
   tang-path-nil nil = refl
   tang-path-nil (cons e p) = absurd (tang-no-outgoing e)
+
+  {-|
+  ## Path Projection: Γ̄-paths to X-paths
+
+  **Key insight**: Paths in Γ̄ between original vertices cannot pass through fork-star vertices.
+
+  **Proof**: By star-only-to-tang and tang-no-outgoing:
+  - If path reaches fork-star, next edge must go to fork-tang
+  - If path reaches fork-tang, it cannot continue (no outgoing edges)
+  - Therefore: paths orig → orig stay within X (original and tang vertices only)
+
+  Since X.Edge (v, _) (w, _) = ForkEdge v w syntactically, we just copy the path.
+  -}
+
+  -- Project a Γ̄-path from original to original to an X-path
+  -- Mutual definition to handle tang vertices
+  project-path-orig : ∀ {v w}
+                    → Path-in Γ̄ (v , v-original) (w , v-original)
+                    → Path-in X ((v , v-original) , inc tt) ((w , v-original) , inc tt)
+  project-path-tang : ∀ {v w}
+                    → Path-in Γ̄ (v , v-fork-tang) (w , v-original)
+                    → Path-in X ((v , v-fork-tang) , inc tt) ((w , v-original) , inc tt)
+
+  project-path-orig nil = nil
+  project-path-orig {v} {w} (cons {a} {b} {c} e p) = cons e (go b e p)
+    where
+      go : ∀ b → ForkEdge (v , v-original) b → Path-in Γ̄ b (w , v-original) → Path-in X (b , {!!}) ((w , v-original) , inc tt)
+      go (b-node , v-original) _ q = project-path-orig q
+      go (b-node , v-fork-star) _ q =
+        absurd (b-not-star q)
+        where
+          b-not-star : Path-in Γ̄ (b-node , v-fork-star) (w , v-original) → ⊥
+          b-not-star (cons e' p') =
+            let b'-tang = star-only-to-tang e'
+                tang-orig = tang-path-nil (subst (λ x → Path-in Γ̄ x (w , v-original)) b'-tang p')
+            in tang≠orig (ap snd tang-orig)
+      go (b-node , v-fork-tang) _ q = project-path-tang q
+
+  project-path-tang (cons e p) = absurd (tang-no-outgoing e)  -- tang has no outgoing edges
 
   {-|
   **Fullness**: Every natural transformation γ on X lifts to Γ̄.
