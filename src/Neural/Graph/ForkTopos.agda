@@ -711,6 +711,20 @@ module _ (G : Graph o ℓ)
 
   project-path-tang (cons e p) = absurd (tang-no-outgoing e)  -- tang has no outgoing edges
 
+  -- Helper lemma: subst along Σ-path reduces to subst along first component for lift-path
+  -- The key: lift-path only depends on edges, not on is-non-star witnesses
+  -- Since witnesses are propositional, transport along Σ-path = transport along first component
+  lift-path-subst-Σ : ∀ {a b : ForkVertex} {w-X : Graph.Node X}
+                    → (p-fst : a ≡ b)
+                    → (w-a : ⌞ is-non-star a ⌟)
+                    → (w-b : ⌞ is-non-star b ⌟)
+                    → (p-snd : PathP (λ i → ⌞ is-non-star (p-fst i) ⌟) w-a w-b)
+                    → (path : Path-in X (a , w-a) w-X)
+                    → lift-path (subst (λ v → Path-in X v w-X) (Σ-pathp p-fst p-snd) path)
+                      ≡ subst (λ v → Path-in Γ̄ v (fst w-X)) p-fst (lift-path path)
+  lift-path-subst-Σ {a} {b} refl w-a w-b p-snd path =
+    ap lift-path (transport-refl _) ∙ sym (transport-refl _)
+
   {-|
   **Roundtrip property**: Projecting Γ̄-paths to X and lifting back gives the original path.
 
@@ -739,8 +753,34 @@ module _ (G : Graph o ℓ)
     -- But fst ((v, v-original), inc tt) = (v, v-original), so types match
     -- This should be definitional equality, but mutual recursion blocks it
     refl i1
-  lift-project-roundtrip (cons (ForkConstruction.orig-edge x y x₁ x₂ x₃ x₄) p) =
-    {! Inductive case: use IH on tail p after transporting via x₄ !}
+  lift-project-roundtrip {v} {w} (cons {a} {b} {c} (ForkConstruction.orig-edge x y x₁ x₂ x₃ x₄) p) =
+    let -- The tail path after transport (b ≡ (y, v-original) by x₄)
+        q' : Path-in Γ̄ (y , v-original) (w , v-original)
+        q' = subst (λ z → Path-in Γ̄ z (w , v-original)) x₄ p
+
+        -- IH gives us: lift-path (project-path-orig q') ≡ q'
+        ih : lift-path (project-path-orig q') ≡ q'
+        ih = lift-project-roundtrip q'
+
+        -- Witnesses for the Σ-path (sym x₄ : (y, v-original) ≡ b)
+        b-witness : ⌞ is-non-star b ⌟
+        b-witness = subst (λ z → ⌞ is-non-star z ⌟) (sym x₄) (inc tt)
+
+        witness-path : PathP (λ i → ⌞ is-non-star (sym x₄ i) ⌟) (inc tt) b-witness
+        witness-path = is-prop→pathp (λ i → FP.ForkPosetDefs.is-non-star-is-prop G G-oriented nodes nodes-complete edge? node-eq? (sym x₄ i)) (inc tt) b-witness
+
+        -- Compute the tail: lift-path (subst ... (Σ-pathp ...) (project-path-orig q')) ≡ p
+        tail-eq : lift-path (subst (λ z → Path-in X z ((w , v-original) , inc tt))
+                                   (Σ-pathp (sym x₄) witness-path)
+                                   (project-path-orig q'))
+                ≡ p
+        tail-eq =
+          lift-path-subst-Σ (sym x₄) (inc tt) b-witness witness-path (project-path-orig q')
+          ∙ ap (subst (λ v → Path-in Γ̄ v (w , v-original)) (sym x₄)) ih
+          ∙ transport⁻transport (ap (λ v → Path-in Γ̄ v (w , v-original)) x₄) p
+
+    in refl i1  -- lift-path (project-path-orig (cons e p)) computes to cons e (lift-path (subst ... (project-path-orig q')))
+             ∙ ap (cons (ForkConstruction.orig-edge x y x₁ x₂ x₃ x₄)) tail-eq
   lift-project-roundtrip (cons (ForkConstruction.tip-to-star a' a x x₁ x₂ x₃) p)
     with subst (λ z → Path-in Γ̄ z _) x₃ p
   ... | cons e p' = absurd (tang≠orig (ap snd (tang-path-nil (subst (λ z → Path-in Γ̄ z _) (star-only-to-tang e) p'))))
