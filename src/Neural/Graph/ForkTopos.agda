@@ -662,19 +662,52 @@ module _ (G : Graph o ℓ)
                     → Path-in X ((v , v-fork-tang) , inc tt) ((w , v-original) , inc tt)
 
   project-path-orig nil = nil
-  project-path-orig {v} {w} (cons {a} {b} {c} e p) = cons e (go b e p)
+  project-path-orig {v} {w} (cons {a} {b} {c} e p) =
+    let (b-X , b-eq , path-from-b) = go-by-edge b e p
+        -- Transport the witness along b-eq: fst b-X ≡ b
+        b-witness : ⌞ is-non-star b ⌟
+        b-witness = subst (λ z → ⌞ is-non-star z ⌟) b-eq (snd b-X)
+        -- Since is-non-star is a proposition, any two witnesses are equal
+        witness-path : PathP (λ i → ⌞ is-non-star (b-eq i) ⌟) (snd b-X) b-witness
+        witness-path = is-prop→pathp (λ i → FP.ForkPosetDefs.is-non-star-is-prop G G-oriented nodes nodes-complete edge? node-eq? (b-eq i)) (snd b-X) b-witness
+        -- Construct the complete equality
+        b-X-eq : b-X ≡ (b , b-witness)
+        b-X-eq = Σ-pathp b-eq witness-path
+    in cons e (subst (λ z → Path-in X z ((w , v-original) , inc tt)) b-X-eq path-from-b)
     where
-      go : ∀ b → ForkEdge (v , v-original) b → Path-in Γ̄ b (w , v-original) → Path-in X (b , {!!}) ((w , v-original) , inc tt)
-      go (b-node , v-original) _ q = project-path-orig q
-      go (b-node , v-fork-star) _ q =
-        absurd (b-not-star q)
-        where
-          b-not-star : Path-in Γ̄ (b-node , v-fork-star) (w , v-original) → ⊥
-          b-not-star (cons e' p') =
-            let b'-tang = star-only-to-tang e'
-                tang-orig = tang-path-nil (subst (λ x → Path-in Γ̄ x (w , v-original)) b'-tang p')
-            in tang≠orig (ap snd tang-orig)
-      go (b-node , v-fork-tang) _ q = project-path-tang q
+      -- Prove that paths from original to original cannot pass through fork-star
+      orig-to-star-impossible : ∀ {b-node}
+                              → ForkEdge (v , v-original) (b-node , v-fork-star)
+                              → Path-in Γ̄ (b-node , v-fork-star) (w , v-original)
+                              → ⊥
+      orig-to-star-impossible e (cons e' p') =
+        let b'-tang = star-only-to-tang e'
+            tang-orig = tang-path-nil (subst (λ x → Path-in Γ̄ x (w , v-original)) b'-tang p')
+        in tang≠orig (ap snd tang-orig)
+
+      -- Return complete X-vertex with witness constructed per-case
+      go-by-edge : ∀ (b : ForkVertex)
+                 → (e : ForkEdge (v , v-original) b)
+                 → Path-in Γ̄ b (w , v-original)
+                 → Σ[ b-X ∈ Graph.Node X ]
+                   ((fst b-X ≡ b) × Path-in X b-X ((w , v-original) , inc tt))
+
+      go-by-edge b (orig-edge x y edge nc pv pw) q =
+        let q' : Path-in Γ̄ (y , v-original) (w , v-original)
+            q' = subst (λ z → Path-in Γ̄ z (w , v-original)) pw q
+        in ((y , v-original) , inc tt) , sym pw , project-path-orig q'
+
+      go-by-edge b (tip-to-star a' a conv edge pv pw) q =
+        let e-star : ForkEdge (v , v-original) (a , v-fork-star)
+            e-star = tip-to-star a' a conv edge pv refl
+            q-star : Path-in Γ̄ (a , v-fork-star) (w , v-original)
+            q-star = subst (λ z → Path-in Γ̄ z (w , v-original)) pw q
+        in absurd (orig-to-star-impossible e-star q-star)
+
+      go-by-edge b (handle a conv pv pw) q =
+        let q' : Path-in Γ̄ (a , v-fork-tang) (w , v-original)
+            q' = subst (λ z → Path-in Γ̄ z (w , v-original)) pw q
+        in ((a , v-fork-tang) , inc tt) , sym pw , project-path-tang q'
 
   project-path-tang (cons e p) = absurd (tang-no-outgoing e)  -- tang has no outgoing edges
 
