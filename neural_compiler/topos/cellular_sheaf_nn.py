@@ -317,6 +317,10 @@ class SheafNeuralNetwork(nn.Module):
         self.num_layers = num_layers
         self.device = device
 
+        # Cache for training (stalk features and restriction maps used in forward pass)
+        self._cached_stalk_features = None
+        self._cached_restriction_maps = None
+
         # Input projection: features → d-dimensional stalks
         self.input_proj = nn.Linear(in_channels, stalk_dim)
 
@@ -349,6 +353,11 @@ class SheafNeuralNetwork(nn.Module):
 
         # Learn restriction maps
         restriction_maps = self.sheaf_learner(h, edge_index)  # [E, d, d]
+
+        # Cache for training (stalk features and maps before diffusion)
+        if self.training:
+            self._cached_stalk_features = h
+            self._cached_restriction_maps = restriction_maps
 
         # Construct sheaf and Laplacian
         sheaf = CellularSheaf(self.num_vertices, edge_index, self.d, self.device)

@@ -547,6 +547,61 @@ def train_equivariant_homotopy(
         optimizer_canonical.zero_grad()
         total_loss.backward()
 
+        # DEBUG: Check canonical gradients and parameter updates
+        if epoch == 0 and verbose:
+            print("\n[DEBUG] Canonical morphism gradient check:")
+            canonical_params = list(learner.canonical_morphism.parameters())
+            print(f"  Number of parameters: {len(canonical_params)}")
+            total_params = sum(p.numel() for p in canonical_params)
+            print(f"  Total parameter count: {total_params}")
+
+            requires_grad_flags = [p.requires_grad for p in canonical_params]
+            print(f"  Parameters with requires_grad=True: {sum(requires_grad_flags)}/{len(requires_grad_flags)}")
+            if not all(requires_grad_flags):
+                print("  WARNING: Some parameters have requires_grad=False!")
+
+            has_grad = [p.grad is not None for p in canonical_params]
+            print(f"  Parameters with gradients: {sum(has_grad)}/{len(has_grad)}")
+
+            if any(has_grad):
+                grad_norms = [p.grad.norm().item() for p in canonical_params if p.grad is not None]
+                print(f"  Gradient norms: min={min(grad_norms):.6f}, max={max(grad_norms):.6f}, mean={np.mean(grad_norms):.6f}")
+            else:
+                print("  WARNING: No gradients found!")
+
+            # Also check canonical loss contribution
+            print(f"  Canonical loss: {metrics['canonical_recon'].item():.4f}")
+            print(f"  Lambda weight: {lambda_canonical}")
+            print(f"  Weighted canonical contribution: {(lambda_canonical * metrics['canonical_recon']).item():.4f}")
+
+            # Save initial parameter values for comparison
+            learner._initial_param_values = [p.data.clone() for p in canonical_params]
+
+            # Check for parameter sharing with individual morphisms
+            individual_params = [p for f in learner.individual_morphisms for p in f.parameters()]
+            canonical_param_ids = {id(p) for p in canonical_params}
+            individual_param_ids = {id(p) for p in individual_params}
+            shared_ids = canonical_param_ids & individual_param_ids
+            if shared_ids:
+                print(f"  ⚠️  CRITICAL: {len(shared_ids)} parameters are SHARED between canonical and individual!")
+                print("  This would cause optimizer conflicts!")
+            else:
+                print(f"  ✓ No parameter sharing detected (canonical has {len(canonical_param_ids)} unique params)")
+            print()
+
+        # Check if parameters actually changed (epochs 1 and 10)
+        if epoch in [1, 10] and verbose and hasattr(learner, '_initial_param_values'):
+            canonical_params = list(learner.canonical_morphism.parameters())
+            param_changes = [torch.norm(p.data - p0).item()
+                           for p, p0 in zip(canonical_params, learner._initial_param_values)]
+            print(f"\n[DEBUG] Parameter changes since epoch 0:")
+            print(f"  Min change: {min(param_changes):.6f}")
+            print(f"  Max change: {max(param_changes):.6f}")
+            print(f"  Mean change: {np.mean(param_changes):.6f}")
+            if max(param_changes) < 1e-6:
+                print("  ⚠️  WARNING: Parameters barely changed! Optimizer may not be working!")
+            print()
+
         # Gradient clipping (stability)
         torch.nn.utils.clip_grad_norm_(
             [p for f in learner.individual_morphisms for p in f.parameters()],

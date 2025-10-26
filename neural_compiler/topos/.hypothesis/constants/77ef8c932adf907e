@@ -1,0 +1,4 @@
+# file: /Users/faezs/homotopy-nn/neural_compiler/parser.py
+# hypothesis_version: 6.136.9
+
+['Graph has cycles!', '__main__', 'activation', 'arity', 'attention', 'avg_pool', 'batch_norm', 'cols', 'conv2d', 'd_k', 'd_model', 'd_v', 'dim', 'dims', 'edges', 'features', 'fork', 'gelu', 'heads', 'id', 'identity', 'in_channels', 'in_dim', 'input_shapes', 'inputs', 'kernel_size', 'layer_norm', 'linear', 'mat', 'max_flops', 'max_latency', 'max_memory', 'max_pool', 'name', 'op', 'out_channels', 'out_dim', 'output_shape', 'outputs', 'properties', 'r', 'relu', 'residual', 'resources', 'rows', 'scalar', 'shape', 'sigmoid', 'source', 'sparsity', 'stride', 'tanh', 'target', 'tensor', 'type', 'vec', 'vertices']

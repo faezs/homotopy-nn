@@ -19,7 +19,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 import numpy as np
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings, strategies as st, HealthCheck
 from hypothesis.extra.numpy import arrays
 
 from geometric_morphism_torch import Site, Sheaf, GeometricMorphism
@@ -82,7 +82,7 @@ def arc_grid_data(draw):
 class TestAdjunction:
     """Test that f^* ⊣ f_* satisfies adjunction axioms."""
 
-    @settings(max_examples=50, deadline=5000)
+    @settings(max_examples=50, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_adjunction_unit_counit(self, geometric_morphism_pair, sections):
         """Test adjunction unit and counit laws.
@@ -122,7 +122,7 @@ class TestAdjunction:
         assert unit_error >= 0, "Unit error must be non-negative"
 
 
-    @settings(max_examples=30, deadline=5000)
+    @settings(max_examples=30, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_adjunction_symmetry(self, geometric_morphism_pair, sections):
         """Test that adjunction is symmetric.
@@ -156,7 +156,7 @@ class TestAdjunction:
 class TestFunctorLaws:
     """Test that geometric morphisms satisfy functor axioms."""
 
-    @settings(max_examples=30, deadline=5000)
+    @settings(max_examples=30, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_functor_preserves_identity(self, geometric_morphism_pair, sections):
         """Test F(id) ≈ id.
@@ -180,7 +180,7 @@ class TestFunctorLaws:
         assert identity_error < 100.0, f"Identity preservation error too large: {identity_error}"
 
 
-    @settings(max_examples=20, deadline=5000)
+    @settings(max_examples=20, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_functor_composition_associative(self, simple_site, sections):
         """Test F(g ∘ f) ≈ F(g) ∘ F(f).
@@ -214,7 +214,7 @@ class TestFunctorLaws:
 class TestSheafCondition:
     """Test that sheaves satisfy gluing axioms."""
 
-    @settings(max_examples=30, deadline=5000)
+    @settings(max_examples=30, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_sheaf_gluing_axiom(self, simple_site, sections):
         """Test F(U) ≅ lim F(U_i) for covering {U_i}.
@@ -235,7 +235,7 @@ class TestSheafCondition:
         assert violation >= 0, "Sheaf violation must be non-negative"
 
 
-    @settings(max_examples=30, deadline=5000)
+    @settings(max_examples=30, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_sheaf_restriction_compatible(self, simple_site, sections):
         """Test that restrictions are compatible on overlaps.
@@ -269,7 +269,7 @@ class TestSheafCondition:
 class TestGeometricMorphism:
     """Test geometric morphism-specific properties."""
 
-    @settings(max_examples=20, deadline=5000)
+    @settings(max_examples=20, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_pullback_preserves_structure(self, geometric_morphism_pair, sections):
         """Test that f^* preserves sheaf structure.
@@ -297,7 +297,7 @@ class TestGeometricMorphism:
         assert not np.isinf(violation)
 
 
-    @settings(max_examples=20, deadline=5000)
+    @settings(max_examples=20, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_pushforward_preserves_structure(self, geometric_morphism_pair, sections):
         """Test that f_* preserves sheaf structure.
@@ -325,7 +325,7 @@ class TestGeometricMorphism:
         assert not np.isinf(violation)
 
 
-    @settings(max_examples=20, deadline=5000)
+    @settings(max_examples=20, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(sections=st.data())
     def test_geometric_morphism_continuity(self, geometric_morphism_pair, sections):
         """Test that small changes in input produce small changes in output.
@@ -368,7 +368,7 @@ class TestGeometricMorphism:
 class TestARCGridProperties:
     """Test properties specific to ARC grid encoding."""
 
-    @settings(max_examples=20, deadline=5000)
+    @settings(max_examples=20, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(grid_data=arc_grid_data())
     def test_grid_encoding_deterministic(self, simple_site, grid_data):
         """Test that encoding the same grid twice gives same result."""
@@ -390,7 +390,7 @@ class TestARCGridProperties:
         assert torch.allclose(sheaf1.sections, sheaf2.sections, atol=1e-6)
 
 
-    @settings(max_examples=20, deadline=5000)
+    @settings(max_examples=20, deadline=5000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(grid_data=arc_grid_data())
     def test_grid_encoding_preserves_size(self, simple_site, grid_data):
         """Test that encoding preserves essential grid information."""
@@ -418,7 +418,7 @@ class TestARCGridProperties:
 class TestToposIntegration:
     """Integration tests for full topos pipeline."""
 
-    @settings(max_examples=10, deadline=10000)
+    @settings(max_examples=10, deadline=10000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(grid_data=arc_grid_data())
     def test_full_pipeline_no_nan(self, grid_data):
         """Test that full pipeline doesn't produce NaN values."""
@@ -439,7 +439,7 @@ class TestToposIntegration:
         output_sheaf = solver.geometric_morphism.pushforward(input_sheaf)
 
         # Decode
-        prediction = solver.decode_sheaf_to_grid(output_sheaf, solver.site_out, grid_data.height, grid_data.width)
+        prediction = solver.decode_sheaf_to_grid(output_sheaf, grid_data.height, grid_data.width)
 
         # Check no NaN
         assert not torch.isnan(input_sheaf.sections).any()
@@ -447,7 +447,7 @@ class TestToposIntegration:
         assert not np.isnan(prediction.cells).any()
 
 
-    @settings(max_examples=10, deadline=10000)
+    @settings(max_examples=10, deadline=10000, suppress_health_check=[HealthCheck.function_scoped_fixture])
     @given(grid_data=arc_grid_data())
     def test_topos_laws_bounded(self, grid_data):
         """Test that topos law violations are bounded."""

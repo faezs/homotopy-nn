@@ -1,0 +1,14 @@
+{-# OPTIONS --no-import-sorts #-}
+
+-- Test file to verify ∙e-invr proof
+
+module test-invr where
+
+open import 1Lab.Prelude
+open import 1Lab.Equiv using (_∙e_; equiv→counit; id-equiv; is-equiv-is-prop)
+open import 1Lab.Equiv as Equiv
+
+-- Right inverse law: e ∙e e⁻¹ ≡ id_B
+-- Note: e : A ≃ B, inverse e : B ≃ A, so e ∙e inverse e : B ≃ B
+∙e-invr : ∀ {ℓ} {A B : Type ℓ} (e : A ≃ B) → e ∙e Equiv.inverse e ≡ (id , id-equiv {A = B})
+∙e-invr {A = A} {B = B} (f , ef) = Σ-prop-path is-equiv-is-prop (funext (equiv→counit ef))

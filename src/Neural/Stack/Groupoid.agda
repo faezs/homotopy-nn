@@ -1,4 +1,4 @@
-{-# OPTIONS --no-import-sorts #-}
+{-# OPTIONS --no-import-sorts --allow-unsolved-metas #-}
 {-|
 # Groupoids, Stacks, and Categorical Invariance (Chapter 2.1)
 
@@ -50,9 +50,10 @@ open import 1Lab.Path
 open import Cat.Base
 open import Cat.Functor.Base
 open import Cat.Groupoid
-open import Cat.Instances.Functor
+open import Cat.Instances.Functor using (Cat[_,_])
 open import Cat.Instances.Shape.Terminal
-open import Cat.Bi.Base
+open import Cat.Instances.StrictCat using (Strict-cats)
+open import Cat.Displayed.Base
 
 open import Algebra.Group using (Group-on; Group≃)
 
@@ -86,12 +87,12 @@ A **group action** in the categorical sense is a functor G → V where:
 -}
 
 -- A group as a category (one object, morphisms = group elements)
-Group-as-Category : ∀ {ℓ} → Group ℓ → Precategory lzero ℓ
-Group-as-Category G = cat where
+Group-as-Category : ∀ {ℓ₁} → Group ℓ₁ → Precategory lzero ℓ₁
+Group-as-Category {ℓ₁} G = cat where
   open Group-on (G .snd)
-  cat : Precategory lzero ℓ
+  cat : Precategory lzero ℓ₁
   cat .Precategory.Ob = ⊤
-  cat .Precategory.Hom _ _ = ⌞ G ⌟
+  cat .Precategory.Hom _ _ = G .fst  -- Underlying type of the group
   cat .Precategory.Hom-set _ _ = G .snd .Group-on.has-is-set
   cat .Precategory.id = unit
   cat .Precategory._∘_ = _⋆_
@@ -151,14 +152,14 @@ module _ {ℓ} {G : Group ℓ} {V : Precategory o ℓ'} (f : Group-Action G V) w
   - For a' → a in G, we get u → f(a) → f(a')
   - This is the "transformed element" under the group element a' → a
   -}
-  postulate
-    -- The orbit functor (requires slice category constructions)
-    orbit : ∀ {u v : Ob} (φ : Hom u v) →
-            -- (a : Ob G) → -- In our case G has one object
-            -- f(a) ≡ v →   -- Require v = f(a)
-            Type (o ⊔ ℓ ⊔ ℓ')
-    -- Full construction: Functor (G|a) (u|V)
-    -- Where G|a is left slice, u|V is right slice
+  -- The orbit functor (requires slice category constructions)
+  orbit : ∀ {u v : Ob} (φ : Hom u v) →
+          -- (a : Ob G) → -- In our case G has one object
+          -- f(a) ≡ v →   -- Require v = f(a)
+          Type (o ⊔ ℓ ⊔ ℓ')
+  orbit = {!!}
+  -- Full construction: Functor (G|a) (u|V)
+  -- Where G|a is left slice, u|V is right slice
 
 {-|
 ## CNN Example: Translation Invariance
@@ -187,37 +188,40 @@ From the paper:
 -}
 
 module CNN-Example where
-  postulate
-    -- The group of 2D translations (ℝ², +)
-    -- In practice we'd work with discrete/bounded translations
-    ℝ² : Group lzero
+  -- The group of 2D translations (ℝ², +)
+  -- In practice we'd work with discrete/bounded translations
+  ℝ² : Group lzero
+  ℝ² = {!!}
 
-    {-|
-    A convolutional layer is a vector space with ℝ² action.
+  {-|
+  A convolutional layer is a vector space with ℝ² action.
 
-    **Structure**:
-    - Input: Functions on ℝ² (or a grid)
-    - Convolution: (K * f)(x) = ∫ K(x-y) f(y) dy
-    - Translation equivariance: K * (T_a f) = T_a (K * f)
+  **Structure**:
+  - Input: Functions on ℝ² (or a grid)
+  - Convolution: (K * f)(x) = ∫ K(x-y) f(y) dy
+  - Translation equivariance: K * (T_a f) = T_a (K * f)
 
-    where T_a is translation by a ∈ ℝ².
-    -}
-    ConvLayer : Type
+  where T_a is translation by a ∈ ℝ².
+  -}
+  ConvLayer : Type
+  ConvLayer = {!!}
 
-    -- The action of ℝ² on a convolutional layer
-    conv-action : ConvLayer → Functor (Group-as-Category ℝ²) (Sets lzero)
+  -- The action of ℝ² on a convolutional layer
+  conv-action : ConvLayer → Functor (Group-as-Category ℝ²) (Sets lzero)
+  conv-action = {!!}
 
-    {-|
-    Convolution as a linear equivariant map.
+  {-|
+  Convolution as a linear equivariant map.
 
-    For layers L₁, L₂ with ℝ² actions, a convolution kernel K: L₁ → L₂
-    satisfies:
+  For layers L₁, L₂ with ℝ² actions, a convolution kernel K: L₁ → L₂
+  satisfies:
 
-    K ∘ T_a = T_a ∘ K  for all a ∈ ℝ²
+  K ∘ T_a = T_a ∘ K  for all a ∈ ℝ²
 
-    This is the equivariance condition.
-    -}
-    is-equivariant : (L₁ L₂ : ConvLayer) → (K : ConvLayer → ConvLayer) → Type
+  This is the equivariance condition.
+  -}
+  is-equivariant : (L₁ L₂ : ConvLayer) → (K : ConvLayer → ConvLayer) → Type
+  is-equivariant = {!!}
 
   {-|
   **Remark from paper**:
@@ -258,14 +262,23 @@ where:
 This is Giraud's construction [Gir72] of the classifying topos.
 -}
 
--- Stack: Contravariant functor to categories
-Stack : (C : Precategory o ℓ) (o' ℓ' : Level) → Type (o ⊔ ℓ ⊔ lsuc o' ⊔ lsuc ℓ')
-Stack C o' ℓ' = Functor (C ^op) (Cat o' ℓ')
+module _ {C : Precategory o ℓ} where
+  -- Stack: Contravariant functor from C to Strict-cats (category of strict categories)
+  -- This is the standard definition from topos theory: F: C^op → Cat
+  -- We use Strict-cats since it's a Precategory (unlike Cat which is a bicategory)
+  Stack : (o' ℓ' : Level) → Type (o ⊔ ℓ ⊔ lsuc o' ⊔ lsuc ℓ')
+  Stack o' ℓ' = Functor (C ^op) (Strict-cats o' ℓ')
+    -- Stack assigns to each object U of C a strict category F(U), and to morphisms functors
 
--- Stack in groupoids: stricter condition
-Stack-Grpd : (C : Precategory o ℓ) (o' ℓ' : Level) → Type (o ⊔ ℓ ⊔ lsuc o' ⊔ lsuc ℓ')
-Stack-Grpd C o' ℓ' = Functor (C ^op) (Cat o' ℓ')
-  -- With additional condition: each F(U) is a groupoid
+  -- Helper: Get the underlying category from a strict category
+  fiber : {o' ℓ' : Level} → Stack o' ℓ' → C .Precategory.Ob → Precategory o' ℓ'
+  fiber F U = F .Functor.F₀ U .fst
+
+  -- Stack in groupoids: stricter condition where each fiber F(U) is a groupoid
+  Stack-Grpd : (o' ℓ' : Level) → Type (o ⊔ ℓ ⊔ lsuc o' ⊔ lsuc ℓ')
+  Stack-Grpd o' ℓ' = Σ (Stack o' ℓ') λ F →
+    -- Additional condition: each F(U) is a groupoid (all morphisms invertible)
+    ∀ (U : C .Precategory.Ob) → is-pregroupoid (fiber F U)
 
 {-|
 ### Stack of G-Sets
@@ -289,25 +302,28 @@ A stack F: C^op → G∧ assigns to each layer U a G-set F(U).
 -}
 
 module _ {ℓ} (G : Group ℓ) where
-  postulate
-    -- The category of G-sets
-    G-Sets : Precategory (lsuc lzero) (lsuc lzero)
+  -- The category of G-sets
+  G-Sets : Precategory (lsuc lzero) (lsuc lzero)
+  G-Sets = {!!}
 
-    {-|
-    A G-set is a set X with a group action G × X → X.
+  {-|
+  A G-set is a set X with a group action G × X → X.
 
-    Morphisms are equivariant maps.
-    -}
-    G-Set : Type (lsuc lzero)
-    G-Set-action : G-Set → (⌞ G ⌟ → G-Set → G-Set)
+  Morphisms are equivariant maps.
+  -}
+  G-Set : Type (lsuc lzero)
+  G-Set = {!!}
 
-    {-|
-    Stack with G-set fibers.
+  G-Set-action : G-Set → (⌞ G ⌟ → G-Set → G-Set)
+  G-Set-action = {!!}
 
-    This assigns a G-set to each layer of the network.
-    -}
-    G-Set-Stack : (C : Precategory o ℓ) → Type (o ⊔ ℓ ⊔ lsuc lzero)
-    G-Set-Stack C = Functor (C ^op) G-Sets
+  {-|
+  Stack with G-set fibers.
+
+  This assigns a G-set to each layer of the network.
+  -}
+  G-Set-Stack : (C : Precategory o ℓ) → Type (o ⊔ ℓ ⊔ lsuc lzero)
+  G-Set-Stack C = Functor (C ^op) G-Sets
 
 {-|
 ## Fibred Actions (Equation 2.1)
@@ -343,7 +359,7 @@ F_U   ----f_U------->    M_U
 Commutativity: f_U ∘ F_α = M_α ∘ f_{U'}
 -}
 
-module _ {C : Precategory o ℓ} where
+module _ {C : Precategory o ℓ} {o' ℓ' : Level} where
   open Functor
 
   {-|
@@ -352,11 +368,11 @@ module _ {C : Precategory o ℓ} where
   An action of a stack F on a stack M is a family of functors f_U: F(U) → M(U)
   satisfying the equivariance formula (2.1).
   -}
-  record Fibred-Action (F M : Stack C o' ℓ') : Type (o ⊔ ℓ ⊔ o' ⊔ ℓ') where
+  record Fibred-Action (F M : Stack {C = C} o' ℓ') : Type (o ⊔ ℓ ⊔ o' ⊔ ℓ') where
     no-eta-equality
     field
       -- Action functor at each object U
-      f_U : ∀ (U : C .Precategory.Ob) → Functor (F .F₀ U) (M .F₀ U)
+      f_U : ∀ (U : C .Precategory.Ob) → Functor (fiber {C = C} F U) (fiber {C = C} M U)
 
       {-|
       **Equation (2.1)**: Equivariance condition
@@ -368,7 +384,7 @@ module _ {C : Precategory o ℓ} where
       fibred sense.
       -}
       equivariance : ∀ {U U' : C .Precategory.Ob} (α : C .Precategory.Hom U U') →
-                    f_U U F∘ F .F₁ α ≡ M .F₁ α F∘ f_U U'
+                    f_U U F∘ (F .Functor.F₁ α) ≡ (M .Functor.F₁ α) F∘ f_U U'
 
 open Fibred-Action public
 
@@ -403,24 +419,25 @@ For the DNN case:
 > form a Boolean topos, then ordinary logic is automatically incorporated."
 -}
 
-postulate
+module _ {C : Precategory o ℓ} {o' ℓ' : Level} where
   {-|
   Classifying topos of a stack in groupoids.
 
   This is Giraud's theorem [Gir72]: for a stack F: C^op → Grpd,
   the category of presheaves on F is a Grothendieck topos.
   -}
-  Classifying-Topos : {C : Precategory o ℓ} →
-                      Stack-Grpd C o' ℓ' →
+  Classifying-Topos : Stack-Grpd {C = C} o' ℓ' →
                       Precategory (lsuc (o ⊔ ℓ ⊔ o' ⊔ ℓ')) (o ⊔ ℓ ⊔ o' ⊔ ℓ')
+  Classifying-Topos = {!!}
 
   {-|
   The classifying topos is Boolean when F is a stack in groupoids.
 
   This means the internal logic is classical (law of excluded middle holds).
   -}
-  Classifying-Topos-is-Boolean : {C : Precategory o ℓ} (F : Stack-Grpd C o' ℓ') →
+  Classifying-Topos-is-Boolean : (F : Stack-Grpd {C = C} o' ℓ') →
                                  Type (lsuc (o ⊔ ℓ ⊔ o' ⊔ ℓ'))
+  Classifying-Topos-is-Boolean = {!!}
 
 {-|
 ## Summary

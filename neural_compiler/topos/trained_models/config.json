@@ -1,0 +1,9 @@
+{
+  "arc_data_dir": "../../ARC-AGI/data",
+  "n_tasks": 20,
+  "meta_epochs": 20,
+  "meta_batch_size": 4,
+  "n_shots": 2,
+  "seed": 42,
+  "timestamp": "2025-10-23T06:05:15.403036"
+}

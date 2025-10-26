@@ -1,0 +1,4 @@
+# file: /Users/faezs/homotopy-nn/neural_compiler/topos/cnn_sheaf_architecture.py
+# hypothesis_version: 6.136.9
+
+[0.01, 0.1, 0.5, '=', 'Comparison', 'Standard CNN Sheaf', '__main__', 'adjunction', 'bilinear', 'cpu', 'prediction', 'replicate', 'sheaf_condition', 'total']

@@ -1,0 +1,1156 @@
+================================================================================
+LOADING ARC DATASET
+================================================================================
+
+✓ Loaded 20 training tasks from /Users/faezs/homotopy-nn/ARC-AGI/data
+✓ Split 20 tasks → Train: 14, Val: 3, Test: 3
+
+Converting ARCGrid objects to torch tensors...
+Converting train:   0%|          | 0/14 [00:00<?, ?it/s]Converting train:  14%|█▍        | 2/14 [00:00<00:00, 19.08it/s]Converting train:  43%|████▎     | 6/14 [00:00<00:00, 16.44it/s]Converting train:  57%|█████▋    | 8/14 [00:00<00:00, 11.00it/s]Converting train:  71%|███████▏  | 10/14 [00:00<00:00, 10.53it/s]Converting train:  86%|████████▌ | 12/14 [00:01<00:00, 11.03it/s]Converting train: 100%|██████████| 14/14 [00:01<00:00, 12.77it/s]
+Converting val:   0%|          | 0/3 [00:00<?, ?it/s]Converting val: 100%|██████████| 3/3 [00:00<00:00, 20.45it/s]Converting val: 100%|██████████| 3/3 [00:00<00:00, 20.43it/s]
+Converting test:   0%|          | 0/3 [00:00<?, ?it/s]Converting test: 100%|██████████| 3/3 [00:00<00:00, 26.34it/s]Converting test: 100%|██████████| 3/3 [00:00<00:00, 26.31it/s]
+
+Dataset split:
+  Training tasks:   14
+  Validation tasks: 3
+  Test tasks:       3
+
+================================================================================
+TRAINING TOPOS-THEORETIC ARC SOLVER
+================================================================================
+Device: cpu
+Model parameters: 149811
+Training tasks: 14
+Epochs: 50
+
+Epoch 1/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 1/50:   7%|▋         | 1/14 [00:00<00:03,  4.31it/s]/Users/faezs/homotopy-nn/neural_compiler/topos/train_topos_arc.py:217: UserWarning: Using a target size (torch.Size([1, 3, 3, 10])) that is different to the input size (torch.Size([1, 3, 7, 10])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  task_loss = F.mse_loss(prediction, test_output.unsqueeze(0))
+Epoch 1/50:  14%|█▍        | 2/14 [00:00<00:02,  5.51it/s]Epoch 1/50:  21%|██▏       | 3/14 [00:00<00:02,  5.33it/s]Epoch 1/50:  29%|██▊       | 4/14 [00:01<00:03,  3.10it/s]Epoch 1/50:  36%|███▌      | 5/14 [00:01<00:02,  3.89it/s]/Users/faezs/homotopy-nn/neural_compiler/topos/train_topos_arc.py:217: UserWarning: Using a target size (torch.Size([1, 6, 6, 10])) that is different to the input size (torch.Size([1, 15, 17, 10])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  task_loss = F.mse_loss(prediction, test_output.unsqueeze(0))
+Epoch 1/50:  43%|████▎     | 6/14 [00:01<00:02,  3.56it/s]Epoch 1/50:  50%|█████     | 7/14 [00:01<00:01,  4.03it/s]/Users/faezs/homotopy-nn/neural_compiler/topos/train_topos_arc.py:217: UserWarning: Using a target size (torch.Size([1, 12, 10, 10])) that is different to the input size (torch.Size([1, 6, 5, 10])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  task_loss = F.mse_loss(prediction, test_output.unsqueeze(0))
+Epoch 1/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.33it/s]Epoch 1/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.76it/s]Epoch 1/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.72it/s]Epoch 1/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.39it/s]Epoch 1/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.39it/s]Epoch 1/50:  93%|█████████▎| 13/14 [00:03<00:00,  2.96it/s]Epoch 1/50: 100%|██████████| 14/14 [00:03<00:00,  3.45it/s]Epoch 1/50: 100%|██████████| 14/14 [00:03<00:00,  3.71it/s]
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 252 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 144
+Epoch 1/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 2/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 2/50:   7%|▋         | 1/14 [00:00<00:02,  4.77it/s]Epoch 2/50:  14%|█▍        | 2/14 [00:00<00:02,  5.90it/s]Epoch 2/50:  21%|██▏       | 3/14 [00:00<00:01,  5.52it/s]Epoch 2/50:  29%|██▊       | 4/14 [00:01<00:03,  3.15it/s]Epoch 2/50:  36%|███▌      | 5/14 [00:01<00:02,  3.97it/s]Epoch 2/50:  43%|████▎     | 6/14 [00:01<00:02,  3.64it/s]Epoch 2/50:  50%|█████     | 7/14 [00:01<00:01,  4.09it/s]Epoch 2/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.37it/s]Epoch 2/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.77it/s]Epoch 2/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.73it/s]Epoch 2/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.40it/s]Epoch 2/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.41it/s]Epoch 2/50:  93%|█████████▎| 13/14 [00:03<00:00,  2.98it/s]Epoch 2/50: 100%|██████████| 14/14 [00:03<00:00,  3.48it/s]Epoch 2/50: 100%|██████████| 14/14 [00:03<00:00,  3.76it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 2/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 3/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 3/50:   7%|▋         | 1/14 [00:00<00:02,  4.72it/s]Epoch 3/50:  14%|█▍        | 2/14 [00:00<00:02,  5.89it/s]Epoch 3/50:  21%|██▏       | 3/14 [00:00<00:01,  5.50it/s]Epoch 3/50:  29%|██▊       | 4/14 [00:01<00:03,  3.19it/s]Epoch 3/50:  36%|███▌      | 5/14 [00:01<00:02,  3.99it/s]Epoch 3/50:  43%|████▎     | 6/14 [00:01<00:02,  3.66it/s]Epoch 3/50:  50%|█████     | 7/14 [00:01<00:01,  4.13it/s]Epoch 3/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.39it/s]Epoch 3/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.80it/s]Epoch 3/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.76it/s]Epoch 3/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.41it/s]Epoch 3/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.43it/s]Epoch 3/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.01it/s]Epoch 3/50: 100%|██████████| 14/14 [00:03<00:00,  3.51it/s]Epoch 3/50: 100%|██████████| 14/14 [00:03<00:00,  3.78it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 144
+Epoch 3/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 4/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 4/50:   7%|▋         | 1/14 [00:00<00:02,  4.88it/s]Epoch 4/50:  14%|█▍        | 2/14 [00:00<00:01,  6.02it/s]Epoch 4/50:  21%|██▏       | 3/14 [00:00<00:01,  5.66it/s]Epoch 4/50:  29%|██▊       | 4/14 [00:01<00:03,  3.29it/s]Epoch 4/50:  36%|███▌      | 5/14 [00:01<00:02,  4.11it/s]Epoch 4/50:  43%|████▎     | 6/14 [00:01<00:02,  3.74it/s]Epoch 4/50:  50%|█████     | 7/14 [00:01<00:01,  4.22it/s]Epoch 4/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.51it/s]Epoch 4/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.93it/s]Epoch 4/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.82it/s]Epoch 4/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.48it/s]Epoch 4/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.48it/s]Epoch 4/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.04it/s]Epoch 4/50: 100%|██████████| 14/14 [00:03<00:00,  3.54it/s]Epoch 4/50: 100%|██████████| 14/14 [00:03<00:00,  3.85it/s]
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 4/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 5/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 5/50:   7%|▋         | 1/14 [00:00<00:02,  4.78it/s]Epoch 5/50:  14%|█▍        | 2/14 [00:00<00:02,  5.90it/s]Epoch 5/50:  21%|██▏       | 3/14 [00:00<00:01,  5.57it/s]Epoch 5/50:  29%|██▊       | 4/14 [00:01<00:03,  3.23it/s]Epoch 5/50:  36%|███▌      | 5/14 [00:01<00:02,  4.06it/s]Epoch 5/50:  43%|████▎     | 6/14 [00:01<00:02,  3.70it/s]Epoch 5/50:  50%|█████     | 7/14 [00:01<00:01,  4.19it/s]Epoch 5/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.46it/s]Epoch 5/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.86it/s]Epoch 5/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.80it/s]Epoch 5/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.45it/s]Epoch 5/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.44it/s]Epoch 5/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.01it/s]Epoch 5/50: 100%|██████████| 14/14 [00:03<00:00,  3.51it/s]Epoch 5/50: 100%|██████████| 14/14 [00:03<00:00,  3.81it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 144
+Epoch 5/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 6/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 6/50:   7%|▋         | 1/14 [00:00<00:02,  4.81it/s]Epoch 6/50:  14%|█▍        | 2/14 [00:00<00:02,  5.96it/s]Epoch 6/50:  21%|██▏       | 3/14 [00:00<00:01,  5.60it/s]Epoch 6/50:  29%|██▊       | 4/14 [00:01<00:03,  3.27it/s]Epoch 6/50:  36%|███▌      | 5/14 [00:01<00:02,  4.09it/s]Epoch 6/50:  43%|████▎     | 6/14 [00:01<00:02,  3.73it/s]Epoch 6/50:  50%|█████     | 7/14 [00:01<00:01,  4.21it/s]Epoch 6/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.47it/s]Epoch 6/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.90it/s]Epoch 6/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.82it/s]Epoch 6/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.47it/s]Epoch 6/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.47it/s]Epoch 6/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.04it/s]Epoch 6/50: 100%|██████████| 14/14 [00:03<00:00,  3.55it/s]Epoch 6/50: 100%|██████████| 14/14 [00:03<00:00,  3.84it/s]
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 144
+Epoch 6/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 7/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 7/50:   7%|▋         | 1/14 [00:00<00:02,  4.79it/s]Epoch 7/50:  14%|█▍        | 2/14 [00:00<00:02,  5.90it/s]Epoch 7/50:  21%|██▏       | 3/14 [00:00<00:01,  5.58it/s]Epoch 7/50:  29%|██▊       | 4/14 [00:01<00:03,  3.25it/s]Epoch 7/50:  36%|███▌      | 5/14 [00:01<00:02,  4.07it/s]Epoch 7/50:  43%|████▎     | 6/14 [00:01<00:02,  3.72it/s]Epoch 7/50:  50%|█████     | 7/14 [00:01<00:01,  4.20it/s]Epoch 7/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.46it/s]Epoch 7/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.91it/s]Epoch 7/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.81it/s]Epoch 7/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.47it/s]Epoch 7/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.44it/s]Epoch 7/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.03it/s]Epoch 7/50: 100%|██████████| 14/14 [00:03<00:00,  3.53it/s]Epoch 7/50: 100%|██████████| 14/14 [00:03<00:00,  3.83it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 252 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 144
+Epoch 7/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 8/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 8/50:   7%|▋         | 1/14 [00:00<00:02,  4.81it/s]Epoch 8/50:  14%|█▍        | 2/14 [00:00<00:02,  5.93it/s]Epoch 8/50:  21%|██▏       | 3/14 [00:00<00:01,  5.60it/s]Epoch 8/50:  29%|██▊       | 4/14 [00:01<00:03,  3.24it/s]Epoch 8/50:  36%|███▌      | 5/14 [00:01<00:02,  4.05it/s]Epoch 8/50:  43%|████▎     | 6/14 [00:01<00:02,  3.69it/s]Epoch 8/50:  50%|█████     | 7/14 [00:01<00:01,  4.18it/s]Epoch 8/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.44it/s]Epoch 8/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.86it/s]Epoch 8/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.80it/s]Epoch 8/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.46it/s]Epoch 8/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.45it/s]Epoch 8/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.03it/s]Epoch 8/50: 100%|██████████| 14/14 [00:03<00:00,  3.52it/s]Epoch 8/50: 100%|██████████| 14/14 [00:03<00:00,  3.82it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 251 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 144
+Epoch 8/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 9/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 9/50:   7%|▋         | 1/14 [00:00<00:02,  4.82it/s]Epoch 9/50:  14%|█▍        | 2/14 [00:00<00:02,  5.95it/s]Epoch 9/50:  21%|██▏       | 3/14 [00:00<00:01,  5.58it/s]Epoch 9/50:  29%|██▊       | 4/14 [00:01<00:03,  3.24it/s]Epoch 9/50:  36%|███▌      | 5/14 [00:01<00:02,  4.05it/s]Epoch 9/50:  43%|████▎     | 6/14 [00:01<00:02,  3.70it/s]Epoch 9/50:  50%|█████     | 7/14 [00:01<00:01,  4.18it/s]Epoch 9/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.47it/s]Epoch 9/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.87it/s]Epoch 9/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.81it/s]Epoch 9/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.44it/s]Epoch 9/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.44it/s]Epoch 9/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.01it/s]Epoch 9/50: 100%|██████████| 14/14 [00:03<00:00,  3.51it/s]Epoch 9/50: 100%|██████████| 14/14 [00:03<00:00,  3.81it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 252 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 9/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 10/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 10/50:   7%|▋         | 1/14 [00:00<00:02,  4.81it/s]Epoch 10/50:  14%|█▍        | 2/14 [00:00<00:02,  5.95it/s]Epoch 10/50:  21%|██▏       | 3/14 [00:00<00:01,  5.59it/s]Epoch 10/50:  29%|██▊       | 4/14 [00:01<00:03,  3.28it/s]Epoch 10/50:  36%|███▌      | 5/14 [00:01<00:02,  4.11it/s]Epoch 10/50:  43%|████▎     | 6/14 [00:01<00:02,  3.73it/s]Epoch 10/50:  50%|█████     | 7/14 [00:01<00:01,  4.20it/s]Epoch 10/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.48it/s]Epoch 10/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.91it/s]Epoch 10/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.82it/s]Epoch 10/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.48it/s]Epoch 10/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.47it/s]Epoch 10/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.03it/s]Epoch 10/50: 100%|██████████| 14/14 [00:03<00:00,  3.52it/s]Epoch 10/50: 100%|██████████| 14/14 [00:03<00:00,  3.84it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 10/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 11/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 11/50:   7%|▋         | 1/14 [00:00<00:02,  4.80it/s]Epoch 11/50:  14%|█▍        | 2/14 [00:00<00:02,  5.97it/s]Epoch 11/50:  21%|██▏       | 3/14 [00:00<00:01,  5.62it/s]Epoch 11/50:  29%|██▊       | 4/14 [00:01<00:03,  3.25it/s]Epoch 11/50:  36%|███▌      | 5/14 [00:01<00:02,  4.07it/s]Epoch 11/50:  43%|████▎     | 6/14 [00:01<00:02,  3.72it/s]Epoch 11/50:  50%|█████     | 7/14 [00:01<00:01,  4.21it/s]Epoch 11/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.48it/s]Epoch 11/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.91it/s]Epoch 11/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.81it/s]Epoch 11/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.47it/s]Epoch 11/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.43it/s]Epoch 11/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.02it/s]Epoch 11/50: 100%|██████████| 14/14 [00:03<00:00,  3.51it/s]Epoch 11/50: 100%|██████████| 14/14 [00:03<00:00,  3.83it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 144
+Epoch 11/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 12/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 12/50:   7%|▋         | 1/14 [00:00<00:02,  4.82it/s]Epoch 12/50:  14%|█▍        | 2/14 [00:00<00:02,  5.96it/s]Epoch 12/50:  21%|██▏       | 3/14 [00:00<00:01,  5.62it/s]Epoch 12/50:  29%|██▊       | 4/14 [00:01<00:03,  3.27it/s]Epoch 12/50:  36%|███▌      | 5/14 [00:01<00:02,  4.08it/s]Epoch 12/50:  43%|████▎     | 6/14 [00:01<00:02,  3.70it/s]Epoch 12/50:  50%|█████     | 7/14 [00:01<00:01,  4.19it/s]Epoch 12/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.45it/s]Epoch 12/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.88it/s]Epoch 12/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.81it/s]Epoch 12/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.47it/s]Epoch 12/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.47it/s]Epoch 12/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.03it/s]Epoch 12/50: 100%|██████████| 14/14 [00:03<00:00,  3.52it/s]Epoch 12/50: 100%|██████████| 14/14 [00:03<00:00,  3.83it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 12/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 13/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 13/50:   7%|▋         | 1/14 [00:00<00:02,  4.80it/s]Epoch 13/50:  14%|█▍        | 2/14 [00:00<00:02,  5.94it/s]Epoch 13/50:  21%|██▏       | 3/14 [00:00<00:01,  5.60it/s]Epoch 13/50:  29%|██▊       | 4/14 [00:01<00:03,  3.24it/s]Epoch 13/50:  36%|███▌      | 5/14 [00:01<00:02,  4.06it/s]Epoch 13/50:  43%|████▎     | 6/14 [00:01<00:02,  3.70it/s]Epoch 13/50:  50%|█████     | 7/14 [00:01<00:01,  4.18it/s]Epoch 13/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.44it/s]Epoch 13/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.85it/s]Epoch 13/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.80it/s]Epoch 13/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.46it/s]Epoch 13/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.46it/s]Epoch 13/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.03it/s]Epoch 13/50: 100%|██████████| 14/14 [00:03<00:00,  3.51it/s]Epoch 13/50: 100%|██████████| 14/14 [00:03<00:00,  3.82it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 251 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 13/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 14/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 14/50:   7%|▋         | 1/14 [00:00<00:02,  4.72it/s]Epoch 14/50:  14%|█▍        | 2/14 [00:00<00:02,  5.87it/s]Epoch 14/50:  21%|██▏       | 3/14 [00:00<00:01,  5.54it/s]Epoch 14/50:  29%|██▊       | 4/14 [00:01<00:03,  3.27it/s]Epoch 14/50:  36%|███▌      | 5/14 [00:01<00:02,  4.08it/s]Epoch 14/50:  43%|████▎     | 6/14 [00:01<00:02,  3.72it/s]Epoch 14/50:  50%|█████     | 7/14 [00:01<00:01,  4.19it/s]Epoch 14/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.48it/s]Epoch 14/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.90it/s]Epoch 14/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.80it/s]Epoch 14/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.47it/s]Epoch 14/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.45it/s]Epoch 14/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.02it/s]Epoch 14/50: 100%|██████████| 14/14 [00:03<00:00,  3.51it/s]Epoch 14/50: 100%|██████████| 14/14 [00:03<00:00,  3.82it/s]
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 14/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 15/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 15/50:   7%|▋         | 1/14 [00:00<00:02,  4.75it/s]Epoch 15/50:  14%|█▍        | 2/14 [00:00<00:02,  5.92it/s]Epoch 15/50:  21%|██▏       | 3/14 [00:00<00:01,  5.57it/s]Epoch 15/50:  29%|██▊       | 4/14 [00:01<00:03,  3.27it/s]Epoch 15/50:  36%|███▌      | 5/14 [00:01<00:02,  4.09it/s]Epoch 15/50:  43%|████▎     | 6/14 [00:01<00:02,  3.71it/s]Epoch 15/50:  50%|█████     | 7/14 [00:01<00:01,  4.18it/s]Epoch 15/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.43it/s]Epoch 15/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.84it/s]Epoch 15/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.79it/s]Epoch 15/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.47it/s]Epoch 15/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.46it/s]Epoch 15/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.03it/s]Epoch 15/50: 100%|██████████| 14/14 [00:03<00:00,  3.53it/s]Epoch 15/50: 100%|██████████| 14/14 [00:03<00:00,  3.82it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 441 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 144
+Epoch 15/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 16/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 16/50:   7%|▋         | 1/14 [00:00<00:02,  4.77it/s]Epoch 16/50:  14%|█▍        | 2/14 [00:00<00:02,  5.93it/s]Epoch 16/50:  21%|██▏       | 3/14 [00:00<00:01,  5.60it/s]Epoch 16/50:  29%|██▊       | 4/14 [00:01<00:03,  3.28it/s]Epoch 16/50:  36%|███▌      | 5/14 [00:01<00:02,  4.12it/s]Epoch 16/50:  43%|████▎     | 6/14 [00:01<00:02,  3.75it/s]Epoch 16/50:  50%|█████     | 7/14 [00:01<00:01,  4.23it/s]Epoch 16/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.49it/s]Epoch 16/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.90it/s]Epoch 16/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.81it/s]Epoch 16/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.46it/s]Epoch 16/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.45it/s]Epoch 16/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.04it/s]Epoch 16/50: 100%|██████████| 14/14 [00:03<00:00,  3.53it/s]Epoch 16/50: 100%|██████████| 14/14 [00:03<00:00,  3.84it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 252 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 16/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 17/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 17/50:   7%|▋         | 1/14 [00:00<00:02,  4.79it/s]Epoch 17/50:  14%|█▍        | 2/14 [00:00<00:02,  5.99it/s]Epoch 17/50:  21%|██▏       | 3/14 [00:00<00:01,  5.64it/s]Epoch 17/50:  29%|██▊       | 4/14 [00:01<00:03,  3.29it/s]Epoch 17/50:  36%|███▌      | 5/14 [00:01<00:02,  4.11it/s]Epoch 17/50:  43%|████▎     | 6/14 [00:01<00:02,  3.72it/s]Epoch 17/50:  50%|█████     | 7/14 [00:01<00:01,  4.20it/s]Epoch 17/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.47it/s]Epoch 17/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.88it/s]Epoch 17/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.81it/s]Epoch 17/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.48it/s]Epoch 17/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.49it/s]Epoch 17/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.06it/s]Epoch 17/50: 100%|██████████| 14/14 [00:03<00:00,  3.56it/s]Epoch 17/50: 100%|██████████| 14/14 [00:03<00:00,  3.85it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 252 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 144
+Epoch 17/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 18/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 18/50:   7%|▋         | 1/14 [00:00<00:02,  4.84it/s]Epoch 18/50:  14%|█▍        | 2/14 [00:00<00:02,  5.95it/s]Epoch 18/50:  21%|██▏       | 3/14 [00:00<00:01,  5.61it/s]Epoch 18/50:  29%|██▊       | 4/14 [00:01<00:03,  3.26it/s]Epoch 18/50:  36%|███▌      | 5/14 [00:01<00:02,  4.08it/s]Epoch 18/50:  43%|████▎     | 6/14 [00:01<00:02,  3.71it/s]Epoch 18/50:  50%|█████     | 7/14 [00:01<00:01,  4.19it/s]Epoch 18/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.47it/s]Epoch 18/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.90it/s]Epoch 18/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.82it/s]Epoch 18/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.47it/s]Epoch 18/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.44it/s]Epoch 18/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.02it/s]Epoch 18/50: 100%|██████████| 14/14 [00:03<00:00,  3.52it/s]Epoch 18/50: 100%|██████████| 14/14 [00:03<00:00,  3.83it/s]
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 441 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 144
+Epoch 18/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 19/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 19/50:   7%|▋         | 1/14 [00:00<00:02,  4.77it/s]Epoch 19/50:  14%|█▍        | 2/14 [00:00<00:02,  5.99it/s]Epoch 19/50:  21%|██▏       | 3/14 [00:00<00:01,  5.61it/s]Epoch 19/50:  29%|██▊       | 4/14 [00:01<00:03,  3.28it/s]Epoch 19/50:  36%|███▌      | 5/14 [00:01<00:02,  4.10it/s]Epoch 19/50:  43%|████▎     | 6/14 [00:01<00:02,  3.73it/s]Epoch 19/50:  50%|█████     | 7/14 [00:01<00:01,  4.21it/s]Epoch 19/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.46it/s]Epoch 19/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.88it/s]Epoch 19/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.80it/s]Epoch 19/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.45it/s]Epoch 19/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.32it/s]Epoch 19/50:  93%|█████████▎| 13/14 [00:03<00:00,  2.93it/s]Epoch 19/50: 100%|██████████| 14/14 [00:03<00:00,  3.42it/s]Epoch 19/50: 100%|██████████| 14/14 [00:03<00:00,  3.78it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 441 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 144
+Epoch 19/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 20/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 20/50:   7%|▋         | 1/14 [00:00<00:02,  4.65it/s]Epoch 20/50:  14%|█▍        | 2/14 [00:00<00:02,  5.86it/s]Epoch 20/50:  21%|██▏       | 3/14 [00:00<00:02,  5.47it/s]Epoch 20/50:  29%|██▊       | 4/14 [00:01<00:03,  3.16it/s]Epoch 20/50:  36%|███▌      | 5/14 [00:01<00:02,  3.98it/s]Epoch 20/50:  43%|████▎     | 6/14 [00:01<00:02,  3.64it/s]Epoch 20/50:  50%|█████     | 7/14 [00:01<00:01,  4.13it/s]Epoch 20/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.42it/s]Epoch 20/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.84it/s]Epoch 20/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.72it/s]Epoch 20/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.38it/s]Epoch 20/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.38it/s]Epoch 20/50:  93%|█████████▎| 13/14 [00:03<00:00,  2.96it/s]Epoch 20/50: 100%|██████████| 14/14 [00:03<00:00,  3.45it/s]Epoch 20/50: 100%|██████████| 14/14 [00:03<00:00,  3.75it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 251 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 144
+Epoch 20/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 21/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 21/50:   7%|▋         | 1/14 [00:00<00:02,  4.75it/s]Epoch 21/50:  14%|█▍        | 2/14 [00:00<00:02,  5.94it/s]Epoch 21/50:  21%|██▏       | 3/14 [00:00<00:01,  5.51it/s]Epoch 21/50:  29%|██▊       | 4/14 [00:01<00:03,  3.19it/s]Epoch 21/50:  36%|███▌      | 5/14 [00:01<00:02,  4.00it/s]Epoch 21/50:  43%|████▎     | 6/14 [00:01<00:02,  3.63it/s]Epoch 21/50:  50%|█████     | 7/14 [00:01<00:01,  4.13it/s]Epoch 21/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.42it/s]Epoch 21/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.85it/s]Epoch 21/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.79it/s]Epoch 21/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.44it/s]Epoch 21/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.41it/s]Epoch 21/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.02it/s]Epoch 21/50: 100%|██████████| 14/14 [00:03<00:00,  3.51it/s]Epoch 21/50: 100%|██████████| 14/14 [00:03<00:00,  3.79it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 21/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 22/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 22/50:   7%|▋         | 1/14 [00:00<00:02,  4.76it/s]Epoch 22/50:  14%|█▍        | 2/14 [00:00<00:02,  5.93it/s]Epoch 22/50:  21%|██▏       | 3/14 [00:00<00:01,  5.59it/s]Epoch 22/50:  29%|██▊       | 4/14 [00:01<00:03,  3.19it/s]Epoch 22/50:  36%|███▌      | 5/14 [00:01<00:02,  3.99it/s]Epoch 22/50:  43%|████▎     | 6/14 [00:01<00:02,  3.66it/s]Epoch 22/50:  50%|█████     | 7/14 [00:01<00:01,  4.14it/s]Epoch 22/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.42it/s]Epoch 22/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.84it/s]Epoch 22/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.78it/s]Epoch 22/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.45it/s]Epoch 22/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.43it/s]Epoch 22/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.02it/s]Epoch 22/50: 100%|██████████| 14/14 [00:03<00:00,  3.51it/s]Epoch 22/50: 100%|██████████| 14/14 [00:03<00:00,  3.80it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 252 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 144
+Epoch 22/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 23/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 23/50:   7%|▋         | 1/14 [00:00<00:02,  4.73it/s]Epoch 23/50:  14%|█▍        | 2/14 [00:00<00:02,  5.92it/s]Epoch 23/50:  21%|██▏       | 3/14 [00:00<00:01,  5.56it/s]Epoch 23/50:  29%|██▊       | 4/14 [00:01<00:03,  3.25it/s]Epoch 23/50:  36%|███▌      | 5/14 [00:01<00:02,  4.07it/s]Epoch 23/50:  43%|████▎     | 6/14 [00:01<00:02,  3.70it/s]Epoch 23/50:  50%|█████     | 7/14 [00:01<00:01,  4.17it/s]Epoch 23/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.44it/s]Epoch 23/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.86it/s]Epoch 23/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.80it/s]Epoch 23/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.47it/s]Epoch 23/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.48it/s]Epoch 23/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.06it/s]Epoch 23/50: 100%|██████████| 14/14 [00:03<00:00,  3.55it/s]Epoch 23/50: 100%|██████████| 14/14 [00:03<00:00,  3.83it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 23/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 24/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 24/50:   7%|▋         | 1/14 [00:00<00:02,  4.87it/s]Epoch 24/50:  14%|█▍        | 2/14 [00:00<00:01,  6.05it/s]Epoch 24/50:  21%|██▏       | 3/14 [00:00<00:01,  5.69it/s]Epoch 24/50:  29%|██▊       | 4/14 [00:01<00:03,  3.25it/s]Epoch 24/50:  36%|███▌      | 5/14 [00:01<00:02,  4.07it/s]Epoch 24/50:  43%|████▎     | 6/14 [00:01<00:02,  3.71it/s]Epoch 24/50:  50%|█████     | 7/14 [00:01<00:01,  4.19it/s]Epoch 24/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.49it/s]Epoch 24/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.89it/s]Epoch 24/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.83it/s]Epoch 24/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.50it/s]Epoch 24/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.51it/s]Epoch 24/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.06it/s]Epoch 24/50: 100%|██████████| 14/14 [00:03<00:00,  3.56it/s]Epoch 24/50: 100%|██████████| 14/14 [00:03<00:00,  3.86it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 441 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 144
+Epoch 24/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 25/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 25/50:   7%|▋         | 1/14 [00:00<00:02,  4.82it/s]Epoch 25/50:  14%|█▍        | 2/14 [00:00<00:01,  6.01it/s]Epoch 25/50:  21%|██▏       | 3/14 [00:00<00:01,  5.62it/s]Epoch 25/50:  29%|██▊       | 4/14 [00:01<00:03,  3.26it/s]Epoch 25/50:  36%|███▌      | 5/14 [00:01<00:02,  4.09it/s]Epoch 25/50:  43%|████▎     | 6/14 [00:01<00:02,  3.74it/s]Epoch 25/50:  50%|█████     | 7/14 [00:01<00:01,  4.23it/s]Epoch 25/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.50it/s]Epoch 25/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.92it/s]Epoch 25/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 25/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.50it/s]Epoch 25/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.49it/s]Epoch 25/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.06it/s]Epoch 25/50: 100%|██████████| 14/14 [00:03<00:00,  3.57it/s]Epoch 25/50: 100%|██████████| 14/14 [00:03<00:00,  3.86it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 251 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 25/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 26/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 26/50:   7%|▋         | 1/14 [00:00<00:02,  4.84it/s]Epoch 26/50:  14%|█▍        | 2/14 [00:00<00:01,  6.05it/s]Epoch 26/50:  21%|██▏       | 3/14 [00:00<00:01,  5.70it/s]Epoch 26/50:  29%|██▊       | 4/14 [00:01<00:03,  3.30it/s]Epoch 26/50:  36%|███▌      | 5/14 [00:01<00:02,  4.13it/s]Epoch 26/50:  43%|████▎     | 6/14 [00:01<00:02,  3.74it/s]Epoch 26/50:  50%|█████     | 7/14 [00:01<00:01,  4.22it/s]Epoch 26/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.51it/s]Epoch 26/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.93it/s]Epoch 26/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 26/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.50it/s]Epoch 26/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.48it/s]Epoch 26/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.06it/s]Epoch 26/50: 100%|██████████| 14/14 [00:03<00:00,  3.57it/s]Epoch 26/50: 100%|██████████| 14/14 [00:03<00:00,  3.87it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 26/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 27/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 27/50:   7%|▋         | 1/14 [00:00<00:02,  4.87it/s]Epoch 27/50:  14%|█▍        | 2/14 [00:00<00:01,  6.10it/s]Epoch 27/50:  21%|██▏       | 3/14 [00:00<00:01,  5.73it/s]Epoch 27/50:  29%|██▊       | 4/14 [00:01<00:03,  3.29it/s]Epoch 27/50:  36%|███▌      | 5/14 [00:01<00:02,  4.11it/s]Epoch 27/50:  43%|████▎     | 6/14 [00:01<00:02,  3.76it/s]Epoch 27/50:  50%|█████     | 7/14 [00:01<00:01,  4.24it/s]Epoch 27/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.54it/s]Epoch 27/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.97it/s]Epoch 27/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.88it/s]Epoch 27/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.52it/s]Epoch 27/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 27/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.07it/s]Epoch 27/50: 100%|██████████| 14/14 [00:03<00:00,  3.56it/s]Epoch 27/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 27/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 28/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 28/50:   7%|▋         | 1/14 [00:00<00:02,  4.84it/s]Epoch 28/50:  14%|█▍        | 2/14 [00:00<00:01,  6.07it/s]Epoch 28/50:  21%|██▏       | 3/14 [00:00<00:01,  5.69it/s]Epoch 28/50:  29%|██▊       | 4/14 [00:01<00:03,  3.29it/s]Epoch 28/50:  36%|███▌      | 5/14 [00:01<00:02,  4.11it/s]Epoch 28/50:  43%|████▎     | 6/14 [00:01<00:02,  3.74it/s]Epoch 28/50:  50%|█████     | 7/14 [00:01<00:01,  4.23it/s]Epoch 28/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.51it/s]Epoch 28/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.94it/s]Epoch 28/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 28/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.51it/s]Epoch 28/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.51it/s]Epoch 28/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.07it/s]Epoch 28/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 28/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 252 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 28/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 29/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 29/50:   7%|▋         | 1/14 [00:00<00:02,  4.81it/s]Epoch 29/50:  14%|█▍        | 2/14 [00:00<00:01,  6.01it/s]Epoch 29/50:  21%|██▏       | 3/14 [00:00<00:01,  5.68it/s]Epoch 29/50:  29%|██▊       | 4/14 [00:01<00:03,  3.30it/s]Epoch 29/50:  36%|███▌      | 5/14 [00:01<00:02,  4.14it/s]Epoch 29/50:  43%|████▎     | 6/14 [00:01<00:02,  3.77it/s]Epoch 29/50:  50%|█████     | 7/14 [00:01<00:01,  4.26it/s]Epoch 29/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.52it/s]Epoch 29/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.96it/s]Epoch 29/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 29/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.50it/s]Epoch 29/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.49it/s]Epoch 29/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.06it/s]Epoch 29/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 29/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 29/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 30/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 30/50:   7%|▋         | 1/14 [00:00<00:02,  4.89it/s]Epoch 30/50:  14%|█▍        | 2/14 [00:00<00:02,  5.98it/s]Epoch 30/50:  21%|██▏       | 3/14 [00:00<00:01,  5.65it/s]Epoch 30/50:  29%|██▊       | 4/14 [00:01<00:03,  3.29it/s]Epoch 30/50:  36%|███▌      | 5/14 [00:01<00:02,  4.13it/s]Epoch 30/50:  43%|████▎     | 6/14 [00:01<00:02,  3.71it/s]Epoch 30/50:  50%|█████     | 7/14 [00:01<00:01,  4.18it/s]Epoch 30/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.46it/s]Epoch 30/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.90it/s]Epoch 30/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 30/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.51it/s]Epoch 30/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 30/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.07it/s]Epoch 30/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 30/50: 100%|██████████| 14/14 [00:03<00:00,  3.87it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 30/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 31/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 31/50:   7%|▋         | 1/14 [00:00<00:02,  4.90it/s]Epoch 31/50:  14%|█▍        | 2/14 [00:00<00:01,  6.06it/s]Epoch 31/50:  21%|██▏       | 3/14 [00:00<00:01,  5.72it/s]Epoch 31/50:  29%|██▊       | 4/14 [00:01<00:03,  3.32it/s]Epoch 31/50:  36%|███▌      | 5/14 [00:01<00:02,  4.14it/s]Epoch 31/50:  43%|████▎     | 6/14 [00:01<00:02,  3.76it/s]Epoch 31/50:  50%|█████     | 7/14 [00:01<00:01,  4.23it/s]Epoch 31/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.52it/s]Epoch 31/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.90it/s]Epoch 31/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.84it/s]Epoch 31/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.49it/s]Epoch 31/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.51it/s]Epoch 31/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 31/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 31/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 441 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 31/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 32/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 32/50:   7%|▋         | 1/14 [00:00<00:02,  4.86it/s]Epoch 32/50:  14%|█▍        | 2/14 [00:00<00:01,  6.08it/s]Epoch 32/50:  21%|██▏       | 3/14 [00:00<00:01,  5.71it/s]Epoch 32/50:  29%|██▊       | 4/14 [00:01<00:03,  3.31it/s]Epoch 32/50:  36%|███▌      | 5/14 [00:01<00:02,  4.15it/s]Epoch 32/50:  43%|████▎     | 6/14 [00:01<00:02,  3.76it/s]Epoch 32/50:  50%|█████     | 7/14 [00:01<00:01,  4.25it/s]Epoch 32/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.52it/s]Epoch 32/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.96it/s]Epoch 32/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.86it/s]Epoch 32/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.52it/s]Epoch 32/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.50it/s]Epoch 32/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 32/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 32/50: 100%|██████████| 14/14 [00:03<00:00,  3.89it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 144
+Epoch 32/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 33/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 33/50:   7%|▋         | 1/14 [00:00<00:02,  4.89it/s]Epoch 33/50:  14%|█▍        | 2/14 [00:00<00:01,  6.06it/s]Epoch 33/50:  21%|██▏       | 3/14 [00:00<00:01,  5.68it/s]Epoch 33/50:  29%|██▊       | 4/14 [00:01<00:03,  3.31it/s]Epoch 33/50:  36%|███▌      | 5/14 [00:01<00:02,  4.14it/s]Epoch 33/50:  43%|████▎     | 6/14 [00:01<00:02,  3.78it/s]Epoch 33/50:  50%|█████     | 7/14 [00:01<00:01,  4.27it/s]Epoch 33/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.56it/s]Epoch 33/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.95it/s]Epoch 33/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 33/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.51it/s]Epoch 33/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.51it/s]Epoch 33/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 33/50: 100%|██████████| 14/14 [00:03<00:00,  3.59it/s]Epoch 33/50: 100%|██████████| 14/14 [00:03<00:00,  3.89it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 33/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 34/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 34/50:   7%|▋         | 1/14 [00:00<00:02,  4.92it/s]Epoch 34/50:  14%|█▍        | 2/14 [00:00<00:01,  6.09it/s]Epoch 34/50:  21%|██▏       | 3/14 [00:00<00:01,  5.72it/s]Epoch 34/50:  29%|██▊       | 4/14 [00:01<00:03,  3.31it/s]Epoch 34/50:  36%|███▌      | 5/14 [00:01<00:02,  4.14it/s]Epoch 34/50:  43%|████▎     | 6/14 [00:01<00:02,  3.78it/s]Epoch 34/50:  50%|█████     | 7/14 [00:01<00:01,  4.26it/s]Epoch 34/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.53it/s]Epoch 34/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.95it/s]Epoch 34/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.88it/s]Epoch 34/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.52it/s]Epoch 34/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.51it/s]Epoch 34/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 34/50: 100%|██████████| 14/14 [00:03<00:00,  3.59it/s]Epoch 34/50: 100%|██████████| 14/14 [00:03<00:00,  3.90it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 34/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 35/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 35/50:   7%|▋         | 1/14 [00:00<00:02,  4.81it/s]Epoch 35/50:  14%|█▍        | 2/14 [00:00<00:01,  6.04it/s]Epoch 35/50:  21%|██▏       | 3/14 [00:00<00:01,  5.68it/s]Epoch 35/50:  29%|██▊       | 4/14 [00:01<00:03,  3.30it/s]Epoch 35/50:  36%|███▌      | 5/14 [00:01<00:02,  4.12it/s]Epoch 35/50:  43%|████▎     | 6/14 [00:01<00:02,  3.77it/s]Epoch 35/50:  50%|█████     | 7/14 [00:01<00:01,  4.25it/s]Epoch 35/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.54it/s]Epoch 35/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.97it/s]Epoch 35/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 35/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.52it/s]Epoch 35/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 35/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 35/50: 100%|██████████| 14/14 [00:03<00:00,  3.60it/s]Epoch 35/50: 100%|██████████| 14/14 [00:03<00:00,  3.89it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 35/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 36/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 36/50:   7%|▋         | 1/14 [00:00<00:02,  4.82it/s]Epoch 36/50:  14%|█▍        | 2/14 [00:00<00:02,  5.98it/s]Epoch 36/50:  21%|██▏       | 3/14 [00:00<00:01,  5.67it/s]Epoch 36/50:  29%|██▊       | 4/14 [00:01<00:03,  3.31it/s]Epoch 36/50:  36%|███▌      | 5/14 [00:01<00:02,  4.15it/s]Epoch 36/50:  43%|████▎     | 6/14 [00:01<00:02,  3.77it/s]Epoch 36/50:  50%|█████     | 7/14 [00:01<00:01,  4.25it/s]Epoch 36/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.53it/s]Epoch 36/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.94it/s]Epoch 36/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 36/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.50it/s]Epoch 36/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.49it/s]Epoch 36/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.07it/s]Epoch 36/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 36/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 36/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 37/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 37/50:   7%|▋         | 1/14 [00:00<00:02,  4.79it/s]Epoch 37/50:  14%|█▍        | 2/14 [00:00<00:02,  5.96it/s]Epoch 37/50:  21%|██▏       | 3/14 [00:00<00:01,  5.64it/s]Epoch 37/50:  29%|██▊       | 4/14 [00:01<00:03,  3.31it/s]Epoch 37/50:  36%|███▌      | 5/14 [00:01<00:02,  4.15it/s]Epoch 37/50:  43%|████▎     | 6/14 [00:01<00:02,  3.77it/s]Epoch 37/50:  50%|█████     | 7/14 [00:01<00:01,  4.25it/s]Epoch 37/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.49it/s]Epoch 37/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.91it/s]Epoch 37/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 37/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.52it/s]Epoch 37/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 37/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 37/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 37/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 144
+Epoch 37/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 38/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 38/50:   7%|▋         | 1/14 [00:00<00:02,  4.89it/s]Epoch 38/50:  14%|█▍        | 2/14 [00:00<00:01,  6.01it/s]Epoch 38/50:  21%|██▏       | 3/14 [00:00<00:01,  5.69it/s]Epoch 38/50:  29%|██▊       | 4/14 [00:01<00:03,  3.30it/s]Epoch 38/50:  36%|███▌      | 5/14 [00:01<00:02,  4.14it/s]Epoch 38/50:  43%|████▎     | 6/14 [00:01<00:02,  3.77it/s]Epoch 38/50:  50%|█████     | 7/14 [00:01<00:01,  4.24it/s]Epoch 38/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.52it/s]Epoch 38/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.93it/s]Epoch 38/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.84it/s]Epoch 38/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.51it/s]Epoch 38/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.51it/s]Epoch 38/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 38/50: 100%|██████████| 14/14 [00:03<00:00,  3.59it/s]Epoch 38/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 38/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 39/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 39/50:   7%|▋         | 1/14 [00:00<00:02,  4.84it/s]Epoch 39/50:  14%|█▍        | 2/14 [00:00<00:01,  6.10it/s]Epoch 39/50:  21%|██▏       | 3/14 [00:00<00:01,  5.74it/s]Epoch 39/50:  29%|██▊       | 4/14 [00:01<00:03,  3.32it/s]Epoch 39/50:  36%|███▌      | 5/14 [00:01<00:02,  4.15it/s]Epoch 39/50:  43%|████▎     | 6/14 [00:01<00:02,  3.76it/s]Epoch 39/50:  50%|█████     | 7/14 [00:01<00:01,  4.24it/s]Epoch 39/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.52it/s]Epoch 39/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.95it/s]Epoch 39/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.87it/s]Epoch 39/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.51it/s]Epoch 39/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 39/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 39/50: 100%|██████████| 14/14 [00:03<00:00,  3.59it/s]Epoch 39/50: 100%|██████████| 14/14 [00:03<00:00,  3.89it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 39/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 40/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 40/50:   7%|▋         | 1/14 [00:00<00:02,  4.85it/s]Epoch 40/50:  14%|█▍        | 2/14 [00:00<00:01,  6.06it/s]Epoch 40/50:  21%|██▏       | 3/14 [00:00<00:01,  5.68it/s]Epoch 40/50:  29%|██▊       | 4/14 [00:01<00:03,  3.28it/s]Epoch 40/50:  36%|███▌      | 5/14 [00:01<00:02,  4.07it/s]Epoch 40/50:  43%|████▎     | 6/14 [00:01<00:02,  3.71it/s]Epoch 40/50:  50%|█████     | 7/14 [00:01<00:01,  4.19it/s]Epoch 40/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.43it/s]Epoch 40/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.86it/s]Epoch 40/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.81it/s]Epoch 40/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.50it/s]Epoch 40/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.48it/s]Epoch 40/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.06it/s]Epoch 40/50: 100%|██████████| 14/14 [00:03<00:00,  3.57it/s]Epoch 40/50: 100%|██████████| 14/14 [00:03<00:00,  3.85it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 40/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 41/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 41/50:   7%|▋         | 1/14 [00:00<00:02,  4.84it/s]Epoch 41/50:  14%|█▍        | 2/14 [00:00<00:01,  6.06it/s]Epoch 41/50:  21%|██▏       | 3/14 [00:00<00:01,  5.69it/s]Epoch 41/50:  29%|██▊       | 4/14 [00:01<00:03,  3.30it/s]Epoch 41/50:  36%|███▌      | 5/14 [00:01<00:02,  4.13it/s]Epoch 41/50:  43%|████▎     | 6/14 [00:01<00:02,  3.74it/s]Epoch 41/50:  50%|█████     | 7/14 [00:01<00:01,  4.24it/s]Epoch 41/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.54it/s]Epoch 41/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.97it/s]Epoch 41/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.84it/s]Epoch 41/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.50it/s]Epoch 41/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.50it/s]Epoch 41/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.07it/s]Epoch 41/50: 100%|██████████| 14/14 [00:03<00:00,  3.57it/s]Epoch 41/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 251 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 144
+Epoch 41/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 42/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 42/50:   7%|▋         | 1/14 [00:00<00:02,  4.86it/s]Epoch 42/50:  14%|█▍        | 2/14 [00:00<00:01,  6.08it/s]Epoch 42/50:  21%|██▏       | 3/14 [00:00<00:01,  5.68it/s]Epoch 42/50:  29%|██▊       | 4/14 [00:01<00:03,  3.26it/s]Epoch 42/50:  36%|███▌      | 5/14 [00:01<00:02,  4.09it/s]Epoch 42/50:  43%|████▎     | 6/14 [00:01<00:02,  3.73it/s]Epoch 42/50:  50%|█████     | 7/14 [00:01<00:01,  4.21it/s]Epoch 42/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.49it/s]Epoch 42/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.93it/s]Epoch 42/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.86it/s]Epoch 42/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.51it/s]Epoch 42/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.50it/s]Epoch 42/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 42/50: 100%|██████████| 14/14 [00:03<00:00,  3.59it/s]Epoch 42/50: 100%|██████████| 14/14 [00:03<00:00,  3.87it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 144
+Epoch 42/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 43/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 43/50:   7%|▋         | 1/14 [00:00<00:02,  4.92it/s]Epoch 43/50:  14%|█▍        | 2/14 [00:00<00:01,  6.04it/s]Epoch 43/50:  21%|██▏       | 3/14 [00:00<00:01,  5.69it/s]Epoch 43/50:  29%|██▊       | 4/14 [00:01<00:03,  3.28it/s]Epoch 43/50:  36%|███▌      | 5/14 [00:01<00:02,  4.12it/s]Epoch 43/50:  43%|████▎     | 6/14 [00:01<00:02,  3.77it/s]Epoch 43/50:  50%|█████     | 7/14 [00:01<00:01,  4.24it/s]Epoch 43/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.50it/s]Epoch 43/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.93it/s]Epoch 43/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.84it/s]Epoch 43/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.50it/s]Epoch 43/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.50it/s]Epoch 43/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 43/50: 100%|██████████| 14/14 [00:03<00:00,  3.59it/s]Epoch 43/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 144
+Epoch 43/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 44/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 44/50:   7%|▋         | 1/14 [00:00<00:02,  4.80it/s]Epoch 44/50:  14%|█▍        | 2/14 [00:00<00:01,  6.02it/s]Epoch 44/50:  21%|██▏       | 3/14 [00:00<00:01,  5.70it/s]Epoch 44/50:  29%|██▊       | 4/14 [00:01<00:03,  3.31it/s]Epoch 44/50:  36%|███▌      | 5/14 [00:01<00:02,  4.12it/s]Epoch 44/50:  43%|████▎     | 6/14 [00:01<00:02,  3.75it/s]Epoch 44/50:  50%|█████     | 7/14 [00:01<00:01,  4.25it/s]Epoch 44/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.51it/s]Epoch 44/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.93it/s]Epoch 44/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.87it/s]Epoch 44/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.53it/s]Epoch 44/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 44/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 44/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 44/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 144
+Epoch 44/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 45/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 45/50:   7%|▋         | 1/14 [00:00<00:02,  4.85it/s]Epoch 45/50:  14%|█▍        | 2/14 [00:00<00:02,  5.98it/s]Epoch 45/50:  21%|██▏       | 3/14 [00:00<00:01,  5.68it/s]Epoch 45/50:  29%|██▊       | 4/14 [00:01<00:03,  3.30it/s]Epoch 45/50:  36%|███▌      | 5/14 [00:01<00:02,  4.12it/s]Epoch 45/50:  43%|████▎     | 6/14 [00:01<00:02,  3.75it/s]Epoch 45/50:  50%|█████     | 7/14 [00:01<00:01,  4.24it/s]Epoch 45/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.52it/s]Epoch 45/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.94it/s]Epoch 45/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.87it/s]Epoch 45/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.54it/s]Epoch 45/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 45/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.09it/s]Epoch 45/50: 100%|██████████| 14/14 [00:03<00:00,  3.60it/s]Epoch 45/50: 100%|██████████| 14/14 [00:03<00:00,  3.89it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 45/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 46/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 46/50:   7%|▋         | 1/14 [00:00<00:02,  4.87it/s]Epoch 46/50:  14%|█▍        | 2/14 [00:00<00:01,  6.06it/s]Epoch 46/50:  21%|██▏       | 3/14 [00:00<00:01,  5.68it/s]Epoch 46/50:  29%|██▊       | 4/14 [00:01<00:03,  3.30it/s]Epoch 46/50:  36%|███▌      | 5/14 [00:01<00:02,  4.12it/s]Epoch 46/50:  43%|████▎     | 6/14 [00:01<00:02,  3.74it/s]Epoch 46/50:  50%|█████     | 7/14 [00:01<00:01,  4.25it/s]Epoch 46/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.53it/s]Epoch 46/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.95it/s]Epoch 46/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.89it/s]Epoch 46/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.52it/s]Epoch 46/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 46/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.09it/s]Epoch 46/50: 100%|██████████| 14/14 [00:03<00:00,  3.59it/s]Epoch 46/50: 100%|██████████| 14/14 [00:03<00:00,  3.89it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 250 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 144
+Epoch 46/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 47/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 47/50:   7%|▋         | 1/14 [00:00<00:02,  4.71it/s]Epoch 47/50:  14%|█▍        | 2/14 [00:00<00:02,  5.83it/s]Epoch 47/50:  21%|██▏       | 3/14 [00:00<00:01,  5.52it/s]Epoch 47/50:  29%|██▊       | 4/14 [00:01<00:03,  3.25it/s]Epoch 47/50:  36%|███▌      | 5/14 [00:01<00:02,  4.08it/s]Epoch 47/50:  43%|████▎     | 6/14 [00:01<00:02,  3.73it/s]Epoch 47/50:  50%|█████     | 7/14 [00:01<00:01,  4.23it/s]Epoch 47/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.50it/s]Epoch 47/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.94it/s]Epoch 47/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.85it/s]Epoch 47/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.52it/s]Epoch 47/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 47/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.09it/s]Epoch 47/50: 100%|██████████| 14/14 [00:03<00:00,  3.59it/s]Epoch 47/50: 100%|██████████| 14/14 [00:03<00:00,  3.87it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 221 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 47/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 48/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 48/50:   7%|▋         | 1/14 [00:00<00:02,  4.89it/s]Epoch 48/50:  14%|█▍        | 2/14 [00:00<00:01,  6.02it/s]Epoch 48/50:  21%|██▏       | 3/14 [00:00<00:01,  5.67it/s]Epoch 48/50:  29%|██▊       | 4/14 [00:01<00:03,  3.28it/s]Epoch 48/50:  36%|███▌      | 5/14 [00:01<00:02,  4.10it/s]Epoch 48/50:  43%|████▎     | 6/14 [00:01<00:02,  3.74it/s]Epoch 48/50:  50%|█████     | 7/14 [00:01<00:01,  4.24it/s]Epoch 48/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.51it/s]Epoch 48/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.93it/s]Epoch 48/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.84it/s]Epoch 48/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.52it/s]Epoch 48/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.51it/s]Epoch 48/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.08it/s]Epoch 48/50: 100%|██████████| 14/14 [00:03<00:00,  3.58it/s]Epoch 48/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 30 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 121 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 48/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 49/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 49/50:   7%|▋         | 1/14 [00:00<00:02,  4.87it/s]Epoch 49/50:  14%|█▍        | 2/14 [00:00<00:01,  6.09it/s]Epoch 49/50:  21%|██▏       | 3/14 [00:00<00:01,  5.69it/s]Epoch 49/50:  29%|██▊       | 4/14 [00:01<00:03,  3.31it/s]Epoch 49/50:  36%|███▌      | 5/14 [00:01<00:02,  4.13it/s]Epoch 49/50:  43%|████▎     | 6/14 [00:01<00:02,  3.75it/s]Epoch 49/50:  50%|█████     | 7/14 [00:01<00:01,  4.24it/s]Epoch 49/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.53it/s]Epoch 49/50:  64%|██████▍   | 9/14 [00:01<00:01,  4.94it/s]Epoch 49/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.87it/s]Epoch 49/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.51it/s]Epoch 49/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.52it/s]Epoch 49/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.07it/s]Epoch 49/50: 100%|██████████| 14/14 [00:03<00:00,  3.57it/s]Epoch 49/50: 100%|██████████| 14/14 [00:03<00:00,  3.88it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 663 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 49/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 50/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 50/50:   7%|▋         | 1/14 [00:00<00:02,  4.84it/s]Epoch 50/50:  14%|█▍        | 2/14 [00:00<00:01,  6.08it/s]Epoch 50/50:  21%|██▏       | 3/14 [00:00<00:01,  5.56it/s]Epoch 50/50:  29%|██▊       | 4/14 [00:01<00:03,  3.28it/s]Epoch 50/50:  36%|███▌      | 5/14 [00:01<00:02,  4.11it/s]Epoch 50/50:  43%|████▎     | 6/14 [00:01<00:02,  3.76it/s]Epoch 50/50:  50%|█████     | 7/14 [00:01<00:01,  4.25it/s]Epoch 50/50:  57%|█████▋    | 8/14 [00:01<00:01,  4.50it/s]Epoch 50/50:  64%|██████▍   | 9/14 [00:02<00:01,  4.90it/s]Epoch 50/50:  71%|███████▏  | 10/14 [00:02<00:01,  3.82it/s]Epoch 50/50:  79%|███████▊  | 11/14 [00:02<00:00,  3.49it/s]Epoch 50/50:  86%|████████▌ | 12/14 [00:03<00:00,  3.50it/s]Epoch 50/50:  93%|█████████▎| 13/14 [00:03<00:00,  3.07it/s]Epoch 50/50: 100%|██████████| 14/14 [00:03<00:00,  3.56it/s]Epoch 50/50: 100%|██████████| 14/14 [00:03<00:00,  3.86it/s]
+Warning: Failed to train on task: index 100 is out of bounds for dimension 0 with size 100
+Warning: Failed to train on task: The size of tensor a (7) must match the size of tensor b (3) at non-singleton dimension 2
+Warning: Failed to train on task: index 81 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: index 442 is out of bounds for dimension 0 with size 441
+Warning: Failed to train on task: index 111 is out of bounds for dimension 0 with size 81
+Warning: Failed to train on task: The size of tensor a (17) must match the size of tensor b (6) at non-singleton dimension 2
+Warning: Failed to train on task: index 361 is out of bounds for dimension 0 with size 9
+Warning: Failed to train on task: The size of tensor a (5) must match the size of tensor b (10) at non-singleton dimension 2
+Warning: Failed to train on task: index 49 is out of bounds for dimension 0 with size 49
+Warning: Failed to train on task: index 803 is out of bounds for dimension 0 with size 250
+Warning: Failed to train on task: index 582 is out of bounds for dimension 0 with size 252
+Warning: Failed to train on task: index 140 is out of bounds for dimension 0 with size 121
+Warning: Failed to train on task: index 36 is out of bounds for dimension 0 with size 36
+Warning: Failed to train on task: index 144 is out of bounds for dimension 0 with size 144
+Epoch 50/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Saved checkpoint: runs/topos_arc/checkpoint_epoch_50.pt
+================================================================================
+✓ Training complete!
+================================================================================
+
+Evaluating on validation set...
+Evaluating:   0%|          | 0/3 [00:00<?, ?it/s]Evaluating:   0%|          | 0/3 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_topos_arc.py", line 390, in evaluate_model
+    for inp, out in zip(task.train_inputs, task.train_outputs):
+                        ^^^^^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'train_inputs'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_topos_arc.py", line 524, in <module>
+    main()
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_topos_arc.py", line 506, in main
+    val_metrics = evaluate_model(trainer.model, val_tasks, config)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_topos_arc.py", line 415, in evaluate_model
+    print(f"Warning: Failed to evaluate task {task.task_id}: {e}")
+                                              ^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'task_id'

@@ -477,7 +477,32 @@ Free-2≅ℤ*ℤ =
                   ι₁-A'B' ∎
 
                 comm-fwd-bwd-ι₂ : (fwd Groups.∘ bwd) Groups.∘ ι₂-A'B' ≡ ι₂-A'B'
-                comm-fwd-bwd-ι₂ = {!!}
+                comm-fwd-bwd-ι₂ = ≡⟨⟩-syntax ((fwd Groups.∘ bwd) Groups.∘ ι₂-A'B')
+(≡⟨⟩-syntax (fwd Groups.∘ ι₂-AB Groups.∘ Groups._≅_.from g)
+ (≡⟨⟩-syntax ((fwd Groups.∘ ι₂-AB) Groups.∘ Groups._≅_.from g)
+  (≡⟨⟩-syntax
+   ((ι₂-A'B' Groups.∘ Groups._≅_.to g) Groups.∘ Groups._≅_.from g)
+   (≡⟨⟩-syntax
+    (ι₂-A'B' Groups.∘ Groups._≅_.to g Groups.∘ Groups._≅_.from g)
+    (≡⟨⟩-syntax (ι₂-A'B' Groups.∘ Groups.id) (ι₂-A'B' ∎)
+     (Groups.idr _))
+    (ap (ι₂-A'B' Groups.∘_) (inv-l (Groups._≅_.inverses g))))
+   (sym (Groups.assoc ι₂-A'B' (Groups._≅_.to g) (Groups._≅_.from g))))
+  (ap (Groups._∘ Groups._≅_.from g) []∘ι₂-AB))
+ (Groups.assoc fwd ι₂-AB (Groups._≡⟨⟩-syntax ((bwd Groups.∘ fwd) Groups.∘ ι₁-AB)
+(≡⟨⟩-syntax (bwd Groups.∘ ι₁-A'B' Groups.∘ Groups._≅_.to f)
+ (≡⟨⟩-syntax ((bwd Groups.∘ ι₁-A'B') Groups.∘ Groups._≅_.to f)
+  (≡⟨⟩-syntax
+   ((ι₁-AB Groups.∘ Groups._≅_.from f) Groups.∘ Groups._≅_.to f)
+   (≡⟨⟩-syntax
+    (ι₁-AB Groups.∘ Groups._≅_.from f Groups.∘ Groups._≅_.to f)
+    (≡⟨⟩-syntax (ι₁-AB Groups.∘ Groups.id) (ι₁-AB ∎) (Groups.idr _))
+    (ap (ι₁-AB Groups.∘_) (inv-r (Groups._≅_.inverses f))))
+   (sym (Groups.assoc ι₁-AB (Groups._≅_.from f) (Groups._≅_.to f))))
+  (ap (Groups._∘ Groups._≅_.to f) []∘ι₁-A'B'))
+ (Groups.assoc bwd ι₁-A'B' (Groups._≅_.to f)))
+(Groups.pullr []∘ι₁-AB)rom g)))
+(Groups.pullr []∘ι₂-A'B')
 
                 comm-id-ι₁ : Groups.id Groups.∘ ι₁-A'B' ≡ ι₁-A'B'
                 comm-id-ι₁ = Groups.idl ι₁-A'B'

@@ -307,6 +307,11 @@ class FewShotARCLearner(nn.Module):
         # Build grid graph structure (4-connected lattice)
         self.edge_index = self._build_grid_graph(grid_size)
 
+        # Cache for training (to avoid recomputing features for sheaf losses)
+        self._cached_features = None
+        self._cached_edge_index = None
+        self._cached_restriction_maps = None
+
         # Feature extractor for grid cells
         self.feature_extractor = nn.Sequential(
             nn.Linear(10, feature_dim),  # 10 = color channels
@@ -423,6 +428,11 @@ class FewShotARCLearner(nn.Module):
         # Apply sheaf NN with masked edges
         # Only actual cells participate in sheaf diffusion
         sheaf_features = self.sheaf_nn(features[0], masked_edges)  # [900, feature_dim]
+
+        # Cache edge_index for training (used in sheaf axiom losses)
+        if self.training:
+            self._cached_edge_index = masked_edges
+            self._cached_features = sheaf_features[:actual_cells]
 
         # Return only features from actual cells
         return sheaf_features[:actual_cells].unsqueeze(0)  # [1, actual_cells, feature_dim]

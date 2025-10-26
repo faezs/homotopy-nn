@@ -480,3 +480,7 @@ agda --library-file=./libraries src/Neural/Topos/Architecture.agda 2>&1 | grep "
 # Get hole locations
 agda --library-file=./libraries src/Neural/Topos/Architecture.agda 2>&1 | grep -A 30 "Unsolved interaction"
 ```
+- we are going to do ALL actions via the agda-mcp only
+- USE THE MCP AT EVERY STEP
+- whenever you see a postulate, your impulse should be to convert it into a hole.
+- in your agda-mcp agda_load always use a sessionId argument so other agents working on differentFiles don't clash. make it thematic to the code

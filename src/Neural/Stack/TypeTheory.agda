@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives #-}
+{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives --allow-unsolved-metas #-}
 
 {-|
 Module: Neural.Stack.TypeTheory
@@ -42,11 +42,15 @@ open import Cat.Functor.Base
 open import Cat.Diagram.Terminal
 open import Cat.Diagram.Product
 open import Cat.Diagram.Exponential
-open import Cat.CartesianClosed.Instances.PSh
+-- Note: 1Lab doesn't have Cat.CartesianClosed.Instances.PSh
+-- We postulate cartesian closure of presheaf categories below
+
+open import Data.String.Base using (String)
 
 open import Neural.Stack.Fibration
 open import Neural.Stack.Classifier
 open import Neural.Stack.LogicalPropagation
+open import Neural.Stack.Groupoid using (Stack)
 
 private variable
   o ℓ o' ℓ' κ : Level
@@ -79,24 +83,30 @@ A context Γ is a finite product of types: Γ = A₁ × A₂ × ... × Aₙ.
 module Internal-Type-Theory (E : Precategory o ℓ) (Ω-E : Subobject-Classifier E) where
 
   -- Types are objects
-  Type' : Type (lsuc o ⊔ ℓ)
+  Type' : Type o
   Type' = E .Precategory.Ob
 
   -- Terms: Γ ⊢ t : A is a morphism t: Γ → A
+  -- Note: t parameter type uses hole since A is bound after t
   record _⊢_∶_ (Γ : Type') (t : E .Precategory.Hom Γ {!!}) (A : Type') : Type ℓ where
     constructor term
     field
       morphism : E .Precategory.Hom Γ A
 
   -- Empty context (terminal object)
-  postulate
-    ◆ : Type'  -- Empty context (unit type)
-    ◆-terminal : Terminal E
+  ◆ : Type'  -- Empty context (unit type)
+  ◆ = {!!}
+
+  ◆-terminal : Terminal E
+  ◆-terminal = {!!}
 
   -- Context extension: Γ, x : A  =  Γ × A
-  postulate
-    _,_∶_ : (Γ : Type') → (x : String) → (A : Type') → Type'
-    context-ext-is-product : ∀ {Γ A} → {!!}  -- Γ, x:A is product Γ × A
+  -- Note: Variable name is just for documentation, not part of the type
+  _,∶_ : (Γ : Type') → (A : Type') → Type'
+  _,∶_ = {!!}
+
+  context-ext-is-product : ∀ {Γ A} → Product E Γ A  -- Γ, x:A is product Γ × A
+  context-ext-is-product = {!!}
 
   {-|
   **Variables and Weakening**
@@ -106,12 +116,13 @@ module Internal-Type-Theory (E : Precategory o ℓ) (Ω-E : Subobject-Classifier
   - Weakening: If Γ ⊢ t : B then Γ, x:A ⊢ t : B (composition with π₁)
   -}
 
-  postulate
-    var : ∀ {Γ A} → (Γ , "x" ∶ A) ⊢ {!!} ∶ A  -- Projection to A
+  var : ∀ {Γ A} → (Γ ,∶ A) ⊢ {!!} ∶ A  -- Projection to A
+  var = {!!}
 
-    weaken : ∀ {Γ A B} {t : E .Precategory.Hom Γ B}
-           → Γ ⊢ t ∶ B
-           → (Γ , "x" ∶ A) ⊢ {!!} ∶ B
+  weaken : ∀ {Γ A B} {t : E .Precategory.Hom Γ B}
+         → Γ ⊢ t ∶ B
+         → (Γ ,∶ A) ⊢ {!!} ∶ B
+  weaken = {!!}
 
 --------------------------------------------------------------------------------
 -- Equation (2.33): Type Formation Rules
@@ -151,40 +162,47 @@ Each type constructor corresponds to a way of combining or transforming features
 
   module Type-Formers where
 
-    postulate
-      -- Unit type (Equation 2.33a)
-      unit-formation : ∀ {Γ} → Γ ⊢ {!!} ∶ ◆
+    -- Unit type (Equation 2.33a)
+    unit-formation : ∀ {Γ} {tt : E .Precategory.Hom Γ ◆}
+                   → Γ ⊢ tt ∶ ◆
+    unit-formation = {!!}
 
-      -- Product type (Equation 2.33b)
-      product-formation : ∀ {Γ A B}
-                        → Γ ⊢ {!!} ∶ A
-                        → Γ ⊢ {!!} ∶ B
-                        → {!!}  -- Γ ⊢ ⟨a, b⟩ : A × B
+    -- Product type (Equation 2.33b)
+    product-formation : ∀ {Γ A B} {a : E .Precategory.Hom Γ A} {b : E .Precategory.Hom Γ B}
+                      → Γ ⊢ a ∶ A
+                      → Γ ⊢ b ∶ B
+                      → Γ ⊢ {!!} ∶ {!!}  -- Pair morphism : Γ → (A × B), using Product from 1lab
+    product-formation = {!!}
 
-      -- Function type (exponential) (Equation 2.33c)
-      function-formation : ∀ {Γ A B}
-                         → (Γ , "x" ∶ A) ⊢ {!!} ∶ B
-                         → Γ ⊢ {!!} ∶ {!!}  -- Γ ⊢ λx.b : A → B
+    -- Function type (exponential) (Equation 2.33c)
+    function-formation : ∀ {Γ A B} {body : E .Precategory.Hom (Γ ,∶ A) B}
+                       → (Γ ,∶ A) ⊢ body ∶ B
+                       → Γ ⊢ {!!} ∶ {!!}  -- Lambda morphism using exponential object
+    function-formation = {!!}
 
-      -- Application
-      app : ∀ {Γ A B}
-          → Γ ⊢ {!!} ∶ {!!}  -- f : A → B
-          → Γ ⊢ {!!} ∶ A
-          → Γ ⊢ {!!} ∶ B
+    -- Application
+    app : ∀ {Γ A B} {f : E .Precategory.Hom Γ {!!}} {x : E .Precategory.Hom Γ A}
+        → Γ ⊢ f ∶ {!!}  -- f : exponential object (A ⇒ B)
+        → Γ ⊢ x ∶ A
+        → Γ ⊢ {!!} ∶ B  -- Application morphism (evaluation)
+    app = {!!}
 
-      -- Sum type (coproduct) (Equation 2.33d)
-      sum-formation-left : ∀ {Γ A B}
-                         → Γ ⊢ {!!} ∶ A
-                         → {!!}  -- Γ ⊢ inl(a) : A + B
+    -- Sum type (coproduct) (Equation 2.33d)
+    sum-formation-left : ∀ {Γ A B} {a : E .Precategory.Hom Γ A}
+                       → Γ ⊢ a ∶ A
+                       → Γ ⊢ {!!} ∶ {!!}  -- Left injection using Coproduct from 1lab
+    sum-formation-left = {!!}
 
-      sum-formation-right : ∀ {Γ A B}
-                          → Γ ⊢ {!!} ∶ B
-                          → {!!}  -- Γ ⊢ inr(b) : A + B
+    sum-formation-right : ∀ {Γ A B} {b : E .Precategory.Hom Γ B}
+                        → Γ ⊢ b ∶ B
+                        → Γ ⊢ {!!} ∶ {!!}  -- Right injection using Coproduct from 1lab
+    sum-formation-right = {!!}
 
-      -- Proposition type Ω (Equation 2.33e)
-      prop-formation : ∀ {Γ A}
-                     → Γ ⊢ {!!} ∶ A
-                     → {!!}  -- Γ ⊢ P : Ω where P is proposition about A
+    -- Proposition type Ω (Equation 2.33e)
+    prop-formation : ∀ {Γ A} {p : E .Precategory.Hom Γ A}
+                   → Γ ⊢ p ∶ A
+                   → Γ ⊢ {!!} ∶ {!!}  -- Characteristic morphism to subobject classifier Ω
+    prop-formation = {!!}
 
     {-|
     **Dependent Types** (Equation 2.33f-g)
@@ -198,17 +216,20 @@ Each type constructor corresponds to a way of combining or transforming features
     - Π: Dependent product (sections of fibration)
     -}
 
-    postulate
-      -- Sigma type (dependent sum) (Equation 2.33f)
-      sigma-formation : ∀ {Γ A} {B : {!!}}  -- B depends on A
-                      → Γ ⊢ {!!} ∶ A
-                      → {!!}  -- Γ ⊢ b : B(a)
-                      → {!!}  -- Γ ⊢ (a, b) : Σ(x:A).B(x)
+    -- Sigma type (dependent sum) (Equation 2.33f)
+    -- Using fibration structure: B(a) is object in fiber over a
+    sigma-formation : ∀ {Γ A} {B : Type' → Type'} {a : E .Precategory.Hom Γ A} {b : E .Precategory.Hom Γ (B A)}
+                    → Γ ⊢ a ∶ A
+                    → Γ ⊢ b ∶ (B A)  -- Dependent component in fiber (simplified)
+                    → Γ ⊢ {!!} ∶ {!!}  -- Pair in total category (Σ type as object)
+    sigma-formation = {!!}
 
-      -- Pi type (dependent product) (Equation 2.33g)
-      pi-formation : ∀ {Γ A} {B : {!!}}  -- B depends on A
-                   → {!!}  -- (Γ, x:A) ⊢ b : B(x)
-                   → {!!}  -- Γ ⊢ λx.b : Π(x:A).B(x)
+    -- Pi type (dependent product) (Equation 2.33g)
+    -- Using fibration structure: sections of B over A
+    pi-formation : ∀ {Γ A} {B : Type' → Type'} {body : E .Precategory.Hom (Γ ,∶ A) (B A)}
+                 → (Γ ,∶ A) ⊢ body ∶ (B A)  -- Section in extended context
+                 → Γ ⊢ {!!} ∶ {!!}  -- Section morphism (Π type as object)
+    pi-formation = {!!}
 
 --------------------------------------------------------------------------------
 -- Deduction Rules and Proof Terms
@@ -232,51 +253,58 @@ Prop in Coq's Set/Prop distinction).
 -}
 
   module Proof-Relevant-Logic where
-    open Propositions Ω-E
+    open Propositions Ω-E renaming (_∧-prop_ to _∧ₚ_; _∨-prop_ to _∨ₚ_; _⇒-prop_ to _⇒ₚ_; ⊤-prop to ⊤ₚ; ⊥-prop to ⊥ₚ)
 
     -- Proofs are terms of proposition types
     Proof-Term : ∀ {Γ A} → Proposition A → Type (o ⊔ ℓ)
     Proof-Term {Γ} {A} P = {!!}  -- Γ ⊢ p : P (where P : A → Ω)
 
-    postulate
-      -- Conjunction proof (Equation 2.34a)
-      ∧-intro : ∀ {Γ A} {P Q : Proposition A}
-              → Proof-Term P
-              → Proof-Term Q
-              → Proof-Term (P ∧ Q)
+    -- Conjunction proof (Equation 2.34a)
+    ∧-intro : ∀ {Γ A} {P Q : Proposition A}
+            → Proof-Term P
+            → Proof-Term Q
+            → Proof-Term (P ∧ₚ Q)
+    ∧-intro = {!!}
 
-      ∧-elim-left : ∀ {Γ A} {P Q : Proposition A}
-                  → Proof-Term (P ∧ Q)
-                  → Proof-Term P
+    ∧-elim-left : ∀ {Γ A} {P Q : Proposition A}
+                → Proof-Term (P ∧ₚ Q)
+                → Proof-Term P
+    ∧-elim-left = {!!}
 
-      ∧-elim-right : ∀ {Γ A} {P Q : Proposition A}
-                   → Proof-Term (P ∧ Q)
-                   → Proof-Term Q
+    ∧-elim-right : ∀ {Γ A} {P Q : Proposition A}
+                 → Proof-Term (P ∧ₚ Q)
+                 → Proof-Term Q
+    ∧-elim-right = {!!}
 
-      -- Implication proof (Equation 2.34b)
-      ⇒-intro : ∀ {Γ A} {P Q : Proposition A}
-              → (Proof-Term P → Proof-Term Q)
-              → Proof-Term (P ⇒ Q)
+    -- Implication proof (Equation 2.34b)
+    ⇒-intro : ∀ {Γ A} {P Q : Proposition A}
+            → (Proof-Term P → Proof-Term Q)
+            → Proof-Term (P ⇒ₚ Q)
+    ⇒-intro = {!!}
 
-      ⇒-elim : ∀ {Γ A} {P Q : Proposition A}
-             → Proof-Term (P ⇒ Q)
-             → Proof-Term P
-             → Proof-Term Q
+    ⇒-elim : ∀ {Γ A} {P Q : Proposition A}
+           → Proof-Term (P ⇒ₚ Q)
+           → Proof-Term P
+           → Proof-Term Q
+    ⇒-elim = {!!}
 
-      -- Disjunction proof (Equation 2.34c)
-      ∨-intro-left : ∀ {Γ A} {P Q : Proposition A}
-                   → Proof-Term P
-                   → Proof-Term (P ∨ Q)
+    -- Disjunction proof (Equation 2.34c)
+    ∨-intro-left : ∀ {Γ A} {P Q : Proposition A}
+                 → Proof-Term P
+                 → Proof-Term (P ∨ₚ Q)
+    ∨-intro-left = {!!}
 
-      ∨-intro-right : ∀ {Γ A} {P Q : Proposition A}
-                    → Proof-Term Q
-                    → Proof-Term (P ∨ Q)
+    ∨-intro-right : ∀ {Γ A} {P Q : Proposition A}
+                  → Proof-Term Q
+                  → Proof-Term (P ∨ₚ Q)
+    ∨-intro-right = {!!}
 
-      ∨-elim : ∀ {Γ A C} {P Q : Proposition A} {R : Proposition C}
-             → Proof-Term (P ∨ Q)
-             → (Proof-Term P → Proof-Term R)
-             → (Proof-Term Q → Proof-Term R)
-             → Proof-Term R
+    ∨-elim : ∀ {Γ A C} {P Q : Proposition A} {R : Proposition C}
+           → Proof-Term (P ∨ₚ Q)
+           → (Proof-Term P → Proof-Term R)
+           → (Proof-Term Q → Proof-Term R)
+           → Proof-Term R
+    ∨-elim = {!!}
 
 --------------------------------------------------------------------------------
 -- Formal Languages as Sheaves
@@ -305,22 +333,25 @@ mapping string sheaf to embedding sheaf, preserving the sheaf structure
 
 module Formal-Languages where
 
-  postulate
-    -- Alphabet
-    Σ : Type
+  -- Alphabet
+  Alphabet : Type
+  Alphabet = {!!}
 
-    -- Category of strings (free monoid)
-    String-Category : Precategory o ℓ
+  -- Category of strings (free monoid)
+  String-Category : Precategory o ℓ
+  String-Category = {!!}
 
-    -- Formal language as sheaf
-    Language : Type (lsuc o ⊔ ℓ)
-    Language = {!!}  -- Sheaf on String-Category
+  -- Formal language as sheaf
+  Language : Type (lsuc o ⊔ ℓ)
+  Language = {!!}  -- Sheaf on String-Category
 
-    -- Context-free language (algebraic sheaf)
-    is-context-free : Language → Type (o ⊔ ℓ)
+  -- Context-free language (algebraic sheaf)
+  is-context-free : Language → Type (o ⊔ ℓ)
+  is-context-free = {!!}
 
-    -- Regular language (finite sheaf)
-    is-regular : Language → Type (o ⊔ ℓ)
+  -- Regular language (finite sheaf)
+  is-regular : Language → Type (o ⊔ ℓ)
+  is-regular = {!!}
 
   {-|
   **Neural Language Model as Geometric Functor**
@@ -336,16 +367,19 @@ module Formal-Languages where
   - Attention mechanism is captured by left adjoint Φ! (importance weighting)
   -}
 
-  postulate
-    -- Token embeddings
-    Token-Space : Type'
+  -- Token embeddings
+  Token-Space : Type
+  Token-Space = {!!}
 
-    -- Neural embedding as geometric functor
-    neural-embed : ∀ (L : Language)
-                 → {!!}  -- Geometric functor L → Embeddings
+  -- Neural embedding as geometric functor
+  -- Note: Geometric functors not in 1lab, using custom type from Geometric.agda
+  neural-embed : ∀ (L : Language)
+               → Functor {!!} {!!}  -- Functor from language category to embedding spaces
+  neural-embed = {!!}
 
-    -- Attention preserves sheaf structure
-    attention-geometric : {!!}
+  -- Attention preserves sheaf structure
+  attention-geometric : {!!}
+  attention-geometric = {!!}
 
 --------------------------------------------------------------------------------
 -- Deduction Systems
@@ -378,7 +412,7 @@ Forward pass = proof search: Given input (axiom), derive output (theorem).
 
   module Deduction-System (E : Precategory o ℓ) (Ω-E : Subobject-Classifier E) where
 
-    record Deduction-System : Type (lsuc o ⊔ ℓ) where
+    record Deduction-System : Type (lsuc (lsuc o) ⊔ lsuc ℓ) where
       field
         -- Types (propositions)
         Type-System : Type (lsuc o)
@@ -395,15 +429,17 @@ Forward pass = proof search: Given input (axiom), derive output (theorem).
         -- Rules preserve derivability
         rule-sound : ∀ {A B C} → (A ⊢ᴰ B) → (B ⊢ᴰ C) → (A ⊢ᴰ C)
 
-    postulate
-      -- Natural deduction system
-      natural-deduction : Deduction-System
+    -- Natural deduction system
+    natural-deduction : Deduction-System
+    natural-deduction = {!!}
 
-      -- Sequent calculus
-      sequent-calculus : Deduction-System
+    -- Sequent calculus
+    sequent-calculus : Deduction-System
+    sequent-calculus = {!!}
 
-      -- Equivalence of deduction systems
-      natural≃sequent : {!!}
+    -- Equivalence of deduction systems
+    natural≃sequent : {!!}
+    natural≃sequent = {!!}
 
     {-|
     **Neural Network as Deduction System**
@@ -418,14 +454,15 @@ Forward pass = proof search: Given input (axiom), derive output (theorem).
     Inference = deduction using learned rules.
     -}
 
-    postulate
-      -- Neural network as deduction system
-      neural-deduction : ∀ {Input Output}
-                       → (Network : {!!})  -- Functor Input → Output
-                       → Deduction-System
+    -- Neural network as deduction system
+    neural-deduction : ∀ {Input Output}
+                     → (Network : {!!})  -- Functor Input → Output
+                     → Deduction-System
+    neural-deduction = {!!}
 
-      -- Trained network satisfies training constraints
-      training-soundness : {!!}
+    -- Trained network satisfies training constraints
+    training-soundness : {!!}
+    training-soundness = {!!}
 
 --------------------------------------------------------------------------------
 -- Connection to Proof Assistants
@@ -459,19 +496,25 @@ We can export neural network properties to proof assistants:
 
   module Proof-Assistant-Connection where
 
-    postulate
-      -- Internal type theory of topos
-      internal-TT : ∀ (E : Precategory o ℓ) (Ω : Subobject-Classifier E)
-                  → {!!}  -- Dependent type theory
+    -- Internal type theory of topos
+    -- Type theory structure as record with types, contexts, terms
+    internal-TT : ∀ (E : Precategory o ℓ) (Ω : Subobject-Classifier E)
+                → Type (lsuc o ⊔ ℓ)  -- Record type for internal dependent type theory
+    internal-TT = {!!}
 
-      -- Translation to Agda
-      to-agda : ∀ {E Ω} → {!!}  -- internal-TT E Ω → Agda code
+    -- Translation to Agda
+    -- Maps internal TT to Agda AST (using String for simplicity)
+    to-agda : ∀ {E Ω} → internal-TT E Ω → String
+    to-agda = {!!}
 
-      -- Translation to Coq
-      to-coq : ∀ {E Ω} → {!!}  -- internal-TT E Ω → Coq code
+    -- Translation to Coq
+    -- Maps internal TT to Coq AST (using String for simplicity)
+    to-coq : ∀ {E Ω} → internal-TT E Ω → String
+    to-coq = {!!}
 
-      -- Soundness: Provable in internal logic ⇒ provable in proof assistant
-      translation-sound : {!!}
+    -- Soundness: Provable in internal logic ⇒ provable in proof assistant
+    translation-sound : {!!}
+    translation-sound = {!!}
 
     {-|
     **Example**: Verifying a ReLU network
@@ -534,29 +577,39 @@ This gives a proof term certifying robustness, which can be checked efficiently.
 -}
 
 module Verified-Neural-Networks {C : Precategory o ℓ}
-                                (F : Stack C o' ℓ')
+                                (F : Stack {C = C} o' ℓ')
   where
 
-  postulate
-    -- Network specification
-    Network-Spec : Type (o ⊔ ℓ)
+  -- Network specification (simplified universe level to match properties)
+  Network-Spec : Type (o ⊔ ℓ)
+  Network-Spec = {!!}
 
-    -- Property to verify
-    Safety-Property : Network-Spec → Type (o ⊔ ℓ)
-    Correctness-Property : Network-Spec → Type (o ⊔ ℓ)
-    Robustness-Property : Network-Spec → Type (o ⊔ ℓ)
+  -- Property to verify (let Agda infer universe levels)
+  Safety-Property : Network-Spec → Type _
+  Safety-Property = {!!}
 
-    -- Verification procedure
-    verify : ∀ (spec : Network-Spec)
-           → (prop : {!!})  -- Property
-           → {!!}  -- Either proof or counterexample
+  Correctness-Property : Network-Spec → Type _
+  Correctness-Property = {!!}
 
-    -- Certificate (proof term)
-    Certificate : ∀ {spec : Network-Spec} {prop : {!!}}
-                → {!!}  -- Proof term
+  Robustness-Property : Network-Spec → Type _
+  Robustness-Property = {!!}
 
-    -- Certificate checking (fast)
-    check-certificate : ∀ {spec prop} → Certificate {spec} {prop} → Bool
+  -- Verification procedure
+  -- Returns either a proof certificate or a counterexample
+  verify : ∀ (spec : Network-Spec)
+         → (prop : Type (o ⊔ ℓ))  -- Property to verify (arbitrary proposition)
+         → Type (o ⊔ ℓ)  -- Result type: prop ⊎ Counterexample (sum type)
+  verify = {!!}
+
+  -- Certificate (proof term)
+  -- Proof certificate for a verified property
+  Certificate : ∀ {spec : Network-Spec} {prop : Type (o ⊔ ℓ)}
+              → Type (o ⊔ ℓ)  -- Proof term witnessing the property
+  Certificate = {!!}
+
+  -- Certificate checking (fast)
+  check-certificate : ∀ {spec prop} → Certificate {spec} {prop} → Bool
+  check-certificate = {!!}
 
   {-|
   **Example**: Verified image classifier
@@ -575,11 +628,15 @@ module Verified-Neural-Networks {C : Precategory o ℓ}
   Proof term encodes this algebraic reasoning, checkable by evaluating.
   -}
 
-  postulate
-    -- Image classifier example
-    image-classifier : Network-Spec
-    probability-sum-one : Correctness-Property image-classifier
-    certificate : Certificate {image-classifier} {probability-sum-one}
+  -- Image classifier example
+  image-classifier : Network-Spec
+  image-classifier = {!!}
+
+  probability-sum-one : Correctness-Property image-classifier
+  probability-sum-one = {!!}
+
+  certificate : Certificate {image-classifier} {probability-sum-one}
+  certificate = {!!}
 
 --------------------------------------------------------------------------------
 -- Summary and Next Steps

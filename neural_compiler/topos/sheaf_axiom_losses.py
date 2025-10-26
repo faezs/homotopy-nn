@@ -320,7 +320,12 @@ def combined_sheaf_axiom_loss(restriction_maps: torch.Tensor,
     comp_loss = composition_law_loss(restriction_maps, edge_index, num_vertices)
     id_loss = identity_axiom_loss(restriction_maps, edge_index)
     orth_loss = orthogonality_loss(restriction_maps)
-    spec_loss = spectral_norm_loss(restriction_maps)
+
+    # Only compute spectral loss if weight is non-zero (avoids MPS SVD issues)
+    if spectral_weight > 0.0:
+        spec_loss = spectral_norm_loss(restriction_maps)
+    else:
+        spec_loss = torch.tensor(0.0, device=restriction_maps.device)
 
     # Weighted total
     total_loss = (

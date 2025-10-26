@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives #-}
+{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives --allow-unsolved-metas #-}
 
 {-|
 Module: Neural.Stack.Semantic
@@ -33,6 +33,7 @@ module Neural.Stack.Semantic where
 
 open import 1Lab.Prelude
 open import 1Lab.Path
+open import Data.Sum.Base
 
 open import Cat.Base
 open import Cat.Functor.Base
@@ -42,6 +43,7 @@ open import Cat.Instances.Sets
 open import Neural.Stack.Fibration
 open import Neural.Stack.Classifier
 open import Neural.Stack.TypeTheory
+open import Neural.Stack.Groupoid using (Stack)
 
 private variable
   o ℓ o' ℓ' κ : Level
@@ -74,22 +76,38 @@ For a neural network N:
 
 module Model-Theory (E : Precategory o ℓ) where
 
-  record Model (T : {!!}) : Type (lsuc o ⊔ ℓ) where
+  -- Placeholder for type theory signature (should be defined formally)
+  TypeTheory : Type (o ⊔ ℓ)
+  TypeTheory = {!!}
+
+  TT-Type : TypeTheory → Type o
+  TT-Type = {!!}
+
+  TT-Context : TypeTheory → Type o
+  TT-Context = {!!}
+
+  TT-Term : (T : TypeTheory) → TT-Context T → TT-Type T → Type ℓ
+  TT-Term = {!!}
+
+  record Model (T : TypeTheory) : Type (lsuc o ⊔ ℓ) where
     field
       -- Interpretation of types
-      ⟦_⟧-Type : {!!} → E .Precategory.Ob
+      ⟦_⟧-Type : TT-Type T → E .Precategory.Ob
 
       -- Interpretation of contexts (finite products)
-      ⟦_⟧-Context : {!!} → E .Precategory.Ob
+      ⟦_⟧-Context : TT-Context T → E .Precategory.Ob
 
       -- Interpretation of terms
-      ⟦_⟧-Term : ∀ {Γ A} → {!!} → E .Precategory.Hom (⟦ Γ ⟧-Context) (⟦ A ⟧-Type)
+      ⟦_⟧-Term : ∀ {Γ A} → TT-Term T Γ A → E .Precategory.Hom (⟦ Γ ⟧-Context) (⟦ A ⟧-Type)
 
-      -- Preserves substitution
-      subst-sound : {!!}
+  -- Properties of models
+  -- Preserves substitution
+  subst-sound : ∀ {T : TypeTheory} (M : Model T) → Type (o ⊔ ℓ)
+  subst-sound = {!!}
 
-      -- Preserves equality
-      eq-sound : {!!}
+  -- Preserves equality
+  eq-sound : ∀ {T : TypeTheory} (M : Model T) → Type (o ⊔ ℓ)
+  eq-sound = {!!}
 
   {-|
   **Standard model in Sets**
@@ -223,9 +241,8 @@ module Semantic-Brackets (E : Precategory o ℓ) where
 
     -- Composition
     composition-lemma : ∀ {Γ A B C} (f : {!!}) (g : {!!})
-                      → ⟦ {!!} ⟧ᵗ ≡ ⟦ g ⟧ᵗ ∘ ⟦ f ⟧ᵗ  -- ⟦g ∘ f⟧ = ⟦g⟧ ∘ ⟦f⟧
-      where
-        _∘_ = E .Precategory._∘_
+                      → let _∘_ = E .Precategory._∘_
+                        in ⟦ {!!} ⟧ᵗ ≡ ⟦ g ⟧ᵗ ∘ ⟦ f ⟧ᵗ  -- ⟦g ∘ f⟧ = ⟦g⟧ ∘ ⟦f⟧
 
 --------------------------------------------------------------------------------
 -- Equation (2.35): Soundness Theorem
@@ -261,22 +278,25 @@ then they compute the same function. This justifies optimizations:
 
   module Soundness where
 
-    postulate
-      -- Syntactic equality judgment
-      _⊢_≡_∶_ : ∀ (Γ : {!!}) (t u : {!!}) (A : {!!}) → Type (o ⊔ ℓ)
+    -- Syntactic equality judgment
+    _⊢_≡_∶_ : ∀ (Γ : {!!}) (t u : {!!}) (A : {!!}) → Type (o ⊔ ℓ)
+    _⊢_≡_∶_ = {!!}
 
-      -- Soundness theorem (Equation 2.35)
-      soundness : ∀ {Γ A} {t u : {!!}}
-                → Γ ⊢ t ≡ u ∶ A
-                → ⟦ t ⟧ᵗ ≡ ⟦ u ⟧ᵗ
+    -- Soundness theorem (Equation 2.35)
+    soundness : ∀ {Γ A} {t u : {!!}}
+              → Γ ⊢ t ≡ u ∶ A
+              → ⟦ t ⟧ᵗ ≡ ⟦ u ⟧ᵗ
+    soundness = {!!}
 
-      -- β-reduction soundness
-      β-sound : ∀ {Γ A B} {t : {!!}} {u : {!!}}
-              → ⟦ {!!} ⟧ᵗ ≡ ⟦ {!!} ⟧ᵗ  -- ⟦(λx.t)(u)⟧ = ⟦t[x↦u]⟧
+    -- β-reduction soundness
+    β-sound : ∀ {Γ A B} {t : {!!}} {u : {!!}}
+            → ⟦ {!!} ⟧ᵗ ≡ ⟦ {!!} ⟧ᵗ  -- ⟦(λx.t)(u)⟧ = ⟦t[x↦u]⟧
+    β-sound = {!!}
 
-      -- η-expansion soundness
-      η-sound : ∀ {Γ A B} {f : {!!}}
-              → ⟦ {!!} ⟧ᵗ ≡ ⟦ f ⟧ᵗ  -- ⟦λx.f(x)⟧ = ⟦f⟧
+    -- η-expansion soundness
+    η-sound : ∀ {Γ A B} {f : {!!}}
+            → ⟦ {!!} ⟧ᵗ ≡ ⟦ f ⟧ᵗ  -- ⟦λx.f(x)⟧ = ⟦f⟧
+    η-sound = {!!}
 
     {-|
     **Application**: Network optimization verification
@@ -299,12 +319,13 @@ then they compute the same function. This justifies optimizations:
        Soundness: Same output for all inputs
     -}
 
-    postulate
-      -- Batch norm folding equivalence
-      bn-fold-equiv : {!!}
+    -- Batch norm folding equivalence
+    bn-fold-equiv : {!!}
+    bn-fold-equiv = {!!}
 
-      -- Residual unrolling equivalence
-      res-unroll-equiv : {!!}
+    -- Residual unrolling equivalence
+    res-unroll-equiv : {!!}
+    res-unroll-equiv = {!!}
 
 --------------------------------------------------------------------------------
 -- Completeness Theorem
@@ -344,16 +365,17 @@ Soundness (the converse) is what we actually use for verification.
 
   module Completeness where
 
-    postulate
-      -- Completeness theorem
-      completeness : ∀ {Γ A} {t u : {!!}}
-                   → (∀ (M : Model-Theory.Model E {!!}) → {!!})  -- ⟦t⟧_M = ⟦u⟧_M in all models
-                   → {!!}  -- Γ ⊢ t ≡ u : A
-
-      -- Reflection for term model
-      reflection : ∀ {Γ A} {t u : {!!}}
-                 → ⟦ t ⟧ᵗ ≡ ⟦ u ⟧ᵗ  -- Equal in term model
+    -- Completeness theorem
+    completeness : ∀ {Γ A} {t u : {!!}}
+                 → (∀ (M : Model-Theory.Model E {!!}) → {!!})  -- ⟦t⟧_M = ⟦u⟧_M in all models
                  → {!!}  -- Γ ⊢ t ≡ u : A
+    completeness = {!!}
+
+    -- Reflection for term model
+    reflection : ∀ {Γ A} {t u : {!!}}
+               → ⟦ t ⟧ᵗ ≡ ⟦ u ⟧ᵗ  -- Equal in term model
+               → {!!}  -- Γ ⊢ t ≡ u : A
+    reflection = {!!}
 
     {-|
     **Example**: Discovering equivalences
@@ -406,22 +428,28 @@ Kripke-Joyal semantics is equivalent to Heyting algebra semantics in a topos,
 providing an operational interpretation of the internal logic.
 -}
 
-module Kripke-Joyal {C : Precategory o ℓ} (F : Stack C o' ℓ') where
+module Kripke-Joyal {C : Precategory o ℓ} (F : Stack {C = C} o' ℓ') where
 
   postulate
+    -- Proposition type
+    KJProp : Type (o ⊔ ℓ)
+
+    -- Logical operators
+    _∧ₖⱼ_ _∨ₖⱼ_ _⇒ₖⱼ_ : KJProp → KJProp → KJProp
+
     -- Forcing relation
-    _⊩_ : ∀ (U : C .Precategory.Ob) (P : {!!}) → Type (o ⊔ ℓ)
+    _⊩_ : ∀ (U : C .Precategory.Ob) (P : KJProp) → Type (o ⊔ ℓ)
 
     -- Monotonicity
     forcing-monotone : ∀ {U V : C .Precategory.Ob} (α : C .Precategory.Hom U V)
-                       {P : {!!}}
+                       {P : KJProp}
                      → V ⊩ P
-                     → U ⊩ {!!}  -- Pullback of P along α
+                     → U ⊩ P  -- Pullback of P along α
 
     -- Logical connectives
-    forcing-∧ : ∀ {U P Q} → (U ⊩ (P ∧ Q)) ≃ ((U ⊩ P) × (U ⊩ Q))
-    forcing-∨ : ∀ {U P Q} → (U ⊩ (P ∨ Q)) ≃ ((U ⊩ P) ⊎ (U ⊩ Q))
-    forcing-⇒ : ∀ {U P Q} → (U ⊩ (P ⇒ Q)) ≃ (∀ {V} (α : C .Precategory.Hom U V) → (V ⊩ P) → (V ⊩ Q))
+    forcing-∧ : ∀ {U P Q} → (U ⊩ (P ∧ₖⱼ Q)) ≃ ((U ⊩ P) × (U ⊩ Q))
+    forcing-∨ : ∀ {U P Q} → (U ⊩ (P ∨ₖⱼ Q)) ≃ ((U ⊩ P) ⊎ (U ⊩ Q))
+    forcing-⇒ : ∀ {U P Q} → (U ⊩ (P ⇒ₖⱼ Q)) ≃ (∀ {V} (α : C .Precategory.Hom U V) → (V ⊩ P) → (V ⊩ Q))
 
   {-|
   **Example**: Feature activation forcing

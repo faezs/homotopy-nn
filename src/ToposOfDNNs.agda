@@ -1,4 +1,4 @@
-{OPTIONS --no-import-sorts --allow-unsolved-metas #- -#}
+-- { OPTIONS --no-import-sorts --allow-unsolved-metas #- -#}
 {-|
 # Topos and Stacks of Deep Neural Networks
 

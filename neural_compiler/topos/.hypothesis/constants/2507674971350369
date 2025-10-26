@@ -1,0 +1,4 @@
+# file: /Users/faezs/homotopy-nn/neural_compiler/jax_backend.py
+# hypothesis_version: 6.136.9
+
+[0.0, 1e-05, 0.001, 0.01, 2.0, 'K', 'Q', 'SAME', 'V', 'W', '__main__', 'b', 'beta', 'gamma', 'id', 'op', 'shape']

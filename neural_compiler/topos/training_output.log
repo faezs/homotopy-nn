@@ -1,0 +1,203 @@
+================================================================================
+LOADING ARC DATASET
+================================================================================
+
+✓ Loaded 20 training tasks from /Users/faezs/homotopy-nn/ARC-AGI/data
+✓ Split 20 tasks → Train: 14, Val: 3, Test: 3
+
+Converting ARCGrid objects to torch tensors...
+Converting train:   0%|          | 0/14 [00:00<?, ?it/s]Converting train:  14%|█▍        | 2/14 [00:00<00:00, 19.61it/s]Converting train:  43%|████▎     | 6/14 [00:00<00:00, 15.80it/s]Converting train:  57%|█████▋    | 8/14 [00:00<00:00, 10.80it/s]Converting train:  71%|███████▏  | 10/14 [00:00<00:00, 10.22it/s]Converting train:  86%|████████▌ | 12/14 [00:01<00:00, 10.60it/s]Converting train: 100%|██████████| 14/14 [00:01<00:00, 12.39it/s]
+Converting val:   0%|          | 0/3 [00:00<?, ?it/s]Converting val: 100%|██████████| 3/3 [00:00<00:00, 19.21it/s]Converting val: 100%|██████████| 3/3 [00:00<00:00, 19.19it/s]
+Converting test:   0%|          | 0/3 [00:00<?, ?it/s]Converting test: 100%|██████████| 3/3 [00:00<00:00, 25.66it/s]Converting test: 100%|██████████| 3/3 [00:00<00:00, 25.63it/s]
+
+Dataset split:
+  Training tasks:   14
+  Validation tasks: 3
+  Test tasks:       3
+
+================================================================================
+TRAINING TOPOS-THEORETIC ARC SOLVER
+================================================================================
+Device: cpu
+Model parameters: 149811
+Training tasks: 14
+Epochs: 50
+
+Epoch 1/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 1/50:   7%|▋         | 1/14 [00:00<00:12,  1.07it/s]Epoch 1/50:  14%|█▍        | 2/14 [00:01<00:11,  1.09it/s]Epoch 1/50:  21%|██▏       | 3/14 [00:02<00:10,  1.10it/s]Epoch 1/50:  29%|██▊       | 4/14 [00:03<00:09,  1.11it/s]Epoch 1/50:  36%|███▌      | 5/14 [00:04<00:07,  1.25it/s]Epoch 1/50:  43%|████▎     | 6/14 [00:05<00:06,  1.21it/s]Epoch 1/50:  50%|█████     | 7/14 [00:06<00:06,  1.07it/s]Epoch 1/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.01it/s]Epoch 1/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.04it/s]Epoch 1/50:  71%|███████▏  | 10/14 [00:09<00:04,  1.02s/it]Epoch 1/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.03it/s]Epoch 1/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.02s/it]Epoch 1/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.14s/it]Epoch 1/50: 100%|██████████| 14/14 [00:13<00:00,  1.02it/s]Epoch 1/50: 100%|██████████| 14/14 [00:13<00:00,  1.04it/s]
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Epoch 1/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 2/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 2/50:   7%|▋         | 1/14 [00:00<00:11,  1.14it/s]Epoch 2/50:  14%|█▍        | 2/14 [00:01<00:10,  1.15it/s]Epoch 2/50:  21%|██▏       | 3/14 [00:02<00:09,  1.15it/s]Epoch 2/50:  29%|██▊       | 4/14 [00:03<00:08,  1.15it/s]Epoch 2/50:  36%|███▌      | 5/14 [00:04<00:07,  1.28it/s]Epoch 2/50:  43%|████▎     | 6/14 [00:04<00:06,  1.23it/s]Epoch 2/50:  50%|█████     | 7/14 [00:06<00:06,  1.09it/s]Epoch 2/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.02it/s]Epoch 2/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.06it/s]Epoch 2/50:  71%|███████▏  | 10/14 [00:09<00:03,  1.00it/s]Epoch 2/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.04it/s]Epoch 2/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.01s/it]Epoch 2/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.12s/it]Epoch 2/50: 100%|██████████| 14/14 [00:13<00:00,  1.03it/s]Epoch 2/50: 100%|██████████| 14/14 [00:13<00:00,  1.06it/s]
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Epoch 2/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 3/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 3/50:   7%|▋         | 1/14 [00:00<00:11,  1.15it/s]Epoch 3/50:  14%|█▍        | 2/14 [00:01<00:10,  1.15it/s]Epoch 3/50:  21%|██▏       | 3/14 [00:02<00:09,  1.15it/s]Epoch 3/50:  29%|██▊       | 4/14 [00:03<00:08,  1.16it/s]Epoch 3/50:  36%|███▌      | 5/14 [00:04<00:06,  1.29it/s]Epoch 3/50:  43%|████▎     | 6/14 [00:04<00:06,  1.24it/s]Epoch 3/50:  50%|█████     | 7/14 [00:06<00:06,  1.10it/s]Epoch 3/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.03it/s]Epoch 3/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.07it/s]Epoch 3/50:  71%|███████▏  | 10/14 [00:09<00:03,  1.01it/s]Epoch 3/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.05it/s]Epoch 3/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.00s/it]Epoch 3/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.11s/it]Epoch 3/50: 100%|██████████| 14/14 [00:13<00:00,  1.04it/s]Epoch 3/50: 100%|██████████| 14/14 [00:13<00:00,  1.07it/s]
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Epoch 3/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 4/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 4/50:   7%|▋         | 1/14 [00:00<00:11,  1.16it/s]Epoch 4/50:  14%|█▍        | 2/14 [00:01<00:10,  1.16it/s]Epoch 4/50:  21%|██▏       | 3/14 [00:02<00:09,  1.16it/s]Epoch 4/50:  29%|██▊       | 4/14 [00:03<00:08,  1.16it/s]Epoch 4/50:  36%|███▌      | 5/14 [00:04<00:06,  1.29it/s]Epoch 4/50:  43%|████▎     | 6/14 [00:04<00:06,  1.24it/s]Epoch 4/50:  50%|█████     | 7/14 [00:06<00:06,  1.11it/s]Epoch 4/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.03it/s]Epoch 4/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.07it/s]Epoch 4/50:  71%|███████▏  | 10/14 [00:09<00:03,  1.01it/s]Epoch 4/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.05it/s]Epoch 4/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.01s/it]Epoch 4/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.16s/it]Epoch 4/50: 100%|██████████| 14/14 [00:13<00:00,  1.00s/it]Epoch 4/50: 100%|██████████| 14/14 [00:13<00:00,  1.05it/s]
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Epoch 4/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 5/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 5/50:   7%|▋         | 1/14 [00:00<00:11,  1.12it/s]Epoch 5/50:  14%|█▍        | 2/14 [00:01<00:10,  1.14it/s]Epoch 5/50:  21%|██▏       | 3/14 [00:02<00:09,  1.13it/s]Epoch 5/50:  29%|██▊       | 4/14 [00:03<00:08,  1.14it/s]Epoch 5/50:  36%|███▌      | 5/14 [00:04<00:07,  1.28it/s]Epoch 5/50:  43%|████▎     | 6/14 [00:04<00:06,  1.23it/s]Epoch 5/50:  50%|█████     | 7/14 [00:06<00:06,  1.10it/s]Epoch 5/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.03it/s]Epoch 5/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.06it/s]Epoch 5/50:  71%|███████▏  | 10/14 [00:09<00:04,  1.04s/it]Epoch 5/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.02it/s]Epoch 5/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.02s/it]Epoch 5/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.12s/it]Epoch 5/50: 100%|██████████| 14/14 [00:13<00:00,  1.03it/s]Epoch 5/50: 100%|██████████| 14/14 [00:13<00:00,  1.05it/s]
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Epoch 5/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 6/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 6/50:   7%|▋         | 1/14 [00:00<00:11,  1.16it/s]Epoch 6/50:  14%|█▍        | 2/14 [00:01<00:10,  1.16it/s]Epoch 6/50:  21%|██▏       | 3/14 [00:02<00:09,  1.16it/s]Epoch 6/50:  29%|██▊       | 4/14 [00:03<00:08,  1.16it/s]Epoch 6/50:  36%|███▌      | 5/14 [00:04<00:06,  1.29it/s]Epoch 6/50:  43%|████▎     | 6/14 [00:04<00:06,  1.24it/s]Epoch 6/50:  50%|█████     | 7/14 [00:06<00:06,  1.10it/s]Epoch 6/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.03it/s]Epoch 6/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.06it/s]Epoch 6/50:  71%|███████▏  | 10/14 [00:09<00:03,  1.00it/s]Epoch 6/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.05it/s]Epoch 6/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.00s/it]Epoch 6/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.11s/it]Epoch 6/50: 100%|██████████| 14/14 [00:13<00:00,  1.04it/s]Epoch 6/50: 100%|██████████| 14/14 [00:13<00:00,  1.07it/s]
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Epoch 6/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 7/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 7/50:   7%|▋         | 1/14 [00:00<00:11,  1.16it/s]Epoch 7/50:  14%|█▍        | 2/14 [00:01<00:10,  1.16it/s]Epoch 7/50:  21%|██▏       | 3/14 [00:02<00:09,  1.15it/s]Epoch 7/50:  29%|██▊       | 4/14 [00:03<00:08,  1.15it/s]Epoch 7/50:  36%|███▌      | 5/14 [00:04<00:07,  1.28it/s]Epoch 7/50:  43%|████▎     | 6/14 [00:04<00:06,  1.23it/s]Epoch 7/50:  50%|█████     | 7/14 [00:06<00:06,  1.10it/s]Epoch 7/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.02it/s]Epoch 7/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.06it/s]Epoch 7/50:  71%|███████▏  | 10/14 [00:09<00:03,  1.00it/s]Epoch 7/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.04it/s]Epoch 7/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.01s/it]Epoch 7/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.12s/it]Epoch 7/50: 100%|██████████| 14/14 [00:13<00:00,  1.04it/s]Epoch 7/50: 100%|██████████| 14/14 [00:13<00:00,  1.06it/s]
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Epoch 7/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 8/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 8/50:   7%|▋         | 1/14 [00:00<00:11,  1.16it/s]Epoch 8/50:  14%|█▍        | 2/14 [00:01<00:10,  1.16it/s]Epoch 8/50:  21%|██▏       | 3/14 [00:02<00:09,  1.16it/s]Epoch 8/50:  29%|██▊       | 4/14 [00:03<00:08,  1.16it/s]Epoch 8/50:  36%|███▌      | 5/14 [00:04<00:06,  1.29it/s]Epoch 8/50:  43%|████▎     | 6/14 [00:04<00:06,  1.24it/s]Epoch 8/50:  50%|█████     | 7/14 [00:06<00:06,  1.10it/s]Epoch 8/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.02it/s]Epoch 8/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.06it/s]Epoch 8/50:  71%|███████▏  | 10/14 [00:09<00:04,  1.00s/it]Epoch 8/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.04it/s]Epoch 8/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.01s/it]Epoch 8/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.12s/it]Epoch 8/50: 100%|██████████| 14/14 [00:13<00:00,  1.03it/s]Epoch 8/50: 100%|██████████| 14/14 [00:13<00:00,  1.06it/s]
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Warning: Failed to train on task: mat1 and mat2 shapes cannot be multiplied (3480x128 and 16x32)
+Epoch 8/50:
+  Total Loss:        0.0000
+  Task Loss:         0.0000
+  Compatibility:     0.0000 (score: 0.000)
+  Coverage:          0.0000
+  Composition:       0.0000
+
+Epoch 9/50:   0%|          | 0/14 [00:00<?, ?it/s]Epoch 9/50:   7%|▋         | 1/14 [00:00<00:11,  1.16it/s]Epoch 9/50:  14%|█▍        | 2/14 [00:01<00:10,  1.16it/s]Epoch 9/50:  21%|██▏       | 3/14 [00:02<00:09,  1.16it/s]Epoch 9/50:  29%|██▊       | 4/14 [00:03<00:08,  1.15it/s]Epoch 9/50:  36%|███▌      | 5/14 [00:04<00:07,  1.28it/s]Epoch 9/50:  43%|████▎     | 6/14 [00:04<00:06,  1.23it/s]Epoch 9/50:  50%|█████     | 7/14 [00:06<00:06,  1.09it/s]Epoch 9/50:  57%|█████▋    | 8/14 [00:07<00:05,  1.01it/s]Epoch 9/50:  64%|██████▍   | 9/14 [00:08<00:04,  1.05it/s]Epoch 9/50:  71%|███████▏  | 10/14 [00:09<00:04,  1.01s/it]Epoch 9/50:  79%|███████▊  | 11/14 [00:10<00:02,  1.01it/s]Epoch 9/50:  86%|████████▌ | 12/14 [00:11<00:02,  1.05s/it]Epoch 9/50:  93%|█████████▎| 13/14 [00:12<00:01,  1.17s/it]/nix/store/y6hx9cmhnnypdwqy8i5knrzk9lx88mwv-python3-3.12.11/lib/python3.12/multiprocessing/resource_tracker.py:279: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

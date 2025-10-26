@@ -1,0 +1,12 @@
+{
+  "dataset_dir": "../../ARC-AGI/data",
+  "split": "training",
+  "limit": 5,
+  "population_size": 15,
+  "generations": 20,
+  "mutation_rate": 0.15,
+  "elite_fraction": 0.2,
+  "grid_size": 10,
+  "coverage_type": "local",
+  "seed": 42
+}

@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives #-}
+{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives --allow-unsolved-metas #-}
 
 {-|
 Module: Neural.Stack.Classifier
@@ -31,17 +31,40 @@ open import 1Lab.Prelude
 open import 1Lab.Path
 
 open import Cat.Base
-open import Cat.Functor.Base
+open import Cat.Functor.Base using (PSh; _F∘_)
 open import Cat.Instances.Functor
 open import Cat.Instances.Sets
 open import Cat.Diagram.Initial
 open import Cat.Diagram.Terminal
 open import Cat.Diagram.Pullback
 
+open import Neural.Stack.Groupoid using (Stack; fiber)
 open import Neural.Stack.Fibration
 
 private variable
   o ℓ o' ℓ' κ : Level
+
+-- Category of presheaves on a fiber: functors (fiber F U)^op → Sets ℓ'
+Presheaves-on-Fiber : ∀ {C : Precategory o ℓ} {o' ℓ' : Level} → Stack {C = C} o' ℓ' → C .Precategory.Ob → Precategory _ _
+Presheaves-on-Fiber {ℓ' = ℓ'} F U = PSh ℓ' (fiber F U)
+
+-- Pullback functor F*_α for presheaves (to be defined properly)
+F*_pullback : ∀ {C : Precategory o ℓ} {o' ℓ' : Level} {U U' : C .Precategory.Ob}
+            → (F : Stack {C = C} o' ℓ') → (α : C .Precategory.Hom U U')
+            → Functor (Presheaves-on-Fiber F U) (Presheaves-on-Fiber F U')
+F*_pullback = {!!}
+
+-- The pullback takes a presheaf P : (fiber F U)^op → Sets to (F*_α P) : (fiber F U')^op → Sets
+-- where (F*_α P)(ξ') = P(F_α(ξ'))
+F*-eval : ∀ {C : Precategory o ℓ} {o' ℓ' : Level} {U U' : C .Precategory.Ob}
+        → (F : Stack {C = C} o' ℓ') → (α : C .Precategory.Hom U U')
+        → (P : Presheaves-on-Fiber F U .Precategory.Ob) → (ξ' : fiber F U' .Precategory.Ob)
+        → (F*_pullback F α .Functor.F₀ P) .Functor.F₀ ξ' ≡ P .Functor.F₀ (F .Functor.F₁ α .Functor.F₀ ξ')
+F*-eval = {!!}
+
+-- Presheaf over the entire fibration (to be defined properly in Fibration module)
+Presheaf-over-Fib : ∀ {C : Precategory o ℓ} {o' ℓ' : Level} → Stack {C = C} o' ℓ' → Type (o ⊔ ℓ ⊔ lsuc o' ⊔ lsuc ℓ')
+Presheaf-over-Fib = {!!}
 
 --------------------------------------------------------------------------------
 -- Subobject Classifier in a Topos
@@ -65,17 +88,17 @@ of Ω_U(ξ) is a way to select a subobject (subset of features) at fiber element
 -}
 record Subobject-Classifier (E : Precategory o ℓ) : Type (o ⊔ ℓ) where
   field
-    Ω : E .Precategory.Ob
+    Ω-obj : E .Precategory.Ob
     terminal : Terminal E
-    true : E .Precategory.Hom (terminal .Terminal.top) Ω
+    truth-arrow : E .Precategory.Hom (terminal .Terminal.top) Ω-obj
 
-    -- Universal property: every mono factors through a pullback of true
+    -- Universal property: every mono factors through a pullback of truth-arrow
     classify-mono : ∀ {A B : E .Precategory.Ob}
                    → (m : E .Precategory.Hom A B)
-                   → E .Precategory.Hom B Ω
+                   → E .Precategory.Hom B Ω-obj
 
     pullback-square : ∀ {A B : E .Precategory.Ob} (m : E .Precategory.Hom A B)
-                     → Pullback E (classify-mono m) true
+                     → Pullback E (classify-mono m) truth-arrow
 
 --------------------------------------------------------------------------------
 -- Equation (2.10): Point-wise transformation Ω_α(ξ')
@@ -98,32 +121,34 @@ Given a connection α from layer U to layer U', and a feature ξ' in layer U',
 features in U (via pullback along F_α). This captures how feature properties propagate
 backward through the network.
 -}
-module _ {C : Precategory o ℓ}
-         (F : Stack C o' ℓ')
+module _ {C : Precategory o ℓ} {o' ℓ' : Level}
+         (F : Stack {C = C} o' ℓ')
          (Ω-family : ∀ (U : C .Precategory.Ob) → Subobject-Classifier (Presheaves-on-Fiber F U))
   where
 
   private
     C-Ob = C .Precategory.Ob
     C-Hom = C .Precategory.Hom
-    F₀ = F .Functor.F₀
     F₁ = F .Functor.F₁
 
   -- Extract Ω_U from each topos
-  Ω-at : (U : C-Ob) → (F₀ U) .Precategory.Ob
-  Ω-at U = (Ω-family U) .Subobject-Classifier.Ω
+  Ω-at : (U : C-Ob) → Presheaves-on-Fiber F U .Precategory.Ob
+  Ω-at U = (Ω-family U) .Subobject-Classifier.Ω-obj
 
   -- Point-wise transformation (Equation 2.10)
-  postulate
-    Ω-point : ∀ {U U' : C-Ob} (α : C-Hom U U') (ξ' : (F₀ U') .Precategory.Ob)
-            → (F₀ U') .Precategory.Hom (Ω-at U' .apply ξ')
-                                        ((F₁ α .Functor.F₀ (Ω-at U)) .apply (F₁ α .Functor.F₀ ξ'))
+  -- Ω_α(ξ'): Ω_{U'}(ξ') → Ω_U(F_α(ξ'))
+  -- This is a morphism in Sets between the values of the presheaves
+  Ω-point : ∀ {U U' : C-Ob} (α : C-Hom U U') (ξ' : fiber F U' .Precategory.Ob)
+          → ∣ Ω-at U' .Functor.F₀ ξ' ∣ → ∣ Ω-at U .Functor.F₀ (F₁ α .Functor.F₀ ξ') ∣
+  Ω-point = {!!}
 
-    -- Naturality of Ω-point with respect to morphisms in the fiber
-    Ω-point-natural : ∀ {U U' : C-Ob} (α : C-Hom U U')
-                      {ξ' η' : (F₀ U') .Precategory.Ob}
-                      (f' : (F₀ U') .Precategory.Hom ξ' η')
-                    → {!!}  -- Commuting square condition
+  -- Naturality of Ω-point with respect to morphisms in the fiber
+  Ω-point-natural : ∀ {U U' : C-Ob} (α : C-Hom U U')
+                    {ξ' η' : fiber F U' .Precategory.Ob}
+                    (f' : fiber F U' .Precategory.Hom ξ' η')
+                  → (Ω-point α ξ') ∘ (Ω-at U' .Functor.F₁ f')
+                  ≡ (Ω-at U .Functor.F₁ (F₁ α .Functor.F₁ f')) ∘ (Ω-point α η')  -- Commuting square condition
+  Ω-point-natural = {!!}
 
 --------------------------------------------------------------------------------
 -- Equation (2.11): Natural transformation Ω_α: Ω_{U'} → F*_α Ω_U
@@ -149,15 +174,16 @@ propagate consistently through the network.
 -}
 
   -- Natural transformation from Ω_{U'} to pullback F*_α Ω_U (Equation 2.11)
-  postulate
-    Ω-nat-trans : ∀ {U U' : C-Ob} (α : C-Hom U U')
-                → Presheaves-on-Fiber F U' .Precategory.Hom
-                    (Ω-at U')
-                    ((F₁ α) .Functor.F₀ (Ω-at U))
+  Ω-nat-trans : ∀ {U U' : C-Ob} (α : C-Hom U U')
+              → Presheaves-on-Fiber F U' .Precategory.Hom (Ω-at U') (F*_pullback F α .Functor.F₀ (Ω-at U))
+  Ω-nat-trans = {!!}
 
-    -- Components are given by Ω-point
-    Ω-nat-trans-component : ∀ {U U' : C-Ob} (α : C-Hom U U') (ξ' : (F₀ U') .Precategory.Ob)
-                          → Ω-nat-trans α .apply ξ' ≡ Ω-point α ξ'
+  -- Components are given by Ω-point (modulo transport along F*-eval)
+  Ω-nat-trans-component : ∀ {U U' : C-Ob} (α : C-Hom U U') (ξ' : fiber F U' .Precategory.Ob)
+                        → subst (λ X → ∣ Ω-at U' .Functor.F₀ ξ' ∣ → ∣ X ∣) (F*-eval F α (Ω-at U) ξ')
+                                (Ω-nat-trans α ._=>_.η ξ')
+                          ≡ Ω-point α ξ'
+  Ω-nat-trans-component = {!!}
 
 --------------------------------------------------------------------------------
 -- Equation (2.4) Compatibility: Ω_α satisfies presheaf composition law
@@ -180,12 +206,13 @@ This follows from the functoriality of F and the universal property of pullbacks
 The composition of pullbacks is again a pullback, and the classifier respects this.
 -}
 
-  postulate
-    Ω-satisfies-2-4 : ∀ {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'')
-                    → let _∘_ = C .Precategory._∘_
-                          _∘F_ = Presheaves-on-Fiber F U'' .Precategory._∘_
-                      in Ω-nat-trans (α ∘ β)
-                         ≡ (F₁ β .Functor.F₁ (Ω-nat-trans α)) ∘F (Ω-nat-trans β)
+  -- Composition law: Ω_{β∘α} ≡ (F*_β Ω_α) ∘ Ω_β (complex due to different presheaf categories)
+  Ω-satisfies-2-4 : ∀ {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'')
+                  → Ω-nat-trans (C .Precategory._∘_ β α)
+                  ≡ Presheaves-on-Fiber F U'' .Precategory._∘_
+                      (F*_pullback F β .Functor.F₁ (Ω-nat-trans α))
+                      (Ω-nat-trans β)  -- Equality relating Ω-nat-trans (β ∘ α) to composition of pullbacks
+  Ω-satisfies-2-4 = {!!}
 
     -- Spelled out: The diagram commutes
     --     Ω_{U''}  ----Ω_β---→  F*_β Ω_{U'}
@@ -225,26 +252,26 @@ for explaining network decisions via feature attribution.
 -}
 
   -- Ω_F as a presheaf over the fibration (Proposition 2.1, Equation 2.12)
-  record Ω-Fibration : Type (o ⊔ ℓ ⊔ o' ⊔ ℓ') where
+  record Ω-Fibration : Type (o ⊔ ℓ ⊔ o' ⊔ lsuc ℓ') where
     field
       -- Component at each object U
       Ω_U : (U : C-Ob) → Presheaves-on-Fiber F U .Precategory.Ob
 
       -- Natural transformation for each morphism α
       Ω_α : ∀ {U U' : C-Ob} (α : C-Hom U U')
-          → Presheaves-on-Fiber F U' .Precategory.Hom
-              (Ω_U U')
-              ((F₁ α) .Functor.F₀ (Ω_U U))
+          → Presheaves-on-Fiber F U' .Precategory.Hom (Ω_U U') (F*_pullback F α .Functor.F₀ (Ω_U U))
 
       -- Satisfies equation (2.4) - composition law
       Ω-comp : ∀ {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'')
-             → let _∘C_ = C .Precategory._∘_
-                   _∘F_ = Presheaves-on-Fiber F U'' .Precategory._∘_
-               in Ω_α (α ∘C β) ≡ (F₁ β .Functor.F₁ (Ω_α α)) ∘F (Ω_α β)
+             → Ω_α (C .Precategory._∘_ β α)
+             ≡ Presheaves-on-Fiber F U'' .Precategory._∘_
+                 (F*_pullback F β .Functor.F₁ (Ω_α α))
+                 (Ω_α β)  -- Ω_α (β ∘ α) ≡ (F*_β Ω_α) ∘ Ω_β
 
-      -- Identity law: Ω_{id} = id
+      -- Identity law: Ω_{id} = id (requires F*_id ≅ Id)
       Ω-id : ∀ (U : C-Ob)
-           → Ω_α (C .Precategory.id) ≡ Presheaves-on-Fiber F U .Precategory.id
+           → Ω_α (C .Precategory.id {U})
+           ≡ Presheaves-on-Fiber F U .Precategory.id {Ω_U U}  -- Ω_α (id) ≡ id (modulo F*_id ≅ Id)
 
   -- Construction of Ω_F from the family of classifiers
   Ω-F : Ω-Fibration
@@ -269,11 +296,12 @@ for explaining network decisions via feature attribution.
   active at each layer.
   -}
 
-  postulate
-    Ω-F-is-Presheaf-over-Fib : Presheaf-over-Fib F
+  Ω-F-is-Presheaf-over-Fib : Presheaf-over-Fib F
+  Ω-F-is-Presheaf-over-Fib = {!!}
 
-    -- Equivalence between Ω-Fibration and Presheaf-over-Fib structure
-    Ω-F-equiv : Ω-Fibration ≃ Presheaf-over-Fib F
+  -- Equivalence between Ω-Fibration and Presheaf-over-Fib structure
+  Ω-F-equiv : Ω-Fibration ≃ Presheaf-over-Fib F
+  Ω-F-equiv = {!!}
 
 --------------------------------------------------------------------------------
 -- Universal Property of Ω_F
@@ -293,19 +321,25 @@ that encodes exactly which features are selected. This provides a universal way
 to represent feature masks and attention patterns.
 -}
 
-  postulate
-    -- Characteristic morphism classifying a subobject
-    χ : ∀ {A B : Presheaf-over-Fib F}
-        → (mono : {!!})  -- B ↪ A is a monomorphism
-        → {!!}  -- Morphism A → Ω_F in category of presheaves over F
+  -- Characteristic morphism classifying a subobject
+  -- mono is a monomorphism (subobject embedding) B ↪ A
+  χ : ∀ {A B : Presheaf-over-Fib F}
+      → (mono : {!!})  -- Monomorphism B ↪ A (to be defined with is-monic property)
+      → {!!}  -- Characteristic morphism A → Ω_F (classifies the subobject)
+  χ = {!!}
 
-    -- Uniqueness of characteristic morphism
-    χ-unique : ∀ {A B : Presheaf-over-Fib F} (mono : {!!})
-             → {!!}  -- Any two classifying morphisms are equal
+  -- Uniqueness of characteristic morphism
+  -- Any two characteristic morphisms for the same mono are equal (path type)
+  χ-unique : ∀ {A B : Presheaf-over-Fib F} (mono : {!!})
+           → (χ₁ χ₂ : {!!})  -- Two classifying morphisms
+           → χ₁ ≡ χ₂  -- Path equality (uniqueness)
+  χ-unique = {!!}
 
-    -- Pullback property: B ≅ χ⁻¹(true)
-    χ-pullback : ∀ {A B : Presheaf-over-Fib F} (mono : {!!})
-               → {!!}  -- B is the pullback of true: 1 → Ω_F along χ_B
+  -- Pullback property: B ≅ χ⁻¹(true)
+  -- B is the pullback of true: 1 → Ω_F along the characteristic morphism
+  χ-pullback : ∀ {A B : Presheaf-over-Fib F} (mono : {!!})
+             → {!!}  -- is-pullback witness (from Cat.Diagram.Pullback in 1lab)
+  χ-pullback = {!!}
 
 --------------------------------------------------------------------------------
 -- Examples and Applications
@@ -321,20 +355,22 @@ constant presheaf with value 2 = {0,1} at each fiber. The natural transformation
 This gives a simple model of "which neurons are firing" across the network.
 -}
 
-module Binary-Feature-Selection {C : Precategory o ℓ} (F : Stack C o' ℓ') where
+module Binary-Feature-Selection {C : Precategory o ℓ} {o' ℓ' : Level} (F : Stack {C = C} o' ℓ') where
 
-  postulate
-    -- Two-element set for binary features
-    𝟚 : Type
+  -- Two-element set for binary features
+  𝟚 : Type
+  𝟚 = {!!}
 
-    -- Ω_U is constant presheaf with value 𝟚
-    Ω-binary : ∀ (U : C .Precategory.Ob) → Presheaves-on-Fiber F U .Precategory.Ob
+  -- Ω_U is constant presheaf with value 𝟚
+  Ω-binary : ∀ (U : C .Precategory.Ob) → Presheaves-on-Fiber F U .Precategory.Ob
+  Ω-binary = {!!}
 
-    -- Natural transformations are identities (no change in binary selection)
-    Ω-α-binary : ∀ {U U' : C .Precategory.Ob} (α : C .Precategory.Hom U U')
-               → Presheaves-on-Fiber F U' .Precategory.Hom
-                   (Ω-binary U')
-                   ((F .Functor.F₁ α) .Functor.F₀ (Ω-binary U))
+  -- Natural transformations are identities (no change in binary selection)
+  Ω-α-binary : ∀ {U U' : C .Precategory.Ob} (α : C .Precategory.Hom U U')
+             → Presheaves-on-Fiber F U' .Precategory.Hom
+                 (Ω-binary U')
+                 (F*_pullback F α .Functor.F₀ (Ω-binary U))
+  Ω-α-binary = {!!}
 
 {-|
 **Example**: Attention mechanisms as classifiers
@@ -347,20 +383,24 @@ The pullback along this morphism selects the attended features, implementing
 the attention mechanism categorically.
 -}
 
-module Attention-as-Classifier {C : Precategory o ℓ} (F : Stack C o' ℓ') where
+module Attention-as-Classifier {C : Precategory o ℓ} {o' ℓ' : Level} (F : Stack {C = C} o' ℓ') where
 
-  postulate
-    -- Attention weights as probability distributions
-    Attention-Ω : ∀ (U : C .Precategory.Ob) → Presheaves-on-Fiber F U .Precategory.Ob
+  -- Attention weights as probability distributions
+  Attention-Ω : ∀ (U : C .Precategory.Ob) → Presheaves-on-Fiber F U .Precategory.Ob
+  Attention-Ω = {!!}
 
-    -- Query-Key similarity as morphism to classifier
-    attention-map : ∀ {U : C .Precategory.Ob}
-                    (Q K : {!!})  -- Query and Key features
-                  → {!!}  -- Morphism to Attention-Ω U
+  -- Query-Key similarity as morphism to classifier
+  -- Q, K are presheaves representing query and key features
+  attention-map : ∀ {U : C .Precategory.Ob}
+                  (Q K : Presheaves-on-Fiber F U .Precategory.Ob)  -- Query and Key presheaves
+                → Presheaves-on-Fiber F U .Precategory.Hom {!!} (Attention-Ω U)  -- Morphism to attention classifier
+  attention-map = {!!}
 
-    -- Attended features as pullback
-    attended-features : ∀ {U : C .Precategory.Ob} (Q K : {!!})
-                      → {!!}  -- Pullback gives selected features
+  -- Attended features as pullback
+  -- Pullback of attention weights gives the selected feature subset
+  attended-features : ∀ {U : C .Precategory.Ob} (Q K : Presheaves-on-Fiber F U .Precategory.Ob)
+                    → {!!}  -- Pullback object (attended features)
+  attended-features = {!!}
 
 --------------------------------------------------------------------------------
 -- Connection to Logical Operations
@@ -384,29 +424,36 @@ Feature combination rules (AND, OR, NOT gates) can be expressed as logical
 operations in Ω_F, providing a principled way to compose feature detectors.
 -}
 
-module Logical-Operations {C : Precategory o ℓ} (F : Stack C o' ℓ')
+module Logical-Operations {C : Precategory o ℓ} {o' ℓ' : Level} (F : Stack {C = C} o' ℓ')
                           (Ω-F : Ω-Fibration F {!!}) where
 
-  postulate
-    -- Conjunction: A ∧ B (both features active)
-    _∧Ω_ : ∀ {A B : Presheaf-over-Fib F}
-         → (χ_A χ_B : {!!})  -- Classifying morphisms
-         → {!!}  -- Classifying morphism for A ∩ B
+  -- Conjunction: A ∧ B (both features active)
+  -- Characteristic morphisms compose to give intersection
+  _∧-Ω_ : ∀ {A B : Presheaf-over-Fib F}
+        → (χ_A χ_B : {!!})  -- Classifying morphisms for A and B
+        → {!!}  -- Classifying morphism for A ∩ B (pullback/product in Ω)
+  _∧-Ω_ = {!!}
 
-    -- Disjunction: A ∨ B (either feature active)
-    _∨Ω_ : ∀ {A B : Presheaf-over-Fib F}
-         → (χ_A χ_B : {!!})
-         → {!!}
+  -- Disjunction: A ∨ B (either feature active)
+  -- Classifying morphism for union (coproduct in Ω)
+  _∨-Ω_ : ∀ {A B : Presheaf-over-Fib F}
+        → (χ_A χ_B : {!!})  -- Classifying morphisms for A and B
+        → {!!}  -- Classifying morphism for A ∪ B
+  _∨-Ω_ = {!!}
 
-    -- Implication: A → B (if A active then B active)
-    _⇒Ω_ : ∀ {A B : Presheaf-over-Fib F}
-         → (χ_A χ_B : {!!})
-         → {!!}
+  -- Implication: A → B (if A active then B active)
+  -- Internal hom in Heyting algebra structure
+  _⇒-Ω_ : ∀ {A B : Presheaf-over-Fib F}
+        → (χ_A χ_B : {!!})  -- Classifying morphisms for A and B
+        → {!!}  -- Classifying morphism for A ⇒ B (exponential)
+  _⇒-Ω_ = {!!}
 
-    -- Negation: ¬A (feature not active)
-    ¬Ω_ : ∀ {A : Presheaf-over-Fib F}
-        → (χ_A : {!!})
-        → {!!}
+  -- Negation: ¬A (feature not active)
+  -- Complement in Heyting algebra
+  ¬-Ω_ : ∀ {A : Presheaf-over-Fib F}
+       → (χ_A : {!!})  -- Classifying morphism for A
+       → {!!}  -- Classifying morphism for ¬A
+  ¬-Ω_ = {!!}
 
 --------------------------------------------------------------------------------
 -- Summary and Next Steps

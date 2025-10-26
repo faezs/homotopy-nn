@@ -147,7 +147,68 @@ def load_arc_dataset(dataset_dir: str,
 
 
 ################################################################################
-# § 2: Dataset Statistics
+# § 2: Dataset Splitting
+################################################################################
+
+def split_arc_dataset(tasks: Dict[str, ARCTask],
+                     train_ratio: float = 0.8,
+                     val_ratio: float = 0.1,
+                     test_ratio: float = 0.1,
+                     seed: int = 42) -> Tuple[Dict[str, ARCTask], Dict[str, ARCTask], Dict[str, ARCTask]]:
+    """Split ARC dataset into train/val/test sets.
+
+    Args:
+        tasks: Dictionary of task_id → ARCTask
+        train_ratio: Fraction of tasks for training (default 0.8)
+        val_ratio: Fraction of tasks for validation (default 0.1)
+        test_ratio: Fraction of tasks for testing (default 0.1)
+        seed: Random seed for reproducibility
+
+    Returns:
+        train_tasks: Training set
+        val_tasks: Validation set
+        test_tasks: Test set
+
+    Example:
+        >>> all_tasks = load_arc_dataset("data", split="training")
+        >>> train, val, test = split_arc_dataset(all_tasks, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1)
+        >>> print(f"Train: {len(train)}, Val: {len(val)}, Test: {len(test)}")
+        Train: 320, Val: 40, Test: 40
+    """
+    import random
+
+    assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6, \
+        "Ratios must sum to 1.0"
+
+    # Convert to list for shuffling
+    task_items = list(tasks.items())
+
+    # Shuffle with seed
+    random.seed(seed)
+    random.shuffle(task_items)
+
+    # Calculate split indices
+    n_total = len(task_items)
+    n_train = int(n_total * train_ratio)
+    n_val = int(n_total * val_ratio)
+
+    # Split
+    train_items = task_items[:n_train]
+    val_items = task_items[n_train:n_train + n_val]
+    test_items = task_items[n_train + n_val:]
+
+    # Convert back to dicts
+    train_tasks = dict(train_items)
+    val_tasks = dict(val_items)
+    test_tasks = dict(test_items)
+
+    print(f"✓ Split {n_total} tasks → Train: {len(train_tasks)}, Val: {len(val_tasks)}, Test: {len(test_tasks)}")
+
+    return train_tasks, val_tasks, test_tasks
+
+
+################################################################################
+# § 3: Dataset Statistics
 ################################################################################
 
 def analyze_dataset(tasks: Dict[str, ARCTask]) -> Dict:

@@ -56,8 +56,13 @@ module ForkConstruction {o ℓ} (G : Graph o ℓ)
 
   record is-convergent (a : Node) : Type (o ⊔ ℓ) where
     field
-      incoming : List (Σ[ a' ∈ Node ] Edge a' a)
-      has-multiple : 2 ≤ length incoming
+      -- Set-theoretic formulation: {n : Node | Edge n a} has ≥2 elements
+      -- We witness this by exhibiting two distinct members
+      source₁ : Node
+      source₂ : Node
+      distinct : source₁ ≡ source₂ → ⊥
+      edge₁ : Edge source₁ a
+      edge₂ : Edge source₂ a
 
   {-|
   ## Fork Vertices

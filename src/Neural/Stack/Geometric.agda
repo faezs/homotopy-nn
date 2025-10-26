@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives #-}
+{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives --allow-unsolved-metas #-}
 
 {-|
 Module: Neural.Stack.Geometric
@@ -36,15 +36,21 @@ open import 1Lab.Path
 open import Cat.Base
 open import Cat.Functor.Base
 open import Cat.Functor.Adjoint
+open import Cat.Functor.Naturality
 open import Cat.Diagram.Limit.Base
 open import Cat.Diagram.Colimit.Base
 open import Cat.Diagram.Terminal
 open import Cat.Diagram.Initial
 open import Cat.Diagram.Product
 open import Cat.Diagram.Pullback
+open import Cat.Displayed.Base
+open import Cat.Displayed.Total
+open import Cat.Displayed.Cartesian
+import Cat.Morphism
 
-open import Neural.Stack.Fibration
-open import Neural.Stack.Classifier
+open import Neural.Stack.Groupoid using (Stack)
+open import Neural.Stack.Classifier using (Presheaves-on-Fiber; Subobject-Classifier)
+import Neural.Stack.Fibration as Fib
 
 private variable
   o ℓ o' ℓ' κ : Level
@@ -73,6 +79,12 @@ structure-preserving network operations.
 
 record is-geometric {E E' : Precategory o ℓ}
                     (Φ : Functor E E') : Type (o ⊔ ℓ) where
+  private
+    module E = Precategory E
+    module E' = Precategory E'
+
+  open Cat.Morphism E'
+
   field
     -- Left adjoint
     Φ! : Functor E' E
@@ -81,18 +93,20 @@ record is-geometric {E E' : Precategory o ℓ}
     -- Preserves terminal object
     terminal-E : Terminal E
     terminal-E' : Terminal E'
-    preserves-terminal : {!!}  -- Φ(1) ≅ 1'
+    preserves-terminal : Φ .Functor.F₀ (terminal-E .Terminal.top) ≅ terminal-E' .Terminal.top
 
     -- Preserves binary products
-    preserves-products : ∀ {A B : E .Precategory.Ob}
-                       → {!!}  -- Φ(A × B) ≅ Φ(A) × Φ(B)
+    preserves-products : ∀ {A B : E.Ob}
+                       → (prod : Product E A B)
+                       → (prod' : Product E' (Φ .Functor.F₀ A) (Φ .Functor.F₀ B))
+                       → Φ .Functor.F₀ (prod .Product.apex) ≅ prod' .Product.apex
 
     -- Preserves pullbacks
-    preserves-pullbacks : ∀ {A B C : E .Precategory.Ob}
-                           {f : E .Precategory.Hom A C}
-                           {g : E .Precategory.Hom B C}
+    preserves-pullbacks : ∀ {A B C : E.Ob}
+                           {f : E.Hom A C}
+                           {g : E.Hom B C}
                            (pb : Pullback E f g)
-                        → {!!}  -- Φ(pb) is pullback in E'
+                        → Pullback E' (Φ .Functor.F₁ f) (Φ .Functor.F₁ g)
 
   {-|
   **Key Property**: Geometric functors preserve Ω
@@ -102,10 +116,10 @@ record is-geometric {E E' : Precategory o ℓ}
   geometric operations.
   -}
 
-  postulate
-    preserves-Ω : ∀ (Ω-E : Subobject-Classifier E)
-                    (Ω-E' : Subobject-Classifier E')
-                → {!!}  -- Φ(Ω_E) ≅ Ω_{E'}
+  preserves-Ω : ∀ (Ω-E : Subobject-Classifier E)
+                  (Ω-E' : Subobject-Classifier E')
+              → Φ .Functor.F₀ (Ω-E .Subobject-Classifier.Ω-obj) ≅ Ω-E' .Subobject-Classifier.Ω-obj
+  preserves-Ω = {!!}
 
 --------------------------------------------------------------------------------
 -- Equation (2.13): Geometric functors between fibers
@@ -131,7 +145,7 @@ while preserving logical structure. For example, a residual connection
 -}
 
 module _ {C : Precategory o ℓ}
-         (F F' : Stack C o' ℓ')
+         (F F' : Stack {C = C} o' ℓ')
   where
 
   private
@@ -143,7 +157,7 @@ module _ {C : Precategory o ℓ}
     F'₁ = F' .Functor.F₁
 
   -- Family of geometric functors (Equation 2.13)
-  record Geometric-Transformation : Type (o ⊔ ℓ ⊔ o' ⊔ ℓ') where
+  record Geometric-Transformation : Type (o ⊔ ℓ ⊔ o' ⊔ lsuc ℓ') where
     field
       -- Geometric functor at each U
       Φ_U : ∀ (U : C-Ob) → Functor (Presheaves-on-Fiber F U) (Presheaves-on-Fiber F' U)
@@ -172,12 +186,12 @@ presheaves.
 F*_α pulls features back from layer U' to layer U via the connection α.
 -}
 
-  -- The pullback functors are already given by F₁ and F'₁
+  -- The pullback functors for presheaves (induced by F₁ and F'₁)
   F* : ∀ {U U' : C-Ob} → C-Hom U U' → Functor (Presheaves-on-Fiber F U) (Presheaves-on-Fiber F U')
-  F* α = F₁ α
+  F* = {!!}
 
   F'* : ∀ {U U' : C-Ob} → C-Hom U U' → Functor (Presheaves-on-Fiber F' U) (Presheaves-on-Fiber F' U')
-  F'* α = F'₁ α
+  F'* = {!!}
 
 {-|
 **Equation (2.15)**: The square of functors
@@ -201,10 +215,10 @@ transformation relating the two compositions.
   module _ (Φs : Geometric-Transformation) where
     open Geometric-Transformation Φs
 
-    postulate
-      -- The square "almost commutes" via a natural transformation
-      square-nat-trans : ∀ {U U' : C-Ob} (α : C-Hom U U')
-                       → Φ_U U' F∘ F* α  =>  F'* α F∘ Φ_U U
+    -- The square "almost commutes" via a natural transformation
+    square-nat-trans : ∀ {U U' : C-Ob} (α : C-Hom U U')
+                     → Φ_U U' F∘ F* α  =>  F'* α F∘ Φ_U U
+    square-nat-trans = {!!}
 
 {-|
 **Equation (2.16-2.17)**: Coherence via mates
@@ -233,19 +247,22 @@ The mate is defined using the adjunctions:
   module Mates (Φs : Geometric-Transformation) where
     open Geometric-Transformation Φs
 
-    postulate
-      -- Mate of Φ under adjunctions (Equations 2.16-2.17)
-      Φ*_α : ∀ {U U' : C-Ob} (α : C-Hom U U')
-           → F'* α F∘ Φ_U U'  =>  Φ_U U F∘ F* α
+    -- Mate of Φ under adjunctions (Equations 2.16-2.17)
+    Φ*_α : ∀ {U U' : C-Ob} (α : C-Hom U U')
+         → F'* α F∘ Φ_U U  =>  Φ_U U' F∘ F* α
+    Φ*_α = {!!}
 
-      -- The mate is an isomorphism (coherence)
-      Φ*-is-iso : ∀ {U U' : C-Ob} (α : C-Hom U U')
-                → {!!}  -- Φ*_α is natural isomorphism
+    -- The mate is an isomorphism (coherence)
+    -- Using natural isomorphism from 1lab (invertible natural transformation)
+    Φ*-is-iso : ∀ {U U' : C-Ob} (α : C-Hom U U')
+              → {!!}  -- is-invertibleⁿ (Φ*_α α) from Cat.Functor.Naturality
+    Φ*-is-iso = {!!}
 
-      -- Mate respects composition (Equation 2.17)
-      Φ*-comp : ∀ {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'')
-              → let _∘C_ = C .Precategory._∘_
-                in Φ*_α (α ∘C β) ≡ {!!}  -- Composite of mates
+    -- Mate respects composition (Equation 2.17)
+    Φ*-comp : ∀ {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'')
+            → let _∘C_ = C .Precategory._∘_
+              in Φ*_α (β ∘C α) ≡ {!!}  -- Composite of mates
+    Φ*-comp = {!!}
 
 --------------------------------------------------------------------------------
 -- Equations (2.18-2.21): Full Coherence Laws
@@ -274,32 +291,33 @@ not just a family of geometric functors."
     open Mates Φs
 
     -- Equation 2.18: Identity coherence
-    postulate
-      Φ*-id : ∀ (U : C-Ob)
-            → Φ*_α (C .Precategory.id {x = U})
-              ≡ {!!}  -- Identity natural transformation
+    Φ*-id : ∀ (U : C-Ob)
+          → Φ*_α (C .Precategory.id {x = U})
+            ≡ {!!}  -- Identity natural transformation
+    Φ*-id = {!!}
 
     -- Equation 2.19: Composition coherence
-    postulate
-      Φ*-composition : ∀ {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'')
-                     → let _∘C_ = C .Precategory._∘_
-                       in Φ*_α (α ∘C β)
-                          ≡ {!!}  -- Vertical composition of mates
+    Φ*-composition : ∀ {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'')
+                   → let _∘C_ = C .Precategory._∘_
+                     in Φ*_α (β ∘C α)
+                        ≡ {!!}  -- Vertical composition of mates
+    Φ*-composition = {!!}
 
     -- Equation 2.20: Naturality in morphisms
-    postulate
-      Φ*-natural : ∀ {U U' : C-Ob} {α β : C-Hom U U'}
-                   → (γ : α ≡ β)
-                 → {!!}  -- Φ* respects equality of morphisms
+    -- Path equality preserved by Φ*
+    Φ*-natural : ∀ {U U' : C-Ob} {α β : C-Hom U U'}
+                 → (γ : α ≡ β)
+               → Φ*_α α ≡ Φ*_α β  -- Respects path equality
+    Φ*-natural = {!!}
 
     -- Equation 2.21: Beck-Chevalley condition
     -- For a pullback square in C, the induced square of functors commutes up to canonical iso
-    postulate
-      beck-chevalley : ∀ {U U' V V' : C-Ob}
-                         {f : C-Hom U V} {g : C-Hom U' V'}
-                         {p : C-Hom U U'} {q : C-Hom V V'}
-                       → {!!}  -- Pullback square in C
-                       → {!!}  -- Induced square of geometric functors commutes
+    beck-chevalley : ∀ {U U' V V' : C-Ob}
+                       {f : C-Hom U V} {g : C-Hom U' V'}
+                       {p : C-Hom U U'} {q : C-Hom V V'}
+                     → {!!}  -- is-pullback witness from Cat.Diagram.Pullback in 1lab
+                     → {!!}  -- Commuting square of natural transformations (equality)
+    beck-chevalley = {!!}
 
     {-|
     **Interpretation of Beck-Chevalley for DNNs**
@@ -337,15 +355,17 @@ while preserving its computational structure.
   module Total-Functor (Φs : Geometric-Transformation) where
     open Geometric-Transformation Φs
 
-    postulate
-      -- Total functor on Grothendieck constructions
-      Φ̂ : Functor (Total-Category F) (Total-Category F')
+    -- Total functor on Grothendieck constructions
+    Φ̂ : Functor (Fib.Total-Category F) (Fib.Total-Category F')
+    Φ̂ = {!!}
 
-      -- Φ̂ commutes with projections
-      Φ̂-projection : {!!}  -- π' ∘ Φ̂ = π where π, π' are projections to C
+    -- Φ̂ commutes with projections
+    Φ̂-projection : {!!}  -- π' ∘ Φ̂ = π where π, π' are projections to C
+    Φ̂-projection = {!!}
 
-      -- Φ̂ is cartesian (preserves pullbacks in total category)
-      Φ̂-cartesian : {!!}
+    -- Φ̂ is cartesian (preserves pullbacks in total category)
+    Φ̂-cartesian : {!!}
+    Φ̂-cartesian = {!!}
 
 --------------------------------------------------------------------------------
 -- Examples: Geometric Transformations in DNNs
@@ -362,17 +382,19 @@ A residual connection res(x) = x + f(x) defines a geometric transformation:
 This makes residual connections structure-preserving operations.
 -}
 
-module Residual-Connection {C : Precategory o ℓ} (F : Stack C o' ℓ') where
+module Residual-Connection {C : Precategory o ℓ} (F : Stack {C = C} o' ℓ') where
 
-  postulate
-    -- Residual function at each layer
-    res-fn : ∀ (U : C .Precategory.Ob) → {!!}  -- Some endofunctor of E_U
+  -- Residual function at each layer
+  res-fn : ∀ (U : C .Precategory.Ob) → {!!}  -- Some endofunctor of E_U
+  res-fn = {!!}
 
-    -- Geometric transformation via Φ_U(P) = P × res_U(P)
-    Φ-residual : Geometric-Transformation F F
+  -- Geometric transformation via Φ_U(P) = P × res_U(P)
+  Φ-residual : Geometric-Transformation F F
+  Φ-residual = {!!}
 
-    -- Left adjoint is projection
-    Φ!-residual : ∀ (U : C .Precategory.Ob) → {!!}
+  -- Left adjoint is projection
+  Φ!-residual : ∀ (U : C .Precategory.Ob) → {!!}
+  Φ!-residual = {!!}
 
 {-|
 **Example 2**: Pooling as geometric transformation
@@ -385,20 +407,24 @@ Max pooling or average pooling can be viewed as geometric functors:
 This explains why pooling maintains feature detectability while reducing dimension.
 -}
 
-module Pooling {C : Precategory o ℓ} (F : Stack C o' ℓ') where
+module Pooling {C : Precategory o ℓ} (F : Stack {C = C} o' ℓ') where
 
-  postulate
-    -- Pooled fibration F' with reduced spatial resolution
-    F-pooled : Stack C o' ℓ'
+  -- Pooled fibration F' with reduced spatial resolution
+  F-pooled : Stack {C = C} o' ℓ'
+  F-pooled = {!!}
 
-    -- Pooling transformation
-    Φ-pool : Geometric-Transformation F F-pooled
+  -- Pooling transformation
+  Φ-pool : Geometric-Transformation F F-pooled
+  Φ-pool = {!!}
 
-    -- Upsampling (left adjoint)
-    Φ!-pool : ∀ (U : C .Precategory.Ob) → {!!}
+  -- Upsampling (left adjoint)
+  -- Left adjoint to pooling geometric functor
+  Φ!-pool : ∀ (U : C .Precategory.Ob) → {!!}  -- Functor with Φ!-pool ⊣ pool-fn
+  Φ!-pool = {!!}
 
-    -- Preserves constant features (terminal)
-    pool-preserves-constant : {!!}
+  -- Preserves constant features (terminal)
+  pool-preserves-constant : {!!}
+  pool-preserves-constant = {!!}
 
 {-|
 **Example 3**: Attention as geometric transformation
@@ -411,20 +437,24 @@ Multi-head attention can be modeled as a geometric transformation:
 This provides a categorical understanding of why attention preserves semantic structure.
 -}
 
-module Attention-Geometric {C : Precategory o ℓ} (F : Stack C o' ℓ') where
+module Attention-Geometric {C : Precategory o ℓ} (F : Stack {C = C} o' ℓ') where
 
-  postulate
-    -- Attention-transformed fibration
-    F-attention : Stack C o' ℓ'
+  -- Attention-transformed fibration
+  F-attention : Stack {C = C} o' ℓ'
+  F-attention = {!!}
 
-    -- Attention transformation
-    Φ-attn : Geometric-Transformation F F-attention
+  -- Attention transformation
+  Φ-attn : Geometric-Transformation F F-attention
+  Φ-attn = {!!}
 
-    -- Query operation (left adjoint)
-    Φ!-attn : ∀ (U : C .Precategory.Ob) → {!!}
+  -- Query operation (left adjoint)
+  -- Left adjoint to attention geometric functor
+  Φ!-attn : ∀ (U : C .Precategory.Ob) → {!!}  -- Functor with Φ!-attn ⊣ attn-fn
+  Φ!-attn = {!!}
 
-    -- Preserves weighted limits
-    attn-preserves-weighted-limits : {!!}
+  -- Preserves weighted limits
+  attn-preserves-weighted-limits : {!!}
+  attn-preserves-weighted-limits = {!!}
 
 --------------------------------------------------------------------------------
 -- Connection to Information Preservation
@@ -452,23 +482,27 @@ This is why deep networks can maintain performance despite aggressive compressio
 -}
 
 module Information-Preservation {C : Precategory o ℓ}
-                                 {F F' : Stack C o' ℓ'}
+                                 {F F' : Stack {C = C} o' ℓ'}
                                  (Φs : Geometric-Transformation F F') where
 
   open Geometric-Transformation Φs
 
-  postulate
-    -- Entropy preservation
-    entropy-bound : ∀ (U : C .Precategory.Ob) (X : {!!})
-                  → {!!}  -- H(Φ_U(X)) ≤ H(X)
+  -- Entropy preservation
+  -- Using order relation from 1lab (postulated ℝ with _≤_)
+  entropy-bound : ∀ (U : C .Precategory.Ob) (X : {!!})  -- Object in topos at layer U
+                → {!!}  -- H(Φ_U(X)) ≤ H(X) where H : Ob → ℝ and _≤_ : ℝ → ℝ → Type
+  entropy-bound = {!!}
 
-    -- Mutual information preservation
-    mutual-info-bound : ∀ (U : C .Precategory.Ob) (X Y : {!!})
-                      → {!!}  -- I(Φ_U(X); Φ_U(Y)) ≤ I(X;Y)
+  -- Mutual information preservation
+  mutual-info-bound : ∀ (U : C .Precategory.Ob) (X Y : {!!})  -- Objects in topos at layer U
+                    → {!!}  -- I(Φ_U(X); Φ_U(Y)) ≤ I(X;Y) with mutual info I : Ob × Ob → ℝ
+  mutual-info-bound = {!!}
 
-    -- Feature capacity bound
-    capacity-bound : ∀ (U : C .Precategory.Ob)
-                   → {!!}  -- dim(Φ_U(Ω_U)) ≤ dim(Ω_U)
+  -- Feature capacity bound
+  -- Dimension function and ordering
+  capacity-bound : ∀ (U : C .Precategory.Ob)
+                 → {!!}  -- dim(Φ_U(Ω_U)) ≤ dim(Ω_U) where dim : Ob → ℕ
+  capacity-bound = {!!}
 
 --------------------------------------------------------------------------------
 -- Composition of Geometric Transformations
@@ -493,23 +527,25 @@ geometric building blocks while maintaining structure preservation guarantees.
 -}
 
 module Composition {C : Precategory o ℓ}
-                   {F F' F'' : Stack C o' ℓ'}
+                   {F F' F'' : Stack {C = C} o' ℓ'}
                    (Φs : Geometric-Transformation F F')
                    (Ψs : Geometric-Transformation F' F'') where
 
   open Geometric-Transformation
 
-  postulate
-    -- Composition of geometric transformations
-    Ψ∘Φ : Geometric-Transformation F F''
+  -- Composition of geometric transformations
+  Ψ∘Φ : Geometric-Transformation F F''
+  Ψ∘Φ = {!!}
 
-    -- Components are compositions
-    Ψ∘Φ-component : ∀ (U : C .Precategory.Ob)
-                  → Ψ∘Φ .Φ_U U ≡ Ψs .Φ_U U F∘ Φs .Φ_U U
+  -- Components are compositions
+  Ψ∘Φ-component : ∀ (U : C .Precategory.Ob)
+                → Ψ∘Φ .Φ_U U ≡ Ψs .Φ_U U F∘ Φs .Φ_U U
+  Ψ∘Φ-component = {!!}
 
-    -- Mates compose
-    Ψ∘Φ-mate : ∀ {U U' : C .Precategory.Ob} (α : C .Precategory.Hom U U')
-             → {!!}  -- (Ψ∘Φ)*_α = Φ*_α ∘ Ψ*_α
+  -- Mates compose
+  Ψ∘Φ-mate : ∀ {U U' : C .Precategory.Ob} (α : C .Precategory.Hom U U')
+           → {!!}  -- (Ψ∘Φ)*_α = Φ*_α ∘ Ψ*_α
+  Ψ∘Φ-mate = {!!}
 
 --------------------------------------------------------------------------------
 -- Summary and Next Steps

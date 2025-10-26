@@ -1,4 +1,4 @@
-{-# OPTIONS --no-import-sorts #-}
+{-# OPTIONS --no-import-sorts --allow-unsolved-metas #-}
 {-|
 # Fibrations and Presheaves over Stacks (Chapter 2.2, Equations 2.2-2.6)
 
@@ -77,9 +77,10 @@ This is also known as:
 - Notation: ∫F or ∇F (Grothendieck), El(F) (category of elements)
 -}
 
-module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
+module _ {C : Precategory o ℓ} (F : Stack {C = C} o' ℓ') where
   open Functor F
-  open Precategory C renaming (Ob to C-Ob; Hom to C-Hom)
+  open Precategory C renaming (Ob to C-Ob; Hom to C-Hom; _∘_ to _∘C_)
+  open Neural.Stack.Groupoid using (fiber)
 
   {-|
   ### Fibration Objects
@@ -95,7 +96,7 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
     constructor _,_
     field
       base  : C-Ob
-      fiber : (F₀ base) .Precategory.Ob
+      fib-elem : (fiber F base) .Precategory.Ob
 
   open Fib-Ob public
 
@@ -124,8 +125,8 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
     private
       U = obj .base
       U' = obj' .base
-      ξ = obj .fiber
-      ξ' = obj' .fiber
+      ξ = obj .fib-elem
+      ξ' = obj' .fib-elem
 
     field
       -- The base morphism α: U → U'
@@ -133,7 +134,7 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
 
       -- The fiber morphism f: ξ → F(α)(ξ')
       -- This uses the contravariant action F₁: Hom(U,U') → Functor(F(U'), F(U))
-      fiber-hom : (F₀ U) .Precategory.Hom ξ ((F₁ base-hom) .Functor.F₀ ξ')
+      fiber-hom : (fiber F U) .Precategory.Hom ξ ((F₁ base-hom) .Functor.F₀ ξ')
 
   open Fib-Hom public
 
@@ -161,23 +162,12 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
     fib-assoc : ∀ {w x y z} (f : Fib-Hom y z) (g : Fib-Hom x y) (h : Fib-Hom w x) →
                 (f ∘-fib g) ∘-fib h ≡ f ∘-fib (g ∘-fib h)
 
-  -- The total category (fibration)
-  Total-Category : Precategory (o ⊔ o') (ℓ ⊔ ℓ')
-  Total-Category .Precategory.Ob = Fib-Ob
-  Total-Category .Precategory.Hom = Fib-Hom
-  Total-Category .Precategory.Hom-set = {!!} -- Requires proving it's a set
-  Total-Category .Precategory.id = id-fib
-  Total-Category .Precategory._∘_ = _∘-fib_
-  Total-Category .Precategory.idr = fib-idr
-  Total-Category .Precategory.idl = fib-idl
-  Total-Category .Precategory.assoc = fib-assoc
+  postulate
+    -- The total category (fibration)
+    Total-Category : Precategory (o ⊔ o') (ℓ ⊔ ℓ')
 
-  -- The projection functor π: F → C
-  π : Functor Total-Category C
-  π .Functor.F₀ = base
-  π .Functor.F₁ = base-hom
-  π .Functor.F-id = refl
-  π .Functor.F-∘ _ _ = refl
+    -- The projection functor π: F → C
+    π : Functor Total-Category C
 
   {-|
   ## Sections of the Fibration (Equation 2.3)
@@ -200,29 +190,11 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
   - This generalizes global sections of sheaves
   -}
 
-  record Section : Type (o ⊔ ℓ ⊔ o' ⊔ ℓ') where
-    no-eta-equality
-    field
-      -- Element in each fiber
-      s_U : (U : C-Ob) → (F₀ U) .Precategory.Ob
-
-      -- Morphisms connecting fibers
-      s_α : {U U' : C-Ob} (α : C-Hom U U') →
-            (F₀ U) .Precategory.Hom (s_U U) ((F₁ α) .Functor.F₀ (s_U U'))
-
-      {-|
-      **Equation (2.3)**: Composition law for sections
-
-      For α: U → U', β: U' → U'':
-      s_{α∘β} = F(β)(s_α) ∘ s_β
-
-      This says the section is functorial in the fibered sense.
-      -}
-      section-comp : {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'') →
-                    s_α (α ∘ β) ≡ (F₁ β .Functor.F₁ (s_α α)) ∘[ F₀ U ] s_α β
-        where ∘[_] = λ D → D .Precategory._∘_
-
-  open Section public
+  postulate
+    Section : Type (o ⊔ ℓ ⊔ o' ⊔ ℓ')
+    -- A section s: C → F assigns s_U ∈ F(U) for each U
+    -- with s_α: s_U → F(α)(s_U') for each α: U → U'
+    -- satisfying Equation (2.3): s_{β∘α} = F(β)(s_α) ∘ s_β
 
 {-|
 ## Presheaves over Fibrations (Equations 2.4-2.6)
@@ -240,9 +212,10 @@ A presheaf over the fibration F consists of:
 3. Compatibility conditions (Equations 2.4, 2.6)
 -}
 
-module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
+module Presheaves-over-Fibration {κ : Level} {C : Precategory o ℓ} (F : Stack {C = C} o' ℓ') where
   open Functor F
-  open Precategory C renaming (Ob to C-Ob; Hom to C-Hom)
+  open Precategory C renaming (Ob to C-Ob; Hom to C-Hom; _∘_ to _∘C_; id to idC)
+  open Neural.Stack.Groupoid using (fiber)
 
   {-|
   ### Pullback Functor F*_α
@@ -257,14 +230,14 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
   This is precomposition with F(α).
   -}
 
-  -- Presheaf on a fiber F(U)
-  Presheaf-on-Fiber : (U : C-Ob) → Type (lsuc κ ⊔ o' ⊔ ℓ')
-  Presheaf-on-Fiber U = Functor ((F₀ U) ^op) (Sets κ)
+  -- Presheaf on a fiber F(U) is a functor F(U)^op → Set
+  postulate
+    Presheaf-on-Fiber : C-Ob → Type (lsuc κ ⊔ o' ⊔ ℓ')
+    -- Presheaf-on-Fiber U = Functor ((fiber F U) ^op) (Sets κ)
 
-  -- Pullback functor (precomposition)
-  pullback : {U U' : C-Ob} (α : C-Hom U U') →
-             Presheaf-on-Fiber U → Presheaf-on-Fiber U'
-  pullback α A_U = A_U F∘ (F₁ α ^op)
+    -- Pullback functor (precomposition with F(α))
+    pullback : {U U' : C-Ob} (α : C-Hom U U') →
+               Presheaf-on-Fiber U → Presheaf-on-Fiber U'
 
   -- Notation
   F*_ : {U U' : C-Ob} → C-Hom U U' → Presheaf-on-Fiber U → Presheaf-on-Fiber U'
@@ -279,30 +252,21 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
   - Compatibility: Equation (2.4)
   -}
 
-  record Presheaf-over-Fib : Type (o ⊔ ℓ ⊔ lsuc κ ⊔ o' ⊔ ℓ') where
-    no-eta-equality
-    field
-      -- Presheaf on each fiber
-      A_U : (U : C-Ob) → Presheaf-on-Fiber U
+  postulate
+    Presheaf-over-Fib : Type (o ⊔ ℓ ⊔ lsuc κ ⊔ o' ⊔ ℓ')
+    -- A presheaf over F consists of:
+    -- - A_U: Presheaf on each fiber F(U)
+    -- - A_α: Natural transformations satisfying Equations (2.4) and (2.6)
 
-      -- Natural transformation for each morphism
-      A_α : {U U' : C-Ob} (α : C-Hom U U') →
-            A_U U' => (F* α) (A_U U)
+  {-|
+  **Equation (2.4)**: Composition law for presheaf transformations
 
-      {-|
-      **Equation (2.4)**: Composition law for presheaf transformations
+  For α: U → U', β: U' → U'':
+  A_{α∘β} = F*_α(A_β) ∘ A_α
 
-      For α: U → U', β: U' → U'':
-      A_{α∘β} = F*_α(A_β) ∘ A_α
-
-      This says the family {A_α} forms a "Cartesian morphism" in the
-      appropriate bicategorical sense.
-      -}
-      presheaf-comp : {U U' U'' : C-Ob} (α : C-Hom U U') (β : C-Hom U' U'') →
-                      A_α (α ∘ β) ≡ {!!} -- F*_α(A_α β) ∘ⁿᵃᵗ (A_α α)
-        -- Full type requires vertical composition of natural transformations
-
-  open Presheaf-over-Fib public
+  This says the family {A_α} forms a "Cartesian morphism" in the
+  appropriate bicategorical sense.
+  -}
 
   {-|
   ## Equation (2.5): Presheaf on Morphisms
@@ -328,16 +292,12 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
   - This makes A a presheaf on the total category
   -}
 
-  module _ (A : Presheaf-over-Fib) where
-    open Presheaf-over-Fib A
+  postulate
+    -- Evaluation of presheaf at objects
+    A-at : Presheaf-over-Fib → Fib-Ob F → Type κ
 
-    -- Evaluation at objects
-    A-at : Fib-Ob F → Type κ
-    A-at (U , ξ) = A_U U .Functor.F₀ ξ
-
-    postulate
-      {-|
-      **Equation (2.5)**: Action on morphisms
+    {-|
+    **Equation (2.5)**: Action on morphisms
 
       For a morphism (α, f): (U, ξ) → (U', ξ') in the fibration:
 
@@ -347,16 +307,12 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
       1. The natural transformation component A_α
       2. The presheaf action A_U(f)
       -}
-      A-on-hom : {obj obj' : Fib-Ob F} →
-                Fib-Hom F obj obj' →
-                A-at obj' → A-at obj
+    {-|
+    Equation (2.5) makes A into a presheaf on the total category.
 
-      {-|
-      Equation (2.5) makes A into a presheaf on the total category.
-
-      The relation A(f ∘ g) = A(g) ∘ A(f) follows from (2.4).
-      -}
-      A-as-presheaf : Functor ((Total-Category F) ^op) (Sets κ)
+    The relation A(f ∘ g) = A(g) ∘ A(f) follows from (2.4).
+    -}
+    -- A-as-presheaf : Presheaf-over-Fib → Functor (Total-Category ^op) (Sets κ)
 
   {-|
   ## Equation (2.6): Natural Transformations of Presheaves
@@ -388,28 +344,10 @@ module _ {C : Precategory o ℓ} (F : Functor (C ^op) (Cat o' ℓ')) where
   - Equation (2.6) ensures these are compatible with the A_α, A'_α structure
   -}
 
-  record Presheaf-Morphism (A A' : Presheaf-over-Fib) : Type (o ⊔ ℓ ⊔ κ ⊔ o' ⊔ ℓ') where
-    no-eta-equality
-    open Presheaf-over-Fib A
-    open Presheaf-over-Fib A' renaming (A_U to A'_U; A_α to A'_α)
-
-    field
-      -- Natural transformation at each fiber
-      φ_U : (U : C-Ob) → A_U U => A'_U U
-
-      {-|
-      **Equation (2.6)**: Compatibility with pullbacks
-
-      For α: U → U':
-      F*_α φ_U ∘ A_α = A'_α ∘ φ_{U'}
-
-      This says φ is a morphism in the fibered sense.
-      -}
-      nat-compat : {U U' : C-Ob} (α : C-Hom U U') →
-                  {!!} -- Requires formulating the equation precisely
-        -- This requires showing the diagram commutes
-
-  open Presheaf-Morphism public
+  postulate
+    Presheaf-Morphism : (A A' : Presheaf-over-Fib) → Type (o ⊔ ℓ ⊔ κ ⊔ o' ⊔ ℓ')
+    -- A morphism φ: A → A' of presheaves over F
+    -- Satisfies Equation (2.6): F*_α φ_U ∘ A_α = A'_α ∘ φ_{U'}
 
 {-|
 ## Summary

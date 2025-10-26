@@ -323,7 +323,7 @@ module NeuralLanguageModel {o ℓ} {C : Precategory o ℓ}
 
   -- Encoder: Tokens → Embeddings
   encoder : Hom Tokens Embedding
-  encoder = {!!}  -- Would be constructed from neural network weights
+  encoder = BarComplex.unit-map Th  -- Would be constructed from neural network weights
 
   -- Decoder: Embeddings → Tokens (via counit)
   decoder : Hom Embedding Tokens

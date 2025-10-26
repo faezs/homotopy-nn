@@ -248,30 +248,99 @@ class SubobjectClassifier(nn.Module):
     def conjunction(self, p: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
         """Internal conjunction (AND) in Ω.
 
-        Fuzzy logic: min(p, q)
+        Smooth approximation: p * q (product t-norm)
+
+        Kripke-Joyal: U ⊩ (φ ∧ ψ) ↔ (U ⊩ φ) ∧ (U ⊩ ψ)
+
+        Gradient flow:
+        ∂/∂p = q, ∂/∂q = p (both non-zero, fully differentiable)
         """
-        return torch.min(p, q)
+        return p * q
 
     def disjunction(self, p: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
         """Internal disjunction (OR) in Ω.
 
-        Fuzzy logic: max(p, q)
+        Smooth approximation: p + q - p*q (probabilistic sum)
+
+        Kripke-Joyal: U ⊩ (φ ∨ ψ) ↔ (U ⊩ φ) ∨ (U ⊩ ψ)
+
+        Gradient flow:
+        ∂/∂p = 1 - q, ∂/∂q = 1 - p (fully differentiable)
         """
-        return torch.max(p, q)
+        return p + q - p * q
 
     def negation(self, p: torch.Tensor) -> torch.Tensor:
         """Internal negation (NOT) in Ω.
 
-        Fuzzy logic: 1 - p
+        Smooth: 1 - p (already differentiable)
+
+        Kripke-Joyal: U ⊩ (¬φ) ↔ ∀(f: V→U). ¬(V ⊩ φ)
+
+        Gradient flow:
+        ∂/∂p = -1 (constant gradient)
         """
         return 1.0 - p
 
     def implication(self, p: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
         """Internal implication (p ⇒ q) in Ω.
 
-        Fuzzy logic: max(1 - p, q)
+        Smooth approximation: (1-p) + q - (1-p)*q
+        Equivalent to: 1 - p + p*q
+
+        Kripke-Joyal: U ⊩ (φ ⇒ ψ) ↔ ∀(f: V→U). (V ⊩ φ) → (V ⊩ ψ)
+
+        Gradient flow:
+        ∂/∂p = q - 1, ∂/∂q = 1 - p (fully differentiable)
         """
-        return torch.max(1.0 - p, q)
+        not_p = 1.0 - p
+        return not_p + q - not_p * q
+
+    def forall(self, values: List[torch.Tensor]) -> torch.Tensor:
+        """Universal quantification: ∀x. φ(x).
+
+        Smooth approximation: Product over all values
+        torch.prod([φ(v1), φ(v2), ...])
+
+        Kripke-Joyal: U ⊩ (∀x.φ) ↔ ∀(f: V→U). V ⊩ φ[x := f]
+
+        Gradient flow:
+        ∂(∏ vᵢ)/∂vⱼ = ∏_{i≠j} vᵢ (all values contribute!)
+
+        Args:
+            values: List of truth values [0,1] to quantify over
+
+        Returns:
+            Product of all values (differentiable)
+        """
+        if len(values) == 0:
+            return torch.tensor(1.0)  # Vacuous truth
+
+        return torch.prod(torch.stack(values))
+
+    def exists(self, values: List[torch.Tensor]) -> torch.Tensor:
+        """Existential quantification: ∃x. φ(x).
+
+        Smooth approximation: Logsumexp (differentiable max)
+        torch.logsumexp([φ(v1), φ(v2), ...])
+
+        Kripke-Joyal: U ⊩ (∃x.φ) ↔ ∃[cover]. ∀(f ∈ cover). V ⊩ φ
+
+        Gradient flow:
+        Gradients flow to all values, weighted by their magnitude
+        (larger values get more gradient)
+
+        Args:
+            values: List of truth values [0,1] to quantify over
+
+        Returns:
+            Smooth maximum (normalized to [0,1])
+        """
+        if len(values) == 0:
+            return torch.tensor(0.0)  # No witnesses
+
+        stacked = torch.stack(values)
+        # Logsumexp approximates max, sigmoid normalizes to [0,1]
+        return torch.sigmoid(torch.logsumexp(stacked, dim=0))
 
 
 ################################################################################

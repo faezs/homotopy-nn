@@ -1,0 +1,327 @@
+🚀 Using Apple Silicon GPU (MPS)
+Template search space: 152 formulas
+
+======================================================================
+NEURAL-SYMBOLIC ARC TRAINING
+======================================================================
+Configuration:
+  Scales: 0 → 2
+  Epochs: 50
+  Batch size: 4
+  Learning rate: 0.001
+  Feature dim: 64
+  Device: mps
+  Template search space: 152
+Loading ARC datasets...
+  Scale 0: 327 tasks
+  Scale 1: 493 tasks
+  Scale 2: 460 tasks
+  Scale 3: 420 tasks
+  Scale 4: 207 tasks
+  Scale 5: 162 tasks
+  Scale 0: 261 train, 66 val
+  Scale 1: 394 train, 99 val
+  Scale 2: 368 train, 92 val
+
+======================================================================
+Training Scale 0
+======================================================================
+Train tasks: 261
+Val tasks: 66
+Epoch 5/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.774
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+  ✓ New best binary accuracy: 2.07%
+Epoch 10/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.599
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 15/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.463
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 20/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.358
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 25/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.277
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 30/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.215
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 35/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.166
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 40/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.129
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 45/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.100
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 50/50
+  Train loss: 9.5021
+  Train pixel acc: 55.13%
+  Val pixel acc: 46.56%
+  Val binary acc: 2.07%
+  Temperature: 0.100
+  Top templates:
+    [242x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+
+======================================================================
+Scale 0 Final Results
+======================================================================
+  Pixel accuracy: 46.56%
+  Binary accuracy: 2.07%
+  Examples: 242
+
+Scale 0 completed in 2380.47s
+
+======================================================================
+Training Scale 1
+======================================================================
+Train tasks: 394
+Val tasks: 99
+Epoch 5/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+  ✓ New best binary accuracy: 2.18%
+Epoch 10/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 15/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 20/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 25/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 30/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 35/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 40/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 45/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 50/50
+  Train loss: 9.4304
+  Train pixel acc: 60.57%
+  Val pixel acc: 60.98%
+  Val binary acc: 2.18%
+  Temperature: 0.100
+  Top templates:
+    [321x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+
+======================================================================
+Scale 1 Final Results
+======================================================================
+  Pixel accuracy: 60.98%
+  Binary accuracy: 2.18%
+  Examples: 321
+
+Scale 1 completed in 4380.57s
+
+======================================================================
+Training Scale 2
+======================================================================
+Train tasks: 368
+Val tasks: 92
+Epoch 5/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+  ✓ New best binary accuracy: 2.74%
+Epoch 10/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 15/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 20/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 25/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 30/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 35/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 40/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 45/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+Epoch 50/50
+  Train loss: 6.2725
+  Train pixel acc: 69.64%
+  Val pixel acc: 68.03%
+  Val binary acc: 2.74%
+  Temperature: 0.100
+  Top templates:
+    [292x] ∀cell. color := translated_color(cell, -1, 0) ; ∀cell. color := translated_color...
+
+======================================================================
+Scale 2 Final Results
+======================================================================
+  Pixel accuracy: 68.03%
+  Binary accuracy: 2.74%
+  Examples: 292
+
+Scale 2 completed in 6457.81s
+
+======================================================================
+TRAINING COMPLETE
+======================================================================
+Total time: 13218.85s
+
+Final accuracies:
+  Scale 0: 2.07% binary, 46.56% pixel
+  Scale 1: 2.18% binary, 60.98% pixel
+  Scale 2: 2.74% binary, 68.03% pixel
+
+✅ Training complete!
+
+Final binary accuracy: 2.74%
+Final pixel accuracy: 68.03%

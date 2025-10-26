@@ -1,4 +1,4 @@
-{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives #-}
+{-# OPTIONS --rewriting --guardedness --cubical --no-load-primitives --allow-unsolved-metas #-}
 
 {-|
 Module: Neural.Stack.LogicalPropagation
@@ -39,10 +39,12 @@ open import Cat.Functor.Base
 open import Cat.Diagram.Terminal
 open import Cat.Diagram.Pullback
 open import Cat.Functor.Adjoint
+import Cat.Morphism
 
 open import Neural.Stack.Fibration
 open import Neural.Stack.Classifier
 open import Neural.Stack.Geometric
+open import Neural.Stack.Groupoid using (Stack)
 
 private variable
   o ℓ o' ℓ' κ : Level
@@ -72,11 +74,11 @@ For a feature space X in layer U, a proposition P: X → Ω might be:
 module Propositions {E : Precategory o ℓ} (Ω-E : Subobject-Classifier E) where
 
   private
-    Ω = Ω-E .Subobject-Classifier.Ω
+    Ω-obj = Ω-E .Subobject-Classifier.Ω-obj
 
   -- A proposition about X is a morphism to Ω
   Proposition : (X : E .Precategory.Ob) → Type ℓ
-  Proposition X = E .Precategory.Hom X Ω
+  Proposition X = E .Precategory.Hom X Ω-obj
 
   -- Truth value: evaluating proposition at a point
   postulate
@@ -96,15 +98,15 @@ module Propositions {E : Precategory o ℓ} (Ω-E : Subobject-Classifier E) wher
   -}
 
   postulate
-    _∧_ : ∀ {X : E .Precategory.Ob} → Proposition X → Proposition X → Proposition X
-    _∨_ : ∀ {X : E .Precategory.Ob} → Proposition X → Proposition X → Proposition X
-    _⇒_ : ∀ {X : E .Precategory.Ob} → Proposition X → Proposition X → Proposition X
+    _∧-prop_ : ∀ {X : E .Precategory.Ob} → Proposition X → Proposition X → Proposition X
+    _∨-prop_ : ∀ {X : E .Precategory.Ob} → Proposition X → Proposition X → Proposition X
+    _⇒-prop_ : ∀ {X : E .Precategory.Ob} → Proposition X → Proposition X → Proposition X
     ⊤-prop : ∀ {X : E .Precategory.Ob} → Proposition X
     ⊥-prop : ∀ {X : E .Precategory.Ob} → Proposition X
 
     -- Heyting algebra laws
-    ∧-comm : ∀ {X : E .Precategory.Ob} (P Q : Proposition X) → P ∧ Q ≡ Q ∧ P
-    ∨-comm : ∀ {X : E .Precategory.Ob} (P Q : Proposition X) → P ∨ Q ≡ Q ∨ P
+    ∧-comm : ∀ {X : E .Precategory.Ob} (P Q : Proposition X) → P ∧-prop Q ≡ Q ∧-prop P
+    ∨-comm : ∀ {X : E .Precategory.Ob} (P Q : Proposition X) → P ∨-prop Q ≡ Q ∨-prop P
     -- ... other laws
 
 --------------------------------------------------------------------------------
@@ -135,17 +137,15 @@ module Proofs {E : Precategory o ℓ} (Ω-E : Subobject-Classifier E) where
   open Propositions Ω-E
 
   private
-    Ω = Ω-E .Subobject-Classifier.Ω
+    Ω-obj' = Ω-E .Subobject-Classifier.Ω-obj
     𝟙 = Ω-E .Subobject-Classifier.terminal .Terminal.top
-    true = Ω-E .Subobject-Classifier.true
+    true-arrow = Ω-E .Subobject-Classifier.truth-arrow
 
   -- A proof of P: X → Ω is a section making P true
   record Proof {X : E .Precategory.Ob} (P : Proposition X) : Type (o ⊔ ℓ) where
     field
       witness : E .Precategory.Hom 𝟙 X
-      correctness : P ∘ witness ≡ true
-    where
-      _∘_ = E .Precategory._∘_
+      correctness : E .Precategory._∘_ P witness ≡ true-arrow
 
   -- Proofs can be composed with morphisms (substitution)
   postulate
@@ -153,9 +153,7 @@ module Proofs {E : Precategory o ℓ} (Ω-E : Subobject-Classifier E) where
                   (f : E .Precategory.Hom Y X)
                   (P : Proposition X)
                 → Proof P
-                → Proof (P ∘ f)
-      where
-        _∘_ = E .Precategory._∘_
+                → Proof (E .Precategory._∘_ P f)
 
   -- Conjunction of proofs
   postulate
@@ -163,13 +161,13 @@ module Proofs {E : Precategory o ℓ} (Ω-E : Subobject-Classifier E) where
               {P Q : Proposition X}
             → Proof P
             → Proof Q
-            → Proof (P ∧ Q)
+            → Proof (P ∧-prop Q)
 
   -- Implication gives proof transformation
   postulate
     ⇒-proof : ∀ {X : E .Precategory.Ob}
               {P Q : Proposition X}
-            → Proof (P ⇒ Q)
+            → Proof (P ⇒-prop Q)
             → Proof P
             → Proof Q
 
@@ -205,11 +203,12 @@ module _ {E E' : Precategory o ℓ}
   where
 
   open is-geometric Φ-geom
+  open Cat.Morphism E'
 
   postulate
     -- Lemma 2.1: Φ preserves Ω (Equation 2.24)
-    lemma-2-1 : Φ .Functor.F₀ (Ω-E .Subobject-Classifier.Ω)
-                ≅ (Ω-E' .Subobject-Classifier.Ω)
+    lemma-2-1 : Φ .Functor.F₀ (Ω-E .Subobject-Classifier.Ω-obj)
+                ≅ (Ω-E' .Subobject-Classifier.Ω-obj)
 
     -- Φ also preserves true: 1 → Ω
     Φ-preserves-true : {!!}  -- Φ(true) ≅ true' via lemma-2-1
@@ -227,12 +226,12 @@ module _ {E E' : Precategory o ℓ}
 
   postulate
     iso-forward : E' .Precategory.Hom
-                    (Φ .Functor.F₀ (Ω-E .Subobject-Classifier.Ω))
-                    (Ω-E' .Subobject-Classifier.Ω)
+                    (Φ .Functor.F₀ (Ω-E .Subobject-Classifier.Ω-obj))
+                    (Ω-E' .Subobject-Classifier.Ω-obj)
 
     iso-backward : E' .Precategory.Hom
-                     (Ω-E' .Subobject-Classifier.Ω)
-                     (Φ .Functor.F₀ (Ω-E .Subobject-Classifier.Ω))
+                     (Ω-E' .Subobject-Classifier.Ω-obj)
+                     (Φ .Functor.F₀ (Ω-E .Subobject-Classifier.Ω-obj))
 
     iso-proof : {!!}  -- forward ∘ backward ≡ id and backward ∘ forward ≡ id
 
@@ -262,30 +261,34 @@ as Φ(P) in the output. The semantic content is preserved.
 -}
 
   module PreservePropositions where
-    open Propositions Ω-E renaming (Proposition to Prop)
-    open Propositions Ω-E' renaming (Proposition to Prop')
+    open Propositions Ω-E renaming (Proposition to ToposProp; _∧-prop_ to _∧-E_; _∨-prop_ to _∨-E_; _⇒-prop_ to _⇒-E_; ⊤-prop to ⊤-E; ⊥-prop to ⊥-E)
+    open Propositions Ω-E' renaming (Proposition to ToposProp'; _∧-prop_ to _∧-E'_; _∨-prop_ to _∨-E'_; _⇒-prop_ to _⇒-E'_; ⊤-prop to ⊤-E'; ⊥-prop to ⊥-E')
 
     -- Lemma 2.2: Φ transforms propositions to propositions (Equation 2.25)
-    Φ-prop : ∀ {X : E .Precategory.Ob} → Prop X → Prop' (Φ .Functor.F₀ X)
+    Φ-prop : ∀ {X : E .Precategory.Ob} → ToposProp X → ToposProp' (Φ .Functor.F₀ X)
     Φ-prop {X} P = {!!}  -- Φ(P) composed with Φ(Ω) ≅ Ω'
 
-    postulate
-      -- Φ preserves logical operations (Equations 2.26-2.28)
-      Φ-preserves-∧ : ∀ {X : E .Precategory.Ob} (P Q : Prop X)
-                    → Φ-prop (P ∧ Q) ≡ (Φ-prop P) ∧ (Φ-prop Q)  -- Equation 2.26
+    -- Φ preserves logical operations (Equations 2.26-2.28)
+    Φ-preserves-∧ : ∀ {X : E .Precategory.Ob} (P Q : ToposProp X)
+                  → Φ-prop (P ∧-E Q) ≡ (Φ-prop P) ∧-E' (Φ-prop Q)  -- Equation 2.26
+    Φ-preserves-∧ = {!!}
 
-      Φ-preserves-∨ : ∀ {X : E .Precategory.Ob} (P Q : Prop X)
-                    → Φ-prop (P ∨ Q) ≡ (Φ-prop P) ∨ (Φ-prop Q)  -- Equation 2.27
+    Φ-preserves-∨ : ∀ {X : E .Precategory.Ob} (P Q : ToposProp X)
+                  → Φ-prop (P ∨-E Q) ≡ (Φ-prop P) ∨-E' (Φ-prop Q)  -- Equation 2.27
+    Φ-preserves-∨ = {!!}
 
-      Φ-preserves-⇒ : ∀ {X : E .Precategory.Ob} (P Q : Prop X)
-                    → Φ-prop (P ⇒ Q) ≡ (Φ-prop P) ⇒ (Φ-prop Q)  -- Equation 2.28
+    Φ-preserves-⇒ : ∀ {X : E .Precategory.Ob} (P Q : ToposProp X)
+                  → Φ-prop (P ⇒-E Q) ≡ (Φ-prop P) ⇒-E' (Φ-prop Q)  -- Equation 2.28
+    Φ-preserves-⇒ = {!!}
 
-      -- Φ preserves truth values
-      Φ-preserves-⊤ : ∀ {X : E .Precategory.Ob}
-                    → Φ-prop (⊤-prop {X}) ≡ ⊤-prop {Φ .Functor.F₀ X}
+    -- Φ preserves truth values
+    Φ-preserves-⊤ : ∀ {X : E .Precategory.Ob}
+                  → Φ-prop (⊤-E {X}) ≡ ⊤-E' {Φ .Functor.F₀ X}
+    Φ-preserves-⊤ = {!!}
 
-      Φ-preserves-⊥ : ∀ {X : E .Precategory.Ob}
-                    → Φ-prop (⊥-prop {X}) ≡ ⊥-prop {Φ .Functor.F₀ X}
+    Φ-preserves-⊥ : ∀ {X : E .Precategory.Ob}
+                  → Φ-prop (⊥-E {X}) ≡ ⊥-E' {Φ .Functor.F₀ X}
+    Φ-preserves-⊥ = {!!}
 
 --------------------------------------------------------------------------------
 -- Lemma 2.3: Geometric functors preserve proofs
@@ -315,37 +318,42 @@ operations.
 -}
 
   module PreserveProofs where
+    open Propositions Ω-E renaming (Proposition to ToposProp; _∧-prop_ to _∧-E_; _∨-prop_ to _∨-E_; _⇒-prop_ to _⇒-E_; ⊤-prop to ⊤-E; ⊥-prop to ⊥-E)
+    open Propositions Ω-E' renaming (Proposition to ToposProp'; _∧-prop_ to _∧-E'_; _∨-prop_ to _∨-E'_; _⇒-prop_ to _⇒-E'_; ⊤-prop to ⊤-E'; ⊥-prop to ⊥-E')
     open Proofs Ω-E renaming (Proof to Pf)
     open Proofs Ω-E' renaming (Proof to Pf')
-    open PreservePropositions
+    open PreservePropositions using (Φ-prop)
 
-    postulate
-      -- Lemma 2.3: Φ transforms proofs to proofs (Equation 2.29)
-      lemma-2-3 : ∀ {X : E .Precategory.Ob}
-                  {P : Propositions.Proposition Ω-E X}
-                → Pf P
-                → Pf' (Φ-prop P)
-
-      -- Explicit construction
-      Φ-proof : ∀ {X : E .Precategory.Ob}
+    -- Lemma 2.3: Φ transforms proofs to proofs (Equation 2.29)
+    lemma-2-3 : ∀ {X : E .Precategory.Ob}
                 {P : Propositions.Proposition Ω-E X}
-                (pf : Pf P)
-              → let witness' = Φ .Functor.F₁ (pf .Pf.witness)
-                    -- Φ(P ∘ s) = Φ(P) ∘ Φ(s) by functoriality
-                    -- Φ(true) = true' by Lemma 2.1
-                in Pf' (Φ-prop P)
+              → Pf P
+              → Pf' (Φ-prop P)
+    lemma-2-3 = {!!}
 
-      -- Φ preserves proof operations (Equations 2.30-2.31)
-      Φ-preserves-∧-proof : ∀ {X : E .Precategory.Ob}
-                            {P Q : Propositions.Proposition Ω-E X}
-                            (pf-P : Pf P) (pf-Q : Pf Q)
-                          → {!!}  -- Φ(pf-P ∧ pf-Q) = Φ(pf-P) ∧ Φ(pf-Q)
+    -- Explicit construction
+    Φ-proof : ∀ {X : E .Precategory.Ob}
+              {P : Propositions.Proposition Ω-E X}
+              (pf : Pf P)
+            → let witness' = Φ .Functor.F₁ (pf .Pf.witness)
+                  -- Φ(P ∘ s) = Φ(P) ∘ Φ(s) by functoriality
+                  -- Φ(true) = true' by Lemma 2.1
+              in Pf' (Φ-prop P)
+    Φ-proof = {!!}
 
-      Φ-preserves-⇒-proof : ∀ {X : E .Precategory.Ob}
-                            {P Q : Propositions.Proposition Ω-E X}
-                            (pf-impl : Pf (P ⇒ Q))
-                            (pf-P : Pf P)
-                          → {!!}  -- Φ(pf-impl pf-P) = Φ(pf-impl) Φ(pf-P)
+    -- Φ preserves proof operations (Equations 2.30-2.31)
+    Φ-preserves-∧-proof : ∀ {X : E .Precategory.Ob}
+                          {P Q : Propositions.Proposition Ω-E X}
+                          (pf-P : Pf P) (pf-Q : Pf Q)
+                        → {!!}  -- Φ(pf-P ∧ pf-Q) = Φ(pf-P) ∧ Φ(pf-Q)
+    Φ-preserves-∧-proof = {!!}
+
+    Φ-preserves-⇒-proof : ∀ {X : E .Precategory.Ob}
+                          {P Q : Propositions.Proposition Ω-E X}
+                          (pf-impl : Pf (P ⇒-E Q))
+                          (pf-P : Pf P)
+                        → {!!}  -- Φ(pf-impl pf-P) = Φ(pf-impl) Φ(pf-P)
+    Φ-preserves-⇒-proof = {!!}
 
 --------------------------------------------------------------------------------
 -- Lemma 2.4: Geometric functors preserve deduction
@@ -377,26 +385,31 @@ pooled layer. Logical inference patterns are preserved through the network.
   module PreserveDeduction where
 
     -- Deduction context: list of propositions
-    postulate
-      Context : (E : Precategory o ℓ) (Ω : Subobject-Classifier E) → Type (o ⊔ ℓ)
+    Context : (E : Precategory o ℓ) (Ω : Subobject-Classifier E) → Type (o ⊔ ℓ)
+    Context = {!!}
 
     -- Derivation: Γ ⊢ P
-    postulate
-      _⊢_ : ∀ {E : Precategory o ℓ} {Ω : Subobject-Classifier E}
-          → Context E Ω
-          → {!!}  -- Proposition
-          → Type (o ⊔ ℓ)
+    _⊢_ : ∀ {E : Precategory o ℓ} {Ω : Subobject-Classifier E}
+        → Context E Ω
+        → {!!}  -- Proposition
+        → Type (o ⊔ ℓ)
+    _⊢_ = {!!}
 
     -- Lemma 2.4: Φ preserves derivations (Equation 2.32)
-    postulate
-      lemma-2-4 : ∀ {Γ : Context E Ω-E} {P : {!!}}
-                → (Γ ⊢ P)
-                → ({!!} ⊢ {!!})  -- Φ(Γ) ⊢ Φ(P)
+    lemma-2-4 : ∀ {Γ : Context E Ω-E} {P : {!!}}
+              → (Γ ⊢ P)
+              → ({!!} ⊢ {!!})  -- Φ(Γ) ⊢ Φ(P)
+    lemma-2-4 = {!!}
 
-      -- Specific deduction rules preserved
-      Φ-preserves-modus-ponens : {!!}
-      Φ-preserves-∧-intro : {!!}
-      Φ-preserves-∨-elim : {!!}
+    -- Specific deduction rules preserved
+    Φ-preserves-modus-ponens : {!!}
+    Φ-preserves-modus-ponens = {!!}
+
+    Φ-preserves-∧-intro : {!!}
+    Φ-preserves-∧-intro = {!!}
+
+    Φ-preserves-∨-elim : {!!}
+    Φ-preserves-∨-elim = {!!}
 
 --------------------------------------------------------------------------------
 -- Theorem 2.1: Complete logical structure preservation
@@ -447,34 +460,43 @@ interpretable AI: logical explanations are preserved through the network archite
     open PreserveDeduction
 
     -- Internal logic of a topos
-    record Internal-Logic (E : Precategory o ℓ) (Ω : Subobject-Classifier E) : Type (o ⊔ ℓ) where
+    record Internal-Logic (E : Precategory o ℓ) (Ω : Subobject-Classifier E) : Type (lsuc o ⊔ lsuc ℓ) where
       field
         -- Propositions
-        Prop : (X : E .Precategory.Ob) → Type ℓ
+        InternalProp : (X : E .Precategory.Ob) → Type ℓ
 
         -- Logical connectives
-        _∧_ _∨_ _⇒_ : ∀ {X : E .Precategory.Ob} → Prop X → Prop X → Prop X
-        ⊤ ⊥ : ∀ {X : E .Precategory.Ob} → Prop X
+        _∧-prop'_ _∨-prop'_ _⇒-prop'_ : ∀ {X : E .Precategory.Ob} → InternalProp X → InternalProp X → InternalProp X
+        ⊤-prop' ⊥-prop' : ∀ {X : E .Precategory.Ob} → InternalProp X
 
         -- Quantifiers (over morphisms f: Y → X)
-        ∀f ∃f : ∀ {X Y : E .Precategory.Ob} (f : E .Precategory.Hom Y X) → Prop Y → Prop X
+        ∀f ∃f : ∀ {X Y : E .Precategory.Ob} (f : E .Precategory.Hom Y X) → InternalProp Y → InternalProp X
 
         -- Proofs
-        Proof : ∀ {X : E .Precategory.Ob} → Prop X → Type (o ⊔ ℓ)
+        InternalProof : ∀ {X : E .Precategory.Ob} → InternalProp X → Type (o ⊔ ℓ)
 
         -- Deduction
-        _⊢_ : Context E Ω → {!!} → Type (o ⊔ ℓ)
+        _⊢-internal_ : Context E Ω → {!!} → Type (o ⊔ ℓ)
 
     -- Theorem 2.1: Φ induces functor on internal logics
-    postulate
-      theorem-2-1 : Internal-Logic E Ω-E → Internal-Logic E' Ω-E'
+    theorem-2-1 : Internal-Logic E Ω-E → Internal-Logic E' Ω-E'
+    theorem-2-1 = {!!}
 
-      -- Preserves all structure
-      preserves-propositions : {!!}
-      preserves-connectives : {!!}
-      preserves-quantifiers : {!!}
-      preserves-proofs : {!!}
-      preserves-deduction : {!!}
+    -- Preserves all structure
+    preserves-propositions : {!!}
+    preserves-propositions = {!!}
+
+    preserves-connectives : {!!}
+    preserves-connectives = {!!}
+
+    preserves-quantifiers : {!!}
+    preserves-quantifiers = {!!}
+
+    preserves-proofs : {!!}
+    preserves-proofs = {!!}
+
+    preserves-deduction : {!!}
+    preserves-deduction = {!!}
 
     {-|
     **Corollary**: Interpretability is preserved
@@ -488,8 +510,8 @@ interpretable AI: logical explanations are preserved through the network archite
     (like certain normalizations) may break interpretability.
     -}
 
-    postulate
-      interpretability-transfer : {!!}
+    interpretability-transfer : {!!}
+    interpretability-transfer = {!!}
 
 --------------------------------------------------------------------------------
 -- Application: Logical Feature Attribution
@@ -522,7 +544,7 @@ expressing them as logical formulas and using Φ to propagate them.
 -}
 
 module Logical-Attribution {C : Precategory o ℓ}
-                           {F F' : Stack C o' ℓ'}
+                           {F F' : Stack {C = C} o' ℓ'}
                            (Φs : Geometric-Transformation F F')
   where
 

@@ -1,0 +1,20 @@
+{
+  "007bbfb7": {
+    "solved": false,
+    "accuracy": 0.0,
+    "final_fitness": 0,
+    "error": "sub got incompatible shapes for broadcasting: (81, 128), (9, 128)."
+  },
+  "00d62c1b": {
+    "solved": false,
+    "accuracy": 0.0,
+    "final_fitness": 0,
+    "error": "All input arrays must have the same shape."
+  },
+  "017c7c7b": {
+    "solved": false,
+    "accuracy": 0.0,
+    "final_fitness": 0,
+    "error": "sub got incompatible shapes for broadcasting: (27, 128), (18, 128)."
+  }
+}

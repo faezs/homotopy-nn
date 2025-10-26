@@ -1,0 +1,4 @@
+# file: /Users/faezs/homotopy-nn/neural_compiler/compiler.py
+# hypothesis_version: 6.136.9
+
+[1.0, 100, 1000, '__main__', 'architecture.json', 'max_ms', 'mean_ms', 'min_ms', 'std_ms']

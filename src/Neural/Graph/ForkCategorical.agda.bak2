@@ -1,0 +1,265 @@
+{-|
+# Categorical Fork Construction for Oriented Graphs
+
+This module implements the fork construction from Section 1.3 of Belfiore & Bennequin (2022)
+using 1Lab's graph infrastructure and categorical tools.
+
+## Architecture
+
+**Three-level construction:**
+1. **Γ** (Base): Input oriented graph
+2. **Γ̄** (Augmented): Fork graph with A★ vertices (this module)
+3. **X** (Reduced): Poset excluding A★ (next module)
+
+## Key Design
+
+**Categorical framework:**
+- Γ̄ defined as proper 1Lab `Graph`
+- Edges as inductive type (4 constructors)
+- Orientation proven by induction
+- X defined via subgraph classifier Ωᴳ
+
+**From the Paper (Section 1.3):**
+> "At each layer a where more than one layer sends information...
+> we perform a surgery: between a and a' introduce two new objects A★ and A,
+> with arrows a' → A★, A★ → A, a → A, forming a fork."
+
+-}
+
+module Neural.Graph.ForkCategorical where
+
+open import Neural.Graph.Base
+open import Neural.Graph.Oriented
+open import Neural.Graph.Path
+
+open import 1Lab.Prelude
+open import 1Lab.HLevel
+open import 1Lab.HLevel.Closure
+
+-- Cat.Instances.Graphs already imported by Neural.Graph.Base
+open import Cat.Instances.Graphs.Omega
+open import Cat.Functor.Subcategory
+
+open import Data.Dec.Base
+open import Data.List
+open import Data.Nat.Base
+open import Data.Nat.Order
+
+private variable
+  o ℓ o' ℓ' : Level
+
+module ForkConstruction (G : Graph o ℓ) (G-oriented : is-oriented G) where
+  open Graph G
+
+  -- Alias for readability (paper uses Γ for the input graph)
+  Γ : Graph o ℓ
+  Γ = G
+
+  {-|
+  ## Convergence Data
+  
+  A vertex is **convergent** if it has at least 2 incoming edges.
+  We represent this structurally (not as a bare proposition).
+  
+  **From the Paper:**
+  > "Only the convergent multiplicity in Γ gives rise to forks,
+  > not the divergent one."
+  -}
+  
+  record is-convergent (a : Node) : Type (o ⊔ ℓ) where
+    field
+      incoming : List (Σ[ a' ∈ Node ] Edge a' a)
+      has-multiple : 2 ≤ length incoming
+  
+  is-convergent-is-prop : ∀ {a} → is-prop (is-convergent a)
+  is-convergent-is-prop = record-is-prop
+    where
+      -- Incoming edges can differ, but propositionally equal due to Graph structure
+      record-is-prop : is-prop (is-convergent _)
+      record-is-prop x y = {!!} -- TODO: Use list truncation and ≥ prop
+  
+  {-|
+  ## Fork Vertices
+  
+  Vertices of Γ̄ are of three types:
+  - **original**: Original vertices from Γ
+  - **fork-star**: A★ vertices (one per convergent vertex)
+  - **fork-tang**: A vertices (tangs, one per convergent vertex)
+  
+  **Invariant**: star and tang vertices require convergence witness.
+  -}
+  
+  data VertexType : Type where
+    v-original : VertexType
+    v-fork-star : VertexType
+    v-fork-tang : VertexType
+
+  -- Equality decision for VertexType
+  VertexType-eq? : (x y : VertexType) → Dec (x ≡ y)
+  VertexType-eq? v-original v-original = yes refl
+  VertexType-eq? v-original v-fork-star = no λ p → subst (λ { v-original → ⊤ ; _ → ⊥ }) p tt
+  VertexType-eq? v-original v-fork-tang = no λ p → subst (λ { v-original → ⊤ ; _ → ⊥ }) p tt
+  VertexType-eq? v-fork-star v-original = no λ p → subst (λ { v-fork-star → ⊤ ; _ → ⊥ }) p tt
+  VertexType-eq? v-fork-star v-fork-star = yes refl
+  VertexType-eq? v-fork-star v-fork-tang = no λ p → subst (λ { v-fork-star → ⊤ ; _ → ⊥ }) p tt
+  VertexType-eq? v-fork-tang v-original = no λ p → subst (λ { v-fork-tang → ⊤ ; _ → ⊥ }) p tt
+  VertexType-eq? v-fork-tang v-fork-star = no λ p → subst (λ { v-fork-tang → ⊤ ; _ → ⊥ }) p tt
+  VertexType-eq? v-fork-tang v-fork-tang = yes refl
+
+  VertexType-discrete : Discrete VertexType
+  VertexType-discrete .Discrete.decide = VertexType-eq?
+  
+  VertexType-is-set : is-set VertexType
+  VertexType-is-set = Discrete→is-set VertexType-discrete
+  
+  record ForkVertex : Type (o ⊔ ℓ) where
+    no-eta-equality
+    field
+      layer : Node
+      vertex-type : VertexType
+
+  open ForkVertex
+
+  -- Smart constructors
+  mk-original : Node → ForkVertex
+  mk-original a .layer = a
+  mk-original a .vertex-type = v-original
+
+  mk-star : (a : Node) → is-convergent a → ForkVertex
+  mk-star a conv .layer = a
+  mk-star a conv .vertex-type = v-fork-star
+
+  mk-tang : (a : Node) → is-convergent a → ForkVertex
+  mk-tang a conv .layer = a
+  mk-tang a conv .vertex-type = v-fork-tang
+  
+  {-|
+  ## ForkVertex Equality
+  
+  Using encode-decode method to prove ForkVertex is a set.
+  -}
+  
+  module ForkVertex-Path where
+    -- Code family for paths
+    Code : ForkVertex → ForkVertex → Type o
+    Code v w = (v .layer ≡ w .layer) × (v .vertex-type ≡ w .vertex-type)
+  
+    code-refl : (v : ForkVertex) → Code v v
+    code-refl v = refl , refl
+  
+    decode : {v w : ForkVertex} → Code v w → v ≡ w
+    decode {v} {w} (p , q) i .layer = p i
+    decode {v} {w} (p , q) i .vertex-type = q i
+  
+    Code-is-prop : ∀ {v w} → is-prop (Code v w)
+    Code-is-prop = ×-is-hlevel 1 (Node-set _ _) (VertexType-is-set _ _)
+  
+    encode : {v w : ForkVertex} → v ≡ w → Code v w
+    encode {v} p = subst (Code v) p (code-refl v)
+  
+    encode-decode : {v w : ForkVertex} (c : Code v w) → encode (decode c) ≡ c
+    encode-decode {v} {w} c = Code-is-prop _ _
+  
+    decode-encode : {v w : ForkVertex} (p : v ≡ w) → decode (encode p) ≡ p
+    decode-encode {v} {w} p = {!!}
+    -- TODO: J (λ w p → decode (encode p) ≡ p) base-case p
+    -- Base case needs careful cubical reasoning
+  
+  open ForkVertex-Path
+  
+  ForkVertex-is-set : is-set ForkVertex
+  ForkVertex-is-set = Equiv→is-hlevel 2 (decode , is-iso→is-equiv decode-iso) (×-is-hlevel 2 Node-set VertexType-is-set)
+    where
+      decode-iso : is-iso decode
+      decode-iso .is-iso.from = encode
+      decode-iso .is-iso.rinv = encode-decode
+      decode-iso .is-iso.linv = decode-encode
+  
+  {-|
+  ## Fork Edges (Inductive)
+  
+  **Four edge types** (for clean case analysis in proofs):
+  
+  1. **orig-edge**: Original edges from Γ (recurse to base)
+  2. **tip-to-star**: Incoming edges to A★ (a' → A★)
+  3. **star-to-tang**: Mandatory transition A★ → A
+  4. **tang-to-handle**: Outgoing edge from A (A → a)
+  
+  **Key invariant**: Target of orig-edge cannot be convergent
+  (otherwise it would have a fork).
+  -}
+  
+  data ForkEdge : ForkVertex → ForkVertex → Type (o ⊔ ℓ) where
+    -- Original edges: recurse to Γ
+    orig-edge : (x y : Node)
+              → Edge x y
+              → ¬ (is-convergent y)
+              → ForkEdge (mk-original x) (mk-original y)
+
+    -- Tips to star: incoming to convergent vertex
+    tip-to-star : (a' a : Node)
+                → (conv : is-convergent a)
+                → Edge a' a
+                → ForkEdge (mk-original a') (mk-star a conv)
+
+    -- Star to tang: mandatory transition
+    star-to-tang : (a : Node)
+                 → (conv : is-convergent a)
+                 → ForkEdge (mk-star a conv) (mk-tang a conv)
+
+    -- Tang to handle: outgoing from convergent vertex
+    tang-to-handle : (a : Node)
+                   → (conv : is-convergent a)
+                   → ForkEdge (mk-tang a conv) (mk-original a)
+  
+  {-|
+  ## ForkEdge Equality
+  
+  ForkEdge is a set (uses classicality of Γ and propositionality of convergence).
+  -}
+  
+  ForkEdge-is-set : ∀ {v w} → is-set (ForkEdge v w)
+  ForkEdge-is-set = {!!}
+  -- TODO (Phase 2): Prove by induction on ForkEdge constructors
+  -- Cases:
+  -- 1. orig-edge: Use is-classical for Edge, ¬conv is prop
+  -- 2. tip-to-star: Use is-classical for Edge, conv is prop
+  -- 3. star-to-tang: Unique by construction
+  -- 4. tang-to-handle: Unique by construction
+  
+  {-|
+  ## Γ̄ as 1Lab Graph
+  
+  Package ForkVertex and ForkEdge as a proper 1Lab `Graph`.
+  
+  **This gives us:**
+  - Graph homomorphisms (Graph-hom)
+  - Category structure (Graphs o ℓ)
+  - Limits and exponentials (if needed)
+  - Universal properties
+  -}
+  
+  Γ̄ : Graph (o ⊔ ℓ) (o ⊔ ℓ)
+  Γ̄ .Graph.Node = ForkVertex
+  Γ̄ .Graph.Edge = ForkEdge
+  Γ̄ .Graph.Node-set = ForkVertex-is-set
+  Γ̄ .Graph.Edge-set = ForkEdge-is-set
+  
+  {-|
+  ## Graph Homomorphisms
+  
+  Graph homomorphisms from/to Γ̄ are just 1Lab's `Graph-hom`.
+  -}
+  
+  Γ̄-hom : (H : Graph o' ℓ') → Type (o ⊔ ℓ ⊔ o' ⊔ ℓ')
+  Γ̄-hom H = Graph-hom Γ̄ H
+  
+  {-|
+  ## Next Steps
+  
+  In this file, we will prove:
+  1. **Γ̄-oriented**: Γ̄ is an oriented graph (Phase 2)
+  2. **X-construction**: Define X via Ωᴳ (Phase 3)
+  3. **X-oriented**: X inherits orientation (Phase 4)
+  4. **X-Poset**: X has poset structure (Phase 5)
+  -}

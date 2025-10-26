@@ -157,6 +157,10 @@ class ARCReasoningNetworkPyTorch(nn.Module):
         Returns:
             output_embedding: Predicted output embedding
         """
+        # Skip MAML if in eval mode or no examples
+        if not self.training or len(example_embeddings) == 0:
+            return self.transformer(input_embedding)
+
         # Clone transformer parameters for inner loop
         import copy
         inner_transformer = copy.deepcopy(self.transformer)
@@ -174,9 +178,9 @@ class ARCReasoningNetworkPyTorch(nn.Module):
                 loss = F.mse_loss(pred_emb, out_emb)
                 total_loss += loss
 
-            # Gradient step
+            # Gradient step (retain graph for meta-learning)
             inner_optimizer.zero_grad()
-            total_loss.backward()
+            total_loss.backward(retain_graph=(step < num_inner_steps - 1))
             inner_optimizer.step()
 
         # Query: predict on test input with adapted model

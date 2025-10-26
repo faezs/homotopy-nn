@@ -21,6 +21,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import Dataset, DataLoader
 import numpy as np
 from typing import List, Tuple, Dict
 import json
@@ -32,19 +33,78 @@ from tqdm import tqdm
 
 from geometric_morphism_torch import Site, Sheaf, GeometricMorphism, SheafReward, InternalLogicLoss
 from arc_loader import ARCGrid, ARCTask, load_arc_dataset
+from cnn_sheaf_architecture import LightweightCNNToposSolver
 
 
-def get_device():
+def get_device(verbose=False):
     """Get best available device: MPS (macOS GPU) > CUDA > CPU."""
     if torch.backends.mps.is_available():
-        print("✓ Using MPS (macOS GPU) backend")
+        if verbose:
+            print("✓ Using MPS (macOS GPU) backend")
         return torch.device("mps")
     elif torch.cuda.is_available():
-        print("✓ Using CUDA (NVIDIA GPU) backend")
+        if verbose:
+            print("✓ Using CUDA (NVIDIA GPU) backend")
         return torch.device("cuda")
     else:
-        print("⚠ Using CPU backend (slow)")
+        if verbose:
+            print("⚠ Using CPU backend (slow)")
         return torch.device("cpu")
+
+
+class ARCBatchDataset(Dataset):
+    """Dataset for ARC examples with padding to fixed size."""
+
+    def __init__(self, input_grids: List[ARCGrid], output_grids: List[ARCGrid],
+                 max_height: int, max_width: int):
+        self.inputs = input_grids
+        self.outputs = output_grids
+        self.max_height = max_height
+        self.max_width = max_width
+
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self, idx):
+        inp = self.inputs[idx]
+        out = self.outputs[idx]
+
+        # Pad grids to max size (zero-padding)
+        inp_padded = self._pad_grid(inp, self.max_height, self.max_width)
+        out_padded = self._pad_grid(out, self.max_height, self.max_width)
+
+        return {
+            'input': inp_padded,
+            'output': out_padded,
+            'input_shape': (inp.height, inp.width),
+            'output_shape': (out.height, out.width)
+        }
+
+    def _pad_grid(self, grid: ARCGrid, target_h: int, target_w: int) -> torch.Tensor:
+        """Pad grid to target size with zeros."""
+        cells = np.array(grid.cells)  # (h, w)
+        h, w = cells.shape
+
+        # Pad with zeros
+        padded = np.zeros((target_h, target_w), dtype=np.int64)
+        padded[:h, :w] = cells
+
+        return torch.from_numpy(padded).long()
+
+
+def collate_arc_batch(batch):
+    """Collate function for ARC batches."""
+    inputs = torch.stack([item['input'] for item in batch])  # (B, H, W)
+    outputs = torch.stack([item['output'] for item in batch])  # (B, H, W)
+    input_shapes = [item['input_shape'] for item in batch]
+    output_shapes = [item['output_shape'] for item in batch]
+
+    return {
+        'input': inputs,
+        'output': outputs,
+        'input_shapes': input_shapes,
+        'output_shapes': output_shapes
+    }
 
 
 class ARCGeometricSolver(nn.Module):
@@ -153,13 +213,306 @@ class ARCGeometricSolver(nn.Module):
         return output_grid
 
 
+class ARCCNNGeometricSolver(nn.Module):
+    """CNN-based geometric solver using convolutional sheaves.
+
+    Advantages over vector sheaves:
+    - ~3.7x fewer parameters (parameter sharing via convolution)
+    - Translation equivariant (natural for grids)
+    - Spatial structure preserved in sheaf representation
+    - Still maintains categorical structure (adjunction, sheaf laws)
+    """
+
+    def __init__(self, grid_shape_in: Tuple[int, int], grid_shape_out: Tuple[int, int],
+                 feature_dim: int = 32, num_colors: int = 10, device=None):
+        super().__init__()
+
+        self.device = device if device is not None else get_device()
+
+        # Sites (for compatibility with existing interface)
+        self.site_in = Site(grid_shape_in, connectivity="4")
+        self.site_out = Site(grid_shape_out, connectivity="4")
+
+        # Internal CNN-based solver
+        self.cnn_solver = LightweightCNNToposSolver(
+            grid_shape_in=grid_shape_in,
+            grid_shape_out=grid_shape_out,
+            feature_dim=feature_dim,
+            num_colors=num_colors,
+            device=self.device
+        )
+
+        self.feature_dim = feature_dim
+        self.num_colors = num_colors
+
+        # Expose geometric morphism for compatibility
+        self.geometric_morphism = self._make_geometric_morphism_wrapper()
+
+    def _make_geometric_morphism_wrapper(self):
+        """Create a wrapper that exposes CNN geometric morphism with Sheaf-like interface."""
+        class CNNGeometricMorphismWrapper:
+            def __init__(self, cnn_solver, outer_self):
+                self.cnn_solver = cnn_solver
+                self.outer_self = outer_self
+                # Dummy adjunction matrix for compatibility with logging
+                self.adjunction_matrix = nn.Parameter(torch.zeros(1, 1))
+
+            def pushforward(self, sheaf_in):
+                """f_* : E_in → E_out"""
+                # Apply CNN pushforward
+                sheaf_out_tensor = self.cnn_solver.geometric_morphism.pushforward(sheaf_in.sections)
+
+                # Wrap result
+                from types import SimpleNamespace
+                result = SimpleNamespace(
+                    sections=sheaf_out_tensor,
+                    site=self.outer_self.site_out,
+                    feature_dim=self.outer_self.feature_dim,
+                    num_colors=self.outer_self.num_colors
+                )
+                result.total_sheaf_violation = lambda: self._compute_sheaf_violation(sheaf_out_tensor)
+                return result
+
+            def pullback(self, sheaf_out):
+                """f^* : E_out → E_in"""
+                # Apply CNN pullback
+                sheaf_in_tensor = self.cnn_solver.geometric_morphism.pullback(sheaf_out.sections)
+
+                # Wrap result
+                from types import SimpleNamespace
+                result = SimpleNamespace(
+                    sections=sheaf_in_tensor,
+                    site=self.outer_self.site_in,
+                    feature_dim=self.outer_self.feature_dim,
+                    num_colors=self.outer_self.num_colors
+                )
+                result.total_sheaf_violation = lambda: self._compute_sheaf_violation(sheaf_in_tensor)
+                return result
+
+            def check_adjunction(self, sheaf_in, sheaf_out):
+                """Verify f^* ⊣ f_* adjunction."""
+                return self.cnn_solver.geometric_morphism.check_adjunction(
+                    sheaf_in.sections, sheaf_out.sections
+                )
+
+            def _compute_sheaf_violation(self, sheaf_tensor):
+                """Compute sheaf condition violation (spatial consistency)."""
+                neighborhood_pred = F.avg_pool2d(
+                    F.pad(sheaf_tensor, (1,1,1,1), mode='replicate'),
+                    kernel_size=3, stride=1, padding=0
+                )
+                return F.mse_loss(sheaf_tensor, neighborhood_pred)
+
+        return CNNGeometricMorphismWrapper(self.cnn_solver, self)
+
+    def encode_grid_to_sheaf(self, grid: ARCGrid, target_site: Site) -> 'CNNSheaf':
+        """Encode grid to CNN sheaf (wrapper for compatibility).
+
+        Returns a wrapped tensor that mimics Sheaf interface but uses CNN representation.
+        """
+        # Get CNN sheaf representation (batch, feature_dim, H, W)
+        sheaf_tensor = self.cnn_solver.encode_grid(grid)
+
+        # Wrap in a simple container that has sections attribute
+        class CNNSheaf:
+            def __init__(self, tensor, site, feature_dim, num_colors):
+                self.sections = tensor  # (batch, feature_dim, H, W)
+                self.site = site
+                self.feature_dim = feature_dim
+                self.num_colors = num_colors
+
+            def total_sheaf_violation(self):
+                """Compute sheaf condition violation (spatial consistency)."""
+                # Sheaf condition: each cell should match neighborhood prediction
+                neighborhood_pred = F.avg_pool2d(
+                    F.pad(self.sections, (1,1,1,1), mode='replicate'),
+                    kernel_size=3, stride=1, padding=0
+                )
+                return F.mse_loss(self.sections, neighborhood_pred)
+
+        return CNNSheaf(sheaf_tensor, target_site, self.feature_dim, self.num_colors)
+
+    def decode_sheaf_to_grid(self, sheaf: 'CNNSheaf', height: int, width: int) -> ARCGrid:
+        """Decode CNN sheaf back to grid."""
+        return self.cnn_solver.decode_sheaf(sheaf.sections, height, width)
+
+    def encode_batch_to_sheaf(self, grids_tensor: torch.Tensor) -> 'CNNSheaf':
+        """Encode batch of grids to sheaf.
+
+        Args:
+            grids_tensor: (B, H, W) tensor of color indices
+
+        Returns:
+            CNNSheaf with sections (B, C, H, W)
+        """
+        B, H, W = grids_tensor.shape
+
+        # One-hot encode: (B, H, W) → (B, H, W, num_colors) → (B, num_colors, H, W)
+        one_hot = F.one_hot(grids_tensor, num_classes=self.num_colors).float()  # (B, H, W, num_colors)
+        one_hot = one_hot.permute(0, 3, 1, 2).to(self.device)  # (B, num_colors, H, W)
+
+        # Encode via CNN sheaf encoder
+        features = self.cnn_solver.sheaf_encoder(one_hot)  # (B, feature_dim, H, W)
+
+        # Wrap in CNNSheaf
+        class CNNSheaf:
+            def __init__(self, tensor, site, feature_dim, num_colors):
+                self.sections = tensor  # (B, feature_dim, H, W)
+                self.site = site
+                self.feature_dim = feature_dim
+                self.num_colors = num_colors
+
+            def total_sheaf_violation(self):
+                """Compute sheaf condition violation (spatial consistency)."""
+                neighborhood_pred = F.avg_pool2d(
+                    F.pad(self.sections, (1,1,1,1), mode='replicate'),
+                    kernel_size=3, stride=1, padding=0
+                )
+                return F.mse_loss(self.sections, neighborhood_pred)
+
+        return CNNSheaf(features, self.site_in, self.feature_dim, self.num_colors)
+
+    def decode_sheaf_to_batch(self, sheaf: 'CNNSheaf', batch_size: int, H: int, W: int) -> torch.Tensor:
+        """Decode sheaf to batch of grids.
+
+        Args:
+            sheaf: CNNSheaf with sections (B, feature_dim, H, W)
+            batch_size: Batch size
+            H, W: Grid dimensions
+
+        Returns:
+            (B, H, W) tensor of predicted color indices
+        """
+        # Decode: (B, feature_dim, H, W) → (B, num_colors, H, W)
+        logits = self.cnn_solver.decoder(sheaf.sections)  # (B, num_colors, H, W)
+
+        # Crop to target size if needed
+        logits = logits[:, :, :H, :W]
+
+        # Argmax over color dimension
+        colors = logits.argmax(dim=1)  # (B, H, W)
+
+        return colors
+
+    def forward(self, input_grid: ARCGrid, output_shape: Tuple[int, int]) -> ARCGrid:
+        """Complete forward pass using CNN sheaves."""
+        return self.cnn_solver(input_grid)
+
+    def parameters(self):
+        """Return CNN solver parameters."""
+        return self.cnn_solver.parameters()
+
+    def train(self, mode=True):
+        """Set training mode."""
+        self.cnn_solver.train(mode)
+        return self
+
+    def eval(self):
+        """Set evaluation mode."""
+        self.cnn_solver.eval()
+        return self
+
+    def print_architecture(self):
+        """Print detailed architecture information."""
+        print("="*70)
+        print("TOPOS-THEORETIC CNN ARCHITECTURE")
+        print("="*70)
+        print()
+
+        print("SHEAF ENCODER (Grid → Sheaf):")
+        print("-" * 70)
+        for name, module in self.cnn_solver.sheaf_encoder.named_children():
+            if isinstance(module, nn.Linear):
+                print(f"  {name}: Linear({module.in_features} → {module.out_features})")
+                params = sum(p.numel() for p in module.parameters())
+                print(f"    Parameters: {params:,}")
+            elif isinstance(module, nn.Conv2d):
+                print(f"  {name}: Conv2d({module.in_channels} → {module.out_channels}, "
+                      f"kernel={module.kernel_size})")
+                params = sum(p.numel() for p in module.parameters())
+                print(f"    Parameters: {params:,}")
+            elif isinstance(module, nn.Sequential):
+                print(f"  {name}: Sequential")
+                for sub_name, sub_module in module.named_children():
+                    if isinstance(sub_module, nn.Conv2d):
+                        print(f"    {sub_name}: Conv2d({sub_module.in_channels} → {sub_module.out_channels}, "
+                              f"kernel={sub_module.kernel_size})")
+                    else:
+                        print(f"    {sub_name}: {sub_module.__class__.__name__}")
+                params = sum(p.numel() for p in module.parameters())
+                print(f"    Total parameters: {params:,}")
+            else:
+                print(f"  {name}: {module.__class__.__name__}")
+        print()
+
+        print("GEOMETRIC MORPHISM (Attention as Natural Transformation):")
+        print("-" * 70)
+        morphism = self.cnn_solver.geometric_morphism
+        for name, module in morphism.named_children():
+            if isinstance(module, nn.Conv2d):
+                print(f"  {name}: Conv2d({module.in_channels} → {module.out_channels}, "
+                      f"kernel={module.kernel_size})")
+                params = sum(p.numel() for p in module.parameters())
+                print(f"    Parameters: {params:,}")
+            elif isinstance(module, nn.Sequential):
+                print(f"  {name}: Sequential")
+                for sub_name, sub_module in module.named_children():
+                    if isinstance(sub_module, nn.Conv2d):
+                        print(f"    {sub_name}: Conv2d({sub_module.in_channels} → {sub_module.out_channels}, "
+                              f"kernel={sub_module.kernel_size})")
+                    else:
+                        print(f"    {sub_name}: {sub_module.__class__.__name__}")
+                params = sum(p.numel() for p in module.parameters())
+                print(f"    Total parameters: {params:,}")
+            else:
+                print(f"  {name}: {module.__class__.__name__}")
+        print()
+
+        print("DECODER (Sheaf → Grid):")
+        print("-" * 70)
+        decoder = self.cnn_solver.decoder
+        if isinstance(decoder, nn.Conv2d):
+            print(f"  decoder: Conv2d({decoder.in_channels} → {decoder.out_channels}, "
+                  f"kernel={decoder.kernel_size})")
+            params = sum(p.numel() for p in decoder.parameters())
+            print(f"    Parameters: {params:,}")
+        else:
+            for name, module in decoder.named_children():
+                if isinstance(module, nn.Linear):
+                    print(f"  {name}: Linear({module.in_features} → {module.out_features})")
+                    params = sum(p.numel() for p in module.parameters())
+                    print(f"    Parameters: {params:,}")
+                elif isinstance(module, nn.Conv2d):
+                    print(f"  {name}: Conv2d({module.in_channels} → {module.out_channels}, "
+                          f"kernel={module.kernel_size})")
+                    params = sum(p.numel() for p in module.parameters())
+                    print(f"    Parameters: {params:,}")
+                else:
+                    print(f"  {name}: {module.__class__.__name__}")
+        print()
+
+        total_params = sum(p.numel() for p in self.cnn_solver.parameters())
+        trainable_params = sum(p.numel() for p in self.cnn_solver.parameters() if p.requires_grad)
+        print("SUMMARY:")
+        print("-" * 70)
+        print(f"  Total parameters: {total_params:,}")
+        print(f"  Trainable parameters: {trainable_params:,}")
+        print(f"  Model size (32-bit): {total_params * 4 / 1024:.2f} KB")
+        print("="*70)
+        print()
+
+
 def train_on_arc_task(
     task: ARCTask,
     task_id: str,
     epochs: int = 500,
     early_stop_patience: int = 50,
     lr: float = 1e-3,
-    verbose: bool = True
+    verbose: bool = True,
+    run_id: str = None,
+    log_graph: bool = False,
+    tensorboard_root: str = None,
+    log_verbose: bool = False
 ) -> Dict:
     """Train geometric morphism on single ARC task with early stopping.
 
@@ -170,6 +523,10 @@ def train_on_arc_task(
         early_stop_patience: Stop if no improvement for N epochs
         lr: Initial learning rate
         verbose: Print progress
+        run_id: Optional run identifier to group tasks together
+        log_graph: If True, log model graph to TensorBoard
+        tensorboard_root: Root directory for TensorBoard logs
+        log_verbose: If True, log detailed histograms and images (uses more disk space)
 
     Returns:
         results: Dictionary with training results
@@ -183,42 +540,88 @@ def train_on_arc_task(
     input_shape = (max_height, max_width)
     output_shape = (max_height, max_width)  # Same for now (size-preserving tasks)
 
+    # Train/validation split (80/20)
+    n_train_total = len(task.train_inputs)
+    n_val = max(1, int(n_train_total * 0.2))  # At least 1 validation example
+    n_train = n_train_total - n_val
+
+    # Shuffle and split
+    indices = np.random.permutation(n_train_total)
+    train_indices = indices[:n_train]
+    val_indices = indices[n_train:]
+
+    train_inputs = [task.train_inputs[i] for i in train_indices]
+    train_outputs = [task.train_outputs[i] for i in train_indices]
+    val_inputs = [task.train_inputs[i] for i in val_indices]
+    val_outputs = [task.train_outputs[i] for i in val_indices]
+
     if verbose:
         print(f"\n{'='*70}")
         print(f"Training on task: {task_id}")
         print(f"{'='*70}")
-        print(f"  Training examples: {len(task.train_inputs)}")
+        print(f"  Total training examples: {n_train_total}")
+        print(f"  Train: {n_train}, Validation: {n_val}, Test: {len(task.test_inputs)}")
         print(f"  Max grid size: {max_height}×{max_width} (with zero-padding)")
 
         # DEBUG: Print ALL input/output sizes
-        print(f"\n  DEBUG - All example sizes:")
-        for i, (inp, out) in enumerate(zip(task.train_inputs, task.train_outputs)):
+        print(f"\n  Example sizes:")
+        for i, (inp, out) in enumerate(zip(train_inputs[:3], train_outputs[:3])):
             print(f"    Train {i}: {inp.height}×{inp.width} → {out.height}×{out.width}")
-        for i, (inp, out) in enumerate(zip(task.test_inputs, task.test_outputs)):
+        if n_val > 0:
+            for i, (inp, out) in enumerate(zip(val_inputs[:2], val_outputs[:2])):
+                print(f"    Val   {i}: {inp.height}×{inp.width} → {out.height}×{out.width}")
+        for i, (inp, out) in enumerate(zip(task.test_inputs[:2], task.test_outputs[:2])):
             print(f"    Test  {i}: {inp.height}×{inp.width} → {out.height}×{out.width}")
         print()
 
-    # Get device and create solver
+    # Get device and create solver (CNN-based for parameter efficiency)
     device = get_device()
-    solver = ARCGeometricSolver(input_shape, output_shape, feature_dim=32, device=device)
+    solver = ARCCNNGeometricSolver(input_shape, output_shape, feature_dim=32, device=device)
+
+    if verbose:
+        total_params = sum(p.numel() for p in solver.parameters())
+        print(f"  Model: CNN-based sheaves")
+        print(f"  Parameters: {total_params:,}")
+        print()
+        solver.print_architecture()
+
+    # Log model graph to TensorBoard root (only for first task)
+    if log_graph and tensorboard_root and run_id:
+        try:
+            graph_writer = SummaryWriter(f"{tensorboard_root}/{run_id}")
+
+            # Create dummy input batch (B=2 for batched example)
+            dummy_grids = torch.randint(0, 10, (2, max_height, max_width), device=device)
+            dummy_input_sheaf = solver.encode_batch_to_sheaf(dummy_grids)
+
+            # Log the entire CNN solver
+            graph_writer.add_graph(solver.cnn_solver, dummy_input_sheaf.sections, verbose=False)
+            graph_writer.close()
+
+            if verbose:
+                print(f"  ✓ Model graph logged to TensorBoard")
+        except Exception as e:
+            if verbose:
+                print(f"  ⚠ Warning: Could not log model graph: {e}")
 
     # Optimizer with scheduler
     optimizer = optim.Adam(solver.parameters(), lr=lr)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=20)
 
-    # TensorBoard writer
-    log_dir = f"/Users/faezs/homotopy-nn/neural_compiler/topos/runs/{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    # TensorBoard writer (use run_id to group all tasks together)
+    if run_id:
+        log_dir = f"/Users/faezs/homotopy-nn/neural_compiler/topos/runs/{run_id}"
+    else:
+        log_dir = f"/Users/faezs/homotopy-nn/neural_compiler/topos/runs/{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     writer = SummaryWriter(log_dir)
     if verbose:
         print(f"  TensorBoard logs: {log_dir}")
         print()
 
     # Log model architecture
-    # Create dummy input for graph
-    dummy_grid = task.train_inputs[0]
     writer.add_text('Task/task_id', task_id, 0)
     writer.add_text('Task/grid_size', f"{max_height}x{max_width}", 0)
-    writer.add_text('Task/num_examples', str(len(task.train_inputs)), 0)
+    writer.add_text('Task/num_examples', str(len(train_inputs)), 0)
 
     # Log hyperparameters
     writer.add_hparams(
@@ -229,7 +632,8 @@ def train_on_arc_task(
             'early_stop_patience': early_stop_patience,
             'grid_height': max_height,
             'grid_width': max_width,
-            'num_train_examples': len(task.train_inputs)
+            'num_train_examples': len(train_inputs),
+            'num_val_examples': len(val_inputs)
         },
         {}
     )
@@ -256,138 +660,140 @@ def train_on_arc_task(
     start_time = time.time()
     epoch_times = []
 
+    # Create batched datasets (one batch per split)
+    train_dataset = ARCBatchDataset(train_inputs, train_outputs, max_height, max_width)
+    val_dataset = ARCBatchDataset(val_inputs, val_outputs, max_height, max_width)
+    test_dataset = ARCBatchDataset(task.test_inputs, task.test_outputs, max_height, max_width)
+
+    # Single batch containing all examples per split
+    train_loader = DataLoader(train_dataset, batch_size=len(train_inputs),
+                             shuffle=False, collate_fn=collate_arc_batch)
+    val_loader = DataLoader(val_dataset, batch_size=len(val_inputs),
+                           shuffle=False, collate_fn=collate_arc_batch)
+    test_loader = DataLoader(test_dataset, batch_size=len(task.test_inputs),
+                            shuffle=False, collate_fn=collate_arc_batch)
+
+    # Get the batches (all examples per split)
+    train_batch = next(iter(train_loader))
+    train_batch['input'] = train_batch['input'].to(device)
+    train_batch['output'] = train_batch['output'].to(device)
+
+    val_batch = next(iter(val_loader))
+    val_batch['input'] = val_batch['input'].to(device)
+    val_batch['output'] = val_batch['output'].to(device)
+
+    global_step = 0
+
     for epoch in range(epochs):
         epoch_start = time.time()
-        total_loss = 0
-        total_adj_loss = 0
-        total_sheaf_loss = 0
 
-        # Batch all training examples together for better GPU utilization
+        # ONE BATCH = ALL TRAINING EXAMPLES
+        solver.train()
         optimizer.zero_grad()
 
-        # Progress bar for training examples within epoch
-        train_pairs = list(zip(task.train_inputs, task.train_outputs))
-        pbar = tqdm(train_pairs, desc=f"Epoch {epoch}/{epochs-1}", leave=False, ncols=100)
+        # Get batch (already on device)
+        inputs = train_batch['input']  # (B, H, W)
+        outputs = train_batch['output']  # (B, H, W)
+        B, H, W = inputs.shape
 
-        for inp_grid, out_grid in pbar:
-            # Encode input as sheaf (with padding to max size)
-            input_sheaf = solver.encode_grid_to_sheaf(inp_grid, solver.site_in)
+        # Encode entire batch to sheaf
+        input_sheaf = solver.encode_batch_to_sheaf(inputs)
+        target_sheaf = solver.encode_batch_to_sheaf(outputs)
 
-            # Target sheaf (with padding to max size)
-            target_sheaf = solver.encode_grid_to_sheaf(out_grid, solver.site_out)
+        # Apply geometric morphism (with attention as natural transformation)
+        predicted_sheaf = solver.geometric_morphism.pushforward(input_sheaf)
 
-            # Apply geometric morphism
-            predicted_sheaf = solver.geometric_morphism.pushforward(input_sheaf)
+        # === SEPARATE LOSSES (as requested) ===
 
-            # Loss in sheaf space (differentiable!)
-            loss = F.mse_loss(predicted_sheaf.sections, target_sheaf.sections)
+        # 1. Sheaf space loss (intermediate representation)
+        sheaf_space_loss = F.mse_loss(predicted_sheaf.sections, target_sheaf.sections)
 
-            # Add adjunction constraint
-            adj_loss = solver.geometric_morphism.check_adjunction(input_sheaf, target_sheaf)
+        # 2. Output layer L2 loss (final pixel reconstruction)
+        predicted_grids = solver.decode_sheaf_to_batch(predicted_sheaf, B, H, W)
+        output_l2_loss = F.mse_loss(predicted_grids.float(), outputs.float())
 
-            # Add sheaf condition
-            sheaf_loss = predicted_sheaf.total_sheaf_violation()
+        # 3. Adjunction constraint (categorical law)
+        adj_loss = solver.geometric_morphism.check_adjunction(input_sheaf, target_sheaf)
 
-            # Total loss with weights
-            combined_loss = loss + 0.1 * adj_loss + 0.01 * sheaf_loss
+        # 4. Sheaf condition (gluing axiom)
+        sheaf_loss = predicted_sheaf.total_sheaf_violation()
 
-            # Accumulate gradients (don't zero between examples)
-            combined_loss.backward()
+        # Total loss with separate components
+        combined_loss = (
+            1.0 * output_l2_loss +      # Output layer L2 (primary)
+            0.5 * sheaf_space_loss +     # Sheaf space consistency
+            0.1 * adj_loss +             # Adjunction (categorical)
+            0.01 * sheaf_loss            # Sheaf condition (gluing)
+        )
 
-            total_loss += loss.item()
-            total_adj_loss += adj_loss.item()
-            total_sheaf_loss += sheaf_loss.item()
-
-            # Update progress bar with current average losses
-            pbar.set_postfix({
-                'loss': f'{total_loss / (pbar.n + 1):.4f}',
-                'adj': f'{total_adj_loss / (pbar.n + 1):.4f}',
-                'sheaf': f'{total_sheaf_loss / (pbar.n + 1):.4f}'
-            })
-
-        # Single optimizer step after all examples
+        # Backward and optimize
+        combined_loss.backward()
         optimizer.step()
 
-        # Average losses
-        avg_loss = total_loss / len(task.train_inputs)
-        avg_adj = total_adj_loss / len(task.train_inputs)
-        avg_sheaf = total_sheaf_loss / len(task.train_inputs)
+        # Log to TensorBoard (per batch = per epoch here)
+        writer.add_scalar('Loss/train_total', combined_loss.item(), global_step)
+        writer.add_scalar('Loss/train_l2', output_l2_loss.item(), global_step)
+        writer.add_scalar('Loss/train_sheaf_space', sheaf_space_loss.item(), global_step)
+        writer.add_scalar('Loss/train_adjunction', adj_loss.item(), global_step)
+        writer.add_scalar('Loss/train_sheaf', sheaf_loss.item(), global_step)
+        global_step += 1
 
-        # Evaluate on test set
+        # Evaluate on validation set (all examples)
+        solver.eval()
         with torch.no_grad():
-            test_input = task.test_inputs[0]
-            test_output = task.test_outputs[0]
-            prediction = solver(test_input, output_shape)
+            val_inputs_batch = val_batch['input']  # (B, H, W)
+            val_outputs_batch = val_batch['output']  # (B, H, W)
+            B_val, H_val, W_val = val_inputs_batch.shape
 
-            # Smooth accuracy: 1 - normalized L2 distance between matrices
-            if prediction.height == test_output.height and prediction.width == test_output.width:
-                pred_matrix = np.array(prediction.cells, dtype=np.float32)
-                target_matrix = np.array(test_output.cells, dtype=np.float32)
+            # Encode validation batch
+            val_input_sheaf = solver.encode_batch_to_sheaf(val_inputs_batch)
+            val_target_sheaf = solver.encode_batch_to_sheaf(val_outputs_batch)
 
-                # L2 distance normalized by max possible distance
-                l2_dist = np.sqrt(np.sum((pred_matrix - target_matrix) ** 2))
-                max_dist = np.sqrt(prediction.height * prediction.width * 81)  # max color diff = 9
+            # Apply geometric morphism
+            val_predicted_sheaf = solver.geometric_morphism.pushforward(val_input_sheaf)
 
-                # Accuracy as similarity: 1 - normalized_distance
-                accuracy = float(1.0 - (l2_dist / max_dist))
+            # Decode predictions
+            val_predicted_grids = solver.decode_sheaf_to_batch(val_predicted_sheaf, B_val, H_val, W_val)
 
-                # Also compute discrete accuracy for reference
-                correct = int(np.sum(pred_matrix == target_matrix))
-                total = test_output.height * test_output.width
-                discrete_acc = float(correct / total)
-            else:
-                accuracy = 0.0
-                discrete_acc = 0.0
+            # Validation loss
+            val_loss = F.mse_loss(val_predicted_grids.float(), val_outputs_batch.float())
 
-        # Update scheduler
-        scheduler.step(avg_loss)
+            # Compute accuracy (average across all validation examples)
+            correct_pixels = (val_predicted_grids == val_outputs_batch).sum().item()
+            total_pixels = B_val * H_val * W_val
+            discrete_acc = correct_pixels / total_pixels
+
+            # Smooth accuracy (normalized L2)
+            l2_dist = torch.sqrt(((val_predicted_grids.float() - val_outputs_batch.float()) ** 2).sum())
+            max_dist = np.sqrt(total_pixels * 81)  # max color diff = 9
+            accuracy = float(1.0 - (l2_dist.item() / max_dist))
+
+        # Update scheduler (use validation loss as primary metric)
+        scheduler.step(val_loss.item())
 
         # Track metrics
-        history['loss'].append(avg_loss)
-        history['adjunction_violation'].append(avg_adj)
-        history['sheaf_violation'].append(avg_sheaf)
+        history['loss'].append(val_loss.item())  # Track validation loss
+        history['adjunction_violation'].append(adj_loss.item())
+        history['sheaf_violation'].append(sheaf_loss.item())
         history['accuracy'].append(accuracy)
         history['lr'].append(optimizer.param_groups[0]['lr'])
 
-        # TensorBoard logging - Scalars
-        writer.add_scalar('Loss/train', avg_loss, epoch)
-        writer.add_scalar('Loss/adjunction_violation', avg_adj, epoch)
-        writer.add_scalar('Loss/sheaf_violation', avg_sheaf, epoch)
-        writer.add_scalar('Metrics/accuracy_smooth', accuracy, epoch)
-        writer.add_scalar('Metrics/accuracy_discrete', discrete_acc, epoch)
+        # TensorBoard logging - Epoch summaries
+        writer.add_scalar('Loss/train_output_l2', output_l2_loss.item(), epoch)
+        writer.add_scalar('Loss/train_sheaf_space', sheaf_space_loss.item(), epoch)
+        writer.add_scalar('Loss/val_l2', val_loss.item(), epoch)
+        writer.add_scalar('Loss/train_adjunction', adj_loss.item(), epoch)
+        writer.add_scalar('Loss/train_sheaf_condition', sheaf_loss.item(), epoch)
+        writer.add_scalar('Metrics/val_accuracy_smooth', accuracy, epoch)
+        writer.add_scalar('Metrics/val_accuracy_discrete', discrete_acc, epoch)
         writer.add_scalar('Hyperparameters/learning_rate', optimizer.param_groups[0]['lr'], epoch)
 
-        # Numerical verification of topos laws
-        with torch.no_grad():
-            # Test on first training example
-            test_inp = solver.encode_grid_to_sheaf(task.train_inputs[0], solver.site_in)
-            test_out = solver.encode_grid_to_sheaf(task.train_outputs[0], solver.site_out)
+        # Numerical verification of topos laws (already computed above)
+        writer.add_scalar('ToposLaws/adjunction_violation', adj_loss.item(), epoch)
+        writer.add_scalar('ToposLaws/sheaf_violation', sheaf_loss.item(), epoch)
 
-            # 1. Adjunction: (f^* ⊣ f_*) - already computed above as avg_adj
-            # Lower is better (0 = perfect adjunction)
-
-            # 2. Sheaf condition: F(U) ≅ gluing of F(U_i)
-            sheaf_pred = solver.geometric_morphism.pushforward(test_inp)
-            sheaf_violation = sheaf_pred.total_sheaf_violation().item()
-
-            # 3. Pullback-pushforward composition (should be close to identity for invertible morphisms)
-            roundtrip = solver.geometric_morphism.pullback(solver.geometric_morphism.pushforward(test_inp))
-            roundtrip_error = F.mse_loss(roundtrip.sections, test_inp.sections).item()
-
-            # 4. Functoriality: check if geometric morphism respects sheaf structure
-            # Measure how much the morphism preserves section structure
-            input_section_norm = torch.norm(test_inp.sections).item()
-            output_section_norm = torch.norm(sheaf_pred.sections).item()
-            section_norm_ratio = output_section_norm / (input_section_norm + 1e-8)
-
-            # Log topos law violations
-            writer.add_scalar('ToposLaws/adjunction_violation', avg_adj, epoch)
-            writer.add_scalar('ToposLaws/sheaf_violation', sheaf_violation, epoch)
-            writer.add_scalar('ToposLaws/roundtrip_error', roundtrip_error, epoch)
-            writer.add_scalar('ToposLaws/section_norm_ratio', section_norm_ratio, epoch)
-
-        # Log histograms every epoch for detailed monitoring
-        if True:  # Every epoch
+        # Log histograms every epoch for detailed monitoring (controlled by log_verbose flag)
+        if log_verbose:
             # Model parameters (weights and biases)
             for name, param in solver.named_parameters():
                 if param.requires_grad:
@@ -417,8 +823,8 @@ def train_on_arc_task(
             # Flush to ensure histograms are written
             writer.flush()
 
-        # Log grid visualizations every 3 epochs for detailed monitoring
-        if epoch % 3 == 0:
+        # Log grid visualizations every 3 epochs for detailed monitoring (controlled by log_verbose flag)
+        if log_verbose and epoch % 3 == 0:
             with torch.no_grad():
                 test_input = task.test_inputs[0]
                 test_output = task.test_outputs[0]
@@ -446,9 +852,9 @@ def train_on_arc_task(
         # Flush scalars every epoch
         writer.flush()
 
-        # Early stopping check
-        if avg_loss < best_loss - 1e-6:  # Improvement threshold
-            best_loss = avg_loss
+        # Early stopping check (based on validation loss)
+        if val_loss.item() < best_loss - 1e-6:  # Improvement threshold
+            best_loss = val_loss.item()
             patience_counter = 0
         else:
             patience_counter += 1
@@ -464,52 +870,49 @@ def train_on_arc_task(
                 print(f"Total time: {elapsed:.1f}s")
             break
 
-        if verbose:
+        # Print progress every 10 epochs or on first/last epoch
+        if verbose and (epoch % 10 == 0 or epoch == 0 or epoch == epochs - 1 or patience_counter >= early_stop_patience - 1):
             elapsed = time.time() - start_time
             avg_epoch_time = np.mean(epoch_times[-20:]) if len(epoch_times) > 0 else epoch_time
             eta = avg_epoch_time * (epochs - epoch - 1)
             print(f"\nEpoch {epoch}/{epochs-1}:")
-            print(f"  Loss={avg_loss:.4f}, Adj={avg_adj:.4f}, Sheaf={avg_sheaf:.4f}")
-            print(f"  Acc(smooth)={accuracy:.3f}, Acc(discrete)={discrete_acc:.1%}")
-            print(f"  Topos Laws: Roundtrip={roundtrip_error:.4f}, SectionRatio={section_norm_ratio:.3f}")
-            print(f"  Time: {epoch_time:.1f}s/epoch, {elapsed:.0f}s elapsed")
+            print(f"  Train - L2={output_l2_loss.item():.4f}, Sheaf={sheaf_space_loss.item():.4f}, Adj={adj_loss.item():.4f}")
+            print(f"  Val   - L2={val_loss.item():.4f}, Acc={discrete_acc:.1%}")
+            print(f"  LR={optimizer.param_groups[0]['lr']:.6f}, Time={epoch_time:.1f}s/epoch")
 
-    # Final evaluation
+    # Final evaluation on ALL test examples
+    solver.eval()
     with torch.no_grad():
-        test_input = task.test_inputs[0]
-        test_output = task.test_outputs[0]
-        prediction = solver(test_input, output_shape)
+        test_batch = next(iter(test_loader))
+        test_inputs_batch = test_batch['input'].to(device)  # (B, H, W)
+        test_outputs_batch = test_batch['output'].to(device)  # (B, H, W)
+        B_test, H_test, W_test = test_inputs_batch.shape
 
-        # Accuracy (both smooth and discrete)
-        if prediction.height == test_output.height and prediction.width == test_output.width:
-            pred_matrix = np.array(prediction.cells, dtype=np.float32)
-            target_matrix = np.array(test_output.cells, dtype=np.float32)
+        # Encode test batch
+        test_input_sheaf = solver.encode_batch_to_sheaf(test_inputs_batch)
 
-            # Smooth accuracy
-            l2_dist = np.sqrt(np.sum((pred_matrix - target_matrix) ** 2))
-            max_dist = np.sqrt(prediction.height * prediction.width * 81)
-            final_accuracy_smooth = float(1.0 - (l2_dist / max_dist))
+        # Apply geometric morphism
+        test_predicted_sheaf = solver.geometric_morphism.pushforward(test_input_sheaf)
 
-            # Discrete accuracy
-            correct = int(np.sum(pred_matrix == target_matrix))
-            total = test_output.height * test_output.width
-            final_accuracy = float(correct / total)
-            size_match = True
-        else:
-            final_accuracy_smooth = 0.0
-            final_accuracy = 0.0
-            size_match = False
-            correct = 0
-            total = test_output.height * test_output.width
+        # Decode predictions
+        test_predicted_grids = solver.decode_sheaf_to_batch(test_predicted_sheaf, B_test, H_test, W_test)
+
+        # Test loss
+        test_loss = F.mse_loss(test_predicted_grids.float(), test_outputs_batch.float())
+
+        # Compute accuracy (average across all test examples)
+        correct_pixels = (test_predicted_grids == test_outputs_batch).sum().item()
+        total_pixels = B_test * H_test * W_test
+        final_accuracy = correct_pixels / total_pixels
+
+        # Smooth accuracy (normalized L2)
+        l2_dist = torch.sqrt(((test_predicted_grids.float() - test_outputs_batch.float()) ** 2).sum())
+        max_dist = np.sqrt(total_pixels * 81)  # max color diff = 9
+        final_accuracy_smooth = float(1.0 - (l2_dist.item() / max_dist))
 
         # Final topos law verification
-        test_inp_sheaf = solver.encode_grid_to_sheaf(task.train_inputs[0], solver.site_in)
-        test_out_sheaf = solver.encode_grid_to_sheaf(task.train_outputs[0], solver.site_out)
-
-        final_adj_violation = solver.geometric_morphism.check_adjunction(test_inp_sheaf, test_out_sheaf).item()
-        final_sheaf_violation = solver.geometric_morphism.pushforward(test_inp_sheaf).total_sheaf_violation().item()
-        roundtrip_final = solver.geometric_morphism.pullback(solver.geometric_morphism.pushforward(test_inp_sheaf))
-        final_roundtrip_error = F.mse_loss(roundtrip_final.sections, test_inp_sheaf.sections).item()
+        final_adj_violation = adj_loss.item()  # From last training step
+        final_sheaf_violation = sheaf_loss.item()  # From last training step
 
     total_time = time.time() - start_time
 
@@ -520,37 +923,36 @@ def train_on_arc_task(
         print(f"\n{'='*70}")
         print(f"Training Complete for {task_id}")
         print(f"{'='*70}")
+        print(f"  Data split: Train={n_train}, Val={n_val}, Test={B_test}")
         print(f"  Epochs trained: {len(history['loss'])}")
-        print(f"  Final loss: {history['loss'][-1]:.4f}")
-        print(f"  Accuracy (smooth): {final_accuracy_smooth:.3f}")
-        print(f"  Accuracy (discrete): {final_accuracy:.1%} ({correct}/{total} cells)")
+        print(f"  Final val loss: {history['loss'][-1]:.4f}")
+        print(f"\n  Test Set Results ({B_test} examples):")
+        print(f"    Test Loss: {test_loss.item():.4f}")
+        print(f"    Accuracy (discrete): {final_accuracy:.1%} ({correct_pixels}/{total_pixels} cells)")
+        print(f"    Accuracy (smooth): {final_accuracy_smooth:.3f}")
         print(f"\n  Topos Law Violations (lower = better):")
         print(f"    Adjunction (f^* ⊣ f_*): {final_adj_violation:.4f}")
         print(f"    Sheaf condition: {final_sheaf_violation:.4f}")
-        print(f"    Roundtrip (f_* ∘ f^*): {final_roundtrip_error:.4f}")
-        print(f"\n  Size match: {size_match}")
-        print(f"  Total time: {total_time:.1f}s ({total_time/60:.2f}min)")
+        print(f"\n  Time: {total_time:.1f}s ({total_time/60:.2f}min)")
         print(f"  Avg epoch time: {np.mean(epoch_times):.2f}s")
         print(f"  TensorBoard: tensorboard --logdir={log_dir}")
 
     return {
         'task_id': task_id,
         'history': history,
+        'final_test_loss': test_loss.item(),
         'final_accuracy': final_accuracy,
         'final_accuracy_smooth': final_accuracy_smooth,
         'epochs_trained': len(history['loss']),
-        'correct_cells': int(correct),
-        'total_cells': int(total),
-        'size_match': size_match,
-        'prediction': prediction,
-        'ground_truth': test_output,
+        'correct_cells': int(correct_pixels),
+        'total_cells': int(total_pixels),
+        'num_test_examples': B_test,
         'total_time': total_time,
         'avg_epoch_time': np.mean(epoch_times),
         # Topos law verification
         'topos_laws': {
             'adjunction_violation': final_adj_violation,
-            'sheaf_violation': final_sheaf_violation,
-            'roundtrip_error': final_roundtrip_error
+            'sheaf_violation': final_sheaf_violation
         }
     }
 
@@ -575,16 +977,16 @@ def save_results_to_markdown(all_results: List[Dict], output_path: str):
         f.write(f"- **Average epochs:** {avg_epochs:.1f}\n\n")
 
         f.write("## Per-Task Results\n\n")
-        f.write("| Task ID | Accuracy | Correct/Total | Epochs | Final Loss | Size Match |\n")
-        f.write("|---------|----------|---------------|--------|------------|------------|\n")
+        f.write("| Task ID | Accuracy | Correct/Total | Test Examples | Epochs | Test Loss |\n")
+        f.write("|---------|----------|---------------|---------------|--------|------------|\n")
 
         for result in all_results:
             f.write(f"| {result['task_id']} | "
                    f"{result['final_accuracy']:.1%} | "
                    f"{result['correct_cells']}/{result['total_cells']} | "
+                   f"{result['num_test_examples']} | "
                    f"{result['epochs_trained']} | "
-                   f"{result['history']['loss'][-1]:.4f} | "
-                   f"{'✓' if result['size_match'] else '✗'} |\n")
+                   f"{result['final_test_loss']:.4f} |\n")
 
         f.write("\n## Training Curves\n\n")
 
@@ -611,6 +1013,15 @@ def save_results_to_markdown(all_results: List[Dict], output_path: str):
             f.write(f"- Initial: {history['sheaf_violation'][0]:.4f}\n")
             f.write(f"- Final: {history['sheaf_violation'][-1]:.4f}\n\n")
 
+        f.write("\n## Topos Law Violations\n\n")
+        f.write("| Task ID | Adjunction | Sheaf Condition |\n")
+        f.write("|---------|------------|------------------|\n")
+        for result in all_results:
+            f.write(f"| {result['task_id']} | "
+                   f"{result['topos_laws']['adjunction_violation']:.4f} | "
+                   f"{result['topos_laws']['sheaf_violation']:.4f} |\n")
+        f.write("\n")
+
         f.write("\n## Insights\n\n")
 
         # Analyze what worked
@@ -630,7 +1041,8 @@ def save_results_to_markdown(all_results: List[Dict], output_path: str):
         f.write("## Topos-Theoretic Observations\n\n")
         f.write("1. **Adjunction constraint:** The geometric morphism f^* ⊣ f_* adjunction was enforced during training.\n")
         f.write("2. **Sheaf condition:** Local consistency was maintained via the sheaf gluing axiom.\n")
-        f.write("3. **Internal logic:** Predictions were made in the internal language of the topos.\n\n")
+        f.write("3. **Separate loss components:** L2 (primary), sheaf space, adjunction, and gluing losses tracked independently.\n")
+        f.write("4. **Batch processing:** Each task processed as a single batch (all training examples together).\n\n")
 
         f.write("## Conclusion\n\n")
         f.write(f"This experiment demonstrates learning geometric morphisms between topoi ")
@@ -646,9 +1058,14 @@ if __name__ == "__main__":
 
     # Configuration
     ARC_DATA_PATH = "/Users/faezs/homotopy-nn/ARC-AGI/data"
-    MAX_EPOCHS = 1  # Run 1 epoch per task for fast data collection
-    EARLY_STOP_PATIENCE = 30
+    MAX_EPOCHS = 100
+    EARLY_STOP_PATIENCE = 100
     LEARNING_RATE = 1e-3
+    TENSORBOARD_DIR = "/Users/faezs/homotopy-nn/neural_compiler/topos/runs"
+    LOG_VERBOSE = False  # Set to True to enable detailed histograms/images (uses more disk space)
+
+    # Unique run ID for this training session
+    RUN_ID = datetime.now().strftime('%Y%m%d_%H%M%S')
 
     print("Configuration:")
     print(f"  Dataset: {ARC_DATA_PATH}")
@@ -656,6 +1073,12 @@ if __name__ == "__main__":
     print(f"  Max epochs per task: {MAX_EPOCHS}")
     print(f"  Early stopping patience: {EARLY_STOP_PATIENCE}")
     print(f"  Learning rate: {LEARNING_RATE}")
+    print(f"  Verbose logging: {LOG_VERBOSE} {'(histograms + images)' if LOG_VERBOSE else '(essential scalars only)'}")
+    print()
+    print(f"TensorBoard:")
+    print(f"  tensorboard --logdir={TENSORBOARD_DIR}")
+    print(f"  🔑 FILTER BY RUN: {RUN_ID}")
+    print(f"     (Use this timestamp to filter all tasks from this training run)")
     print()
 
     # Load ARC dataset - NO LIMIT!
@@ -673,14 +1096,18 @@ if __name__ == "__main__":
         exit(1)
 
     print(f"Loaded {len(tasks)} tasks")
+
+    # Show device once
+    device = get_device(verbose=True)
     print()
 
-    # Train on each task
+    # Train on each task with progress bar
     all_results = []
     total_start_time = time.time()
+    first_task = True
 
-    for i, (task_id, task) in enumerate(tasks.items()):
-        print(f"\n[Task {i+1}/{len(tasks)}]")
+    task_pbar = tqdm(tasks.items(), desc="Training tasks", ncols=120)
+    for task_id, task in task_pbar:
         try:
             result = train_on_arc_task(
                 task,
@@ -688,11 +1115,24 @@ if __name__ == "__main__":
                 epochs=MAX_EPOCHS,
                 early_stop_patience=EARLY_STOP_PATIENCE,
                 lr=LEARNING_RATE,
-                verbose=True
+                verbose=False,  # Don't print for each task
+                run_id=RUN_ID,  # Group all tasks under this run
+                log_graph=first_task,  # Log model graph only for first task
+                tensorboard_root=TENSORBOARD_DIR,  # Root directory for graph
+                log_verbose=LOG_VERBOSE  # Control detailed logging (histograms/images)
             )
             all_results.append(result)
+            first_task = False  # Only log graph once
+
+            # Update progress bar with latest result
+            task_pbar.set_postfix({
+                'task': task_id[:8],  # Show first 8 chars of task ID
+                'acc': f"{result['final_accuracy']:.1%}",
+                'loss': f"{result['final_test_loss']:.3f}",
+                'ep': result['epochs_trained']
+            })
         except Exception as e:
-            print(f"\nERROR training task {task_id}: {e}")
+            task_pbar.write(f"ERROR training {task_id}: {e}")
             import traceback
             traceback.print_exc()
             continue

@@ -1181,7 +1181,7 @@ postulate
   {-| Morphisms are distributed graph morphisms -}
   Gdist-Hom :
     (Gm G'm' : DistributedGraph) →
-    Precategory.Hom Gdist {!!} {!!} ≡ DistributedGraphMorphism Gm G'm'
+    Precategory.Hom Gdist (transport (sym Gdist-Ob) Gm) (transport (sym Gdist-Ob) G'm') ≡ DistributedGraphMorphism Gm G'm'
     -- Note: Using {!!} as we need to transport along Gdist-Ob
 
 {-|
@@ -1227,7 +1227,7 @@ module DistributedSummingFunctor where
   -}
   SummingFunctorTD : DirectedGraph → Type₁
   SummingFunctorTD G =
-    Functor (SubgraphsWithDistribution G {!!}) {!!}
+    Functor (SubgraphsWithDistribution G {!!}) TransitionSystems-is-category
     -- Would need proper category structure for TDT systems
 
   {-|

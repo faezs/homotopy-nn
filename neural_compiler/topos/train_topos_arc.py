@@ -34,7 +34,7 @@ from arc_loader import load_arc_dataset, split_arc_dataset, ARCTask, ARCGrid
 # § 1: ARC Data Loading and Preprocessing
 ################################################################################
 
-def arc_grid_to_tensor(grid: ARCGrid, device='cpu') -> torch.Tensor:
+def arc_grid_to_tensor(grid: ARCGrid, device='mps') -> torch.Tensor:
     """
     Convert ARCGrid to one-hot encoded torch tensor.
 
@@ -56,7 +56,7 @@ def arc_grid_to_tensor(grid: ARCGrid, device='cpu') -> torch.Tensor:
     return torch.from_numpy(one_hot).to(device)
 
 
-def convert_arc_task_to_tensor(arc_task: ARCTask, device='cpu') -> Dict:
+def convert_arc_task_to_tensor(arc_task: ARCTask, device='mps') -> Dict:
     """
     Convert ARCTask with ARCGrid objects to dict with torch tensors.
 
@@ -137,7 +137,7 @@ class TrainingConfig:
     composition_weight: float = 0.01
     identity_weight: float = 0.01
     orthogonality_weight: float = 0.001
-    spectral_weight: float = 0.001
+    spectral_weight: float = 0.0  # Disabled on MPS (SVD lacks autograd support)
 
     # Soft gluing
     gluing_temperature: float = 0.1
@@ -148,7 +148,7 @@ class TrainingConfig:
     save_interval: int = 50
 
     # Device
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    device: str = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
 
 
 ################################################################################
@@ -214,7 +214,22 @@ class ToposARCTrainer:
         # =====================================================================
 
         # 1. Task loss: Prediction accuracy
-        task_loss = F.mse_loss(prediction, test_output.unsqueeze(0))
+        # Handle size mismatch: prediction is test_input size, test_output might differ
+        test_h, test_w = test_output.shape[0:2]
+        pred_h, pred_w = prediction.shape[1:3]
+
+        if (pred_h, pred_w) != (test_h, test_w):
+            # Resize prediction to match test_output using interpolation
+            prediction_resized = F.interpolate(
+                prediction.permute(0, 3, 1, 2),  # [1, 10, pred_h, pred_w]
+                size=(test_h, test_w),
+                mode='bilinear',
+                align_corners=False
+            ).permute(0, 2, 3, 1)  # [1, test_h, test_w, 10]
+        else:
+            prediction_resized = prediction
+
+        task_loss = F.mse_loss(prediction_resized, test_output.unsqueeze(0))
 
         # 2. Compatibility loss: Encourage sheaf gluing condition
         compat_loss = compatibility_loss(gluing_result.compatibility_score)
@@ -223,28 +238,32 @@ class ToposARCTrainer:
         cover_loss = coverage_loss(gluing_result.coverage)
 
         # 4. Sheaf axiom losses: Enforce functoriality
-        # Get restriction maps from last forward pass through sheaf NN
-        # (stored in model's sheaf_nn)
-        with torch.no_grad():
-            # Extract features to get restriction maps
-            dummy_features = self.model.feature_extractor(
-                train_pairs[0][0].view(1, -1, 10)
-            )
-            edge_index = self.model.edge_index
-            restriction_maps = self.model.sheaf_nn.sheaf_learner(
-                dummy_features[0],
-                edge_index
-            )
+        # Use cached restriction maps from forward pass (computed in sheaf NN)
+        # These are the EXACT maps used during prediction, ensuring consistency
+        if (self.model.sheaf_nn._cached_restriction_maps is not None and
+            self.model._cached_edge_index is not None):
 
-        sheaf_losses = combined_sheaf_axiom_loss(
-            restriction_maps,
-            edge_index,
-            self.model.num_cells,
-            composition_weight=self.config.composition_weight,
-            identity_weight=self.config.identity_weight,
-            orthogonality_weight=self.config.orthogonality_weight,
-            spectral_weight=self.config.spectral_weight
-        )
+            restriction_maps = self.model.sheaf_nn._cached_restriction_maps
+            masked_edge_index = self.model._cached_edge_index
+            actual_cells = len(self.model._cached_features)
+
+            sheaf_losses = combined_sheaf_axiom_loss(
+                restriction_maps,
+                masked_edge_index,
+                actual_cells,
+                composition_weight=self.config.composition_weight,
+                identity_weight=self.config.identity_weight,
+                orthogonality_weight=self.config.orthogonality_weight,
+                spectral_weight=self.config.spectral_weight
+            )
+        else:
+            # No cached maps (shouldn't happen in training mode)
+            sheaf_losses = {
+                'composition': torch.tensor(0.0, device=prediction.device),
+                'identity': torch.tensor(0.0, device=prediction.device),
+                'orthogonality': torch.tensor(0.0, device=prediction.device),
+                'spectral': torch.tensor(0.0, device=prediction.device)
+            }
 
         # 5. Total loss
         total_loss = (
@@ -266,6 +285,14 @@ class ToposARCTrainer:
         # METRICS
         # =====================================================================
 
+        # Compute binary accuracy: 1 if prediction matches exactly, 0 otherwise
+        # Convert to discrete predictions (argmax over color dimension)
+        pred_discrete = prediction_resized.argmax(dim=-1)  # [1, h, w]
+        target_discrete = test_output.argmax(dim=-1)  # [h, w]
+
+        # Binary accuracy: 1 if all pixels match, 0 otherwise
+        binary_acc = float(torch.all(pred_discrete[0] == target_discrete).item())
+
         metrics = {
             'total_loss': total_loss.item(),
             'task_loss': task_loss.item(),
@@ -276,6 +303,7 @@ class ToposARCTrainer:
             'orthogonality_loss': sheaf_losses['orthogonality'].item(),
             'spectral_loss': sheaf_losses['spectral'].item(),
             'compatibility_score': gluing_result.compatibility_score.item(),
+            'binary_accuracy': binary_acc,  # 1 for correct, 0 for wrong
         }
 
         return metrics
@@ -301,6 +329,7 @@ class ToposARCTrainer:
                 'coverage_loss': 0.0,
                 'composition_loss': 0.0,
                 'compatibility_score': 0.0,
+                'binary_accuracy': 0.0,
             }
 
             # Train on all tasks
@@ -333,6 +362,7 @@ class ToposARCTrainer:
             print(f"Epoch {epoch+1}/{self.config.num_epochs}:")
             print(f"  Total Loss:        {epoch_metrics['total_loss']:.4f}")
             print(f"  Task Loss:         {epoch_metrics['task_loss']:.4f}")
+            print(f"  Binary Accuracy:   {epoch_metrics['binary_accuracy']:.4f} (1=correct, 0=wrong)")
             print(f"  Compatibility:     {epoch_metrics['compatibility_loss']:.4f} (score: {epoch_metrics['compatibility_score']:.3f})")
             print(f"  Coverage:          {epoch_metrics['coverage_loss']:.4f}")
             print(f"  Composition:       {epoch_metrics['composition_loss']:.4f}")
@@ -361,14 +391,14 @@ class ToposARCTrainer:
 # § 4: Evaluation
 ################################################################################
 
-def evaluate_model(model: FewShotARCLearner, tasks: List[ARCTask],
+def evaluate_model(model: FewShotARCLearner, tasks: List[Dict],
                    config: TrainingConfig) -> Dict[str, float]:
     """
     Evaluate trained model on tasks.
 
     Args:
         model: Trained FewShotARCLearner
-        tasks: List of ARC tasks
+        tasks: List of task dicts (already in tensor format)
         config: Training configuration
 
     Returns:
@@ -377,23 +407,16 @@ def evaluate_model(model: FewShotARCLearner, tasks: List[ARCTask],
     model.eval()
 
     total_accuracy = 0.0
+    total_binary_acc = 0.0
     total_compatibility = 0.0
     num_tasks = 0
-
-    max_h, max_w = config.grid_size
 
     with torch.no_grad():
         for task in tqdm(tasks, desc="Evaluating"):
             try:
-                # Prepare data
-                train_pairs = []
-                for inp, out in zip(task.train_inputs, task.train_outputs):
-                    inp_pad = pad_to_max_size(inp, max_h, max_w)
-                    out_pad = pad_to_max_size(out, max_h, max_w)
-                    train_pairs.append((inp_pad, out_pad))
-
-                test_input = pad_to_max_size(task.test_inputs[0], max_h, max_w)
-                test_output = pad_to_max_size(task.test_outputs[0], max_h, max_w)
+                # Task is already in tensor format
+                train_pairs = task['train']
+                test_input, test_output = task['test']
 
                 # Predict
                 prediction, gluing_result = model(
@@ -402,21 +425,40 @@ def evaluate_model(model: FewShotARCLearner, tasks: List[ARCTask],
                     temperature=config.gluing_temperature
                 )
 
-                # Compute accuracy (exact match)
-                pred_colors = prediction.argmax(dim=-1)
-                true_colors = test_output.argmax(dim=-1).unsqueeze(0)
-                accuracy = (pred_colors == true_colors).float().mean()
+                # Resize prediction if needed
+                test_h, test_w = test_output.shape[0:2]
+                pred_h, pred_w = prediction.shape[1:3]
 
-                total_accuracy += accuracy.item()
+                if (pred_h, pred_w) != (test_h, test_w):
+                    prediction_resized = F.interpolate(
+                        prediction.permute(0, 3, 1, 2),
+                        size=(test_h, test_w),
+                        mode='bilinear',
+                        align_corners=False
+                    ).permute(0, 2, 3, 1)
+                else:
+                    prediction_resized = prediction
+
+                # Compute pixel accuracy
+                pred_colors = prediction_resized.argmax(dim=-1)
+                true_colors = test_output.argmax(dim=-1)
+                pixel_accuracy = (pred_colors[0] == true_colors).float().mean()
+
+                # Compute binary accuracy (1 if all correct, 0 otherwise)
+                binary_acc = float(torch.all(pred_colors[0] == true_colors).item())
+
+                total_accuracy += pixel_accuracy.item()
+                total_binary_acc += binary_acc
                 total_compatibility += gluing_result.compatibility_score.item()
                 num_tasks += 1
 
             except Exception as e:
-                print(f"Warning: Failed to evaluate task {task.task_id}: {e}")
+                print(f"Warning: Failed to evaluate task: {e}")
                 continue
 
     metrics = {
-        'accuracy': total_accuracy / num_tasks if num_tasks > 0 else 0.0,
+        'pixel_accuracy': total_accuracy / num_tasks if num_tasks > 0 else 0.0,
+        'binary_accuracy': total_binary_acc / num_tasks if num_tasks > 0 else 0.0,
         'compatibility': total_compatibility / num_tasks if num_tasks > 0 else 0.0,
         'num_tasks': num_tasks
     }
@@ -458,7 +500,7 @@ def main():
     all_tasks_dict = load_arc_dataset(
         dataset_dir=str(arc_data_root),
         split="training",
-        limit=20  # Start with 20 tasks for testing
+        limit=None  # Load ALL tasks (400)
     )
 
     if len(all_tasks_dict) == 0:
@@ -506,18 +548,20 @@ def main():
     val_metrics = evaluate_model(trainer.model, val_tasks, config)
 
     print("\nValidation Results:")
-    print(f"  Accuracy:      {val_metrics['accuracy']:.2%}")
-    print(f"  Compatibility: {val_metrics['compatibility']:.3f}")
-    print(f"  Tasks:         {val_metrics['num_tasks']}")
+    print(f"  Pixel Accuracy:  {val_metrics['pixel_accuracy']:.2%}")
+    print(f"  Binary Accuracy: {val_metrics['binary_accuracy']:.2%} (exact match)")
+    print(f"  Compatibility:   {val_metrics['compatibility']:.3f}")
+    print(f"  Tasks:           {val_metrics['num_tasks']}")
 
     # Evaluate on test set
     print("\nEvaluating on test set...")
     test_metrics = evaluate_model(trainer.model, test_tasks, config)
 
     print("\nTest Results:")
-    print(f"  Accuracy:      {test_metrics['accuracy']:.2%}")
-    print(f"  Compatibility: {test_metrics['compatibility']:.3f}")
-    print(f"  Tasks:         {test_metrics['num_tasks']}")
+    print(f"  Pixel Accuracy:  {test_metrics['pixel_accuracy']:.2%}")
+    print(f"  Binary Accuracy: {test_metrics['binary_accuracy']:.2%} (exact match)")
+    print(f"  Compatibility:   {test_metrics['compatibility']:.3f}")
+    print(f"  Tasks:           {test_metrics['num_tasks']}")
 
 
 if __name__ == "__main__":

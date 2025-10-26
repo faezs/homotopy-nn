@@ -111,26 +111,34 @@ def pairwise_compatibility_matrix(sections: List['SheafSection'],
 
     for i in range(n):
         for j in range(i+1, n):
-            # Find overlap
+            # Find overlap of base_indices (which cells exist in both sections)
             overlap = compute_overlap_indices(sections[i].base_indices,
                                              sections[j].base_indices)
 
             if len(overlap) == 0:
-                # No overlap - compatible by default
+                # No overlap - sections cover different cells, compatible by default
                 score = torch.tensor(1.0, device=device)
             else:
-                # Find positions in each section
-                mask1 = torch.isin(sections[i].base_indices, overlap)
-                mask2 = torch.isin(sections[j].base_indices, overlap)
+                # CRITICAL FIX: Map overlap cell indices to positions in values arrays
+                # overlap contains cell indices (e.g., [0, 1, 2, ..., 8])
+                # We need to find WHERE these appear in each section's base_indices
+                # then use those positions to index into values
 
-                # Compute compatibility
-                score = compute_compatibility_score(
-                    sections[i].values,
-                    sections[j].values,
-                    mask1,
-                    mask2,
-                    temperature
-                )
+                # Find positions in section i's base_indices that match overlap
+                mask_i = torch.isin(sections[i].base_indices, overlap)
+                # Find positions in section j's base_indices that match overlap
+                mask_j = torch.isin(sections[j].base_indices, overlap)
+
+                # Extract values at those positions
+                s1_overlap = sections[i].values[mask_i]
+                s2_overlap = sections[j].values[mask_j]
+
+                if s1_overlap.size(0) == 0 or s2_overlap.size(0) == 0:
+                    score = torch.tensor(1.0, device=device)
+                else:
+                    # Compute compatibility
+                    distance = torch.norm(s1_overlap - s2_overlap, p=2)
+                    score = torch.exp(-distance**2 / temperature)
 
             compat_matrix[i, j] = score
             compat_matrix[j, i] = score  # Symmetric
@@ -211,21 +219,31 @@ def weighted_section_average(sections: List['SheafSection'],
     coverage = torch.zeros(m, device=device)
 
     for i, section in enumerate(sections):
-        # CRITICAL: section.base_indices might be [0,1,...,k] where k < m
-        # We need to match these to target_base indices safely
+        # CRITICAL FIX: target_base contains cell indices (e.g., [0, 1, ..., 899])
+        # section.base_indices contains cell indices this section covers (e.g., [0, 1, ..., 8])
+        # section.values[k] corresponds to cell section.base_indices[k]
+        #
+        # We need to:
+        # 1. Check if target cell exists in section.base_indices
+        # 2. If yes, find its position
+        # 3. Use that position to index into section.values
 
-        # Create a mapping from section's base_indices to section.values positions
-        # Assume base_indices are contiguous starting from 0 (our extract_section does this)
-        section_size = len(section.base_indices)
+        # Create boolean mask: which target cells are covered by this section?
+        mask = torch.isin(target_base, section.base_indices)
 
+        # For each covered cell, find its position in section.base_indices
         for j, target_idx in enumerate(target_base):
-            # Check if this target index is within section's range
-            if target_idx < section_size:
-                # Add weighted value
-                w = weights[i]
-                glued_values[j] += w * section.values[target_idx]
-                total_weights[j] += w
-                coverage[j] += 1
+            if mask[j]:
+                # target_idx exists in section.base_indices
+                # Find WHERE (position k where section.base_indices[k] == target_idx)
+                position = (section.base_indices == target_idx).nonzero(as_tuple=True)[0]
+                if len(position) > 0:
+                    pos = position[0].item()
+                    # Add weighted value from section.values[pos]
+                    w = weights[i]
+                    glued_values[j] += w * section.values[pos]
+                    total_weights[j] += w
+                    coverage[j] += 1
 
     # Normalize by total weights
     valid_mask = total_weights > 0

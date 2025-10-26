@@ -1,0 +1,84 @@
+🚀 Using Apple Silicon GPU (MPS)
+TRM template search space: 152 formulas
+
+======================================================================
+TRM NEURAL-SYMBOLIC ARC TRAINING
+======================================================================
+Configuration:
+  Scales: 0 → 2
+  Epochs: 200
+  Batch size: 4
+  Learning rate: 0.0001
+  Answer dim: 128
+  Latent dim: 64
+  Recursive cycles: 3
+  EMA decay: 0.999
+  Device: mps
+  Template search space: 152
+Loading ARC datasets...
+  Scale 0: 327 tasks
+  Scale 1: 493 tasks
+  Scale 2: 460 tasks
+  Scale 3: 420 tasks
+  Scale 4: 207 tasks
+  Scale 5: 162 tasks
+  Scale 0: 261 train, 66 val
+  Scale 1: 394 train, 99 val
+  Scale 2: 368 train, 92 val
+
+======================================================================
+Training Scale 0 (TRM-Enhanced)
+======================================================================
+Train tasks: 261
+Val tasks: 66
+Recursive cycles: 3
+EMA decay: 0.999
+Traceback (most recent call last):
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_trm_neural_symbolic.py", line 452, in <module>
+    main()
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_trm_neural_symbolic.py", line 444, in main
+    metrics = trainer.run()
+              ^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_trm_neural_symbolic.py", line 388, in run
+    scale_metrics = self.train_scale(scale)
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_trm_neural_symbolic.py", line 293, in train_scale
+    train_metrics = self.train_epoch(scale, epoch)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/train_trm_neural_symbolic.py", line 191, in train_epoch
+    loss, losses = self.model.compute_loss(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/trm_neural_symbolic.py", line 690, in compute_loss
+    output_grid, info = self.forward(input_grid, target_size, hard_select)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/trm_neural_symbolic.py", line 594, in forward
+    output = self._apply_formula(
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/trm_neural_symbolic.py", line 651, in _apply_formula
+    truth = self.interpreter.force(formula, context)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/kripke_joyal.py", line 161, in force
+    return formula.eval(eval_context, self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/internal_language.py", line 268, in eval
+    v = self.body.eval(new_context, interpreter)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/internal_language.py", line 220, in eval
+    p = self.antecedent.eval(context, interpreter)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/internal_language.py", line 139, in eval
+    return predicate_fn(*arg_values, context=context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/trm_neural_symbolic.py", line 465, in <lambda>
+    predicate_dict[name] = (lambda p: lambda *args, context: p(*args, context=context))(pred)
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/664wqn98z7x9cjbf9z9ba1g8n4armhlk-python3-3.12.11-env/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/664wqn98z7x9cjbf9z9ba1g8n4armhlk-python3-3.12.11-env/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/faezs/homotopy-nn/neural_compiler/topos/neural_predicates.py", line 176, in forward
+    cell_color = int(grid[i, j].item())
+                     ^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
