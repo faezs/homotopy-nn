@@ -120,6 +120,31 @@ def main():
                 device=DEVICE
             )
 
+            # First check training accuracy
+            print()
+            print("=" * 80)
+            print("Checking Training Accuracy (should be high!)")
+            print("=" * 80)
+
+            train_accuracy = 0.0
+            train_cells = 0
+            for i, (train_input, train_output) in enumerate(training_pairs):
+                with torch.no_grad():
+                    pred = learner.predict(train_input)
+                predicted_grid = tensor_to_arc_grid(pred)
+                true_grid = tensor_to_arc_grid(train_output)
+                matches = np.sum(predicted_grid.cells == true_grid.cells)
+                total = predicted_grid.height * predicted_grid.width
+                train_accuracy += matches
+                train_cells += total
+                print(f"  Training example {i}: {matches}/{total} = {matches/total:.2%}")
+
+            overall_train_acc = train_accuracy / train_cells if train_cells > 0 else 0.0
+            print(f"\nOverall training accuracy: {overall_train_acc:.2%}")
+
+            if overall_train_acc < 0.5:
+                print("⚠️  WARNING: Training accuracy is low! Model not fitting training data!")
+
             # Evaluate on test
             print()
             print("=" * 80)
@@ -144,8 +169,24 @@ def main():
                 with torch.no_grad():
                     prediction_tensor = learner.predict(test_input)
 
+                # DEBUG: Check prediction statistics
+                print(f"\nTest example {i}:")
+                print(f"  Prediction tensor shape: {prediction_tensor.shape}")
+                print(f"  Prediction range: [{prediction_tensor.min().item():.3f}, {prediction_tensor.max().item():.3f}]")
+                print(f"  Prediction mean: {prediction_tensor.mean().item():.3f}")
+
+                # Check first 10 color channels
+                color_channels = prediction_tensor[0, :10, :, :]
+                print(f"  Color channel max values: {color_channels.max(dim=0)[0].flatten()[:5].tolist()}")
+                print(f"  Color channel argmax (first 3x3):")
+                argmax_grid = torch.argmax(color_channels, dim=0)
+                print(f"    {argmax_grid[:3, :3].cpu().numpy()}")
+
                 predicted_grid = tensor_to_arc_grid(prediction_tensor)
                 true_grid = tensor_to_arc_grid(test_output)
+
+                print(f"  True colors (first 3x3): {true_grid.cells[:3, :3]}")
+                print(f"  Predicted colors (first 3x3): {predicted_grid.cells[:3, :3]}")
 
                 matches = np.sum(predicted_grid.cells == true_grid.cells)
                 total = predicted_grid.height * predicted_grid.width
@@ -154,7 +195,6 @@ def main():
                 total_accuracy += matches
                 total_cells += total
 
-                print(f"\nTest example {i}:")
                 print(f"  Accuracy: {accuracy:.2%} ({matches}/{total} cells)")
 
             overall_accuracy = total_accuracy / total_cells if total_cells > 0 else 0.0

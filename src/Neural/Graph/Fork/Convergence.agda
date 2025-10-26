@@ -77,29 +77,27 @@ module ConvergenceDetection
                             ∃[ x ∈ (Σ[ a'' ∈ Node ] Edge a'' a) ] (x ∈ incoming-edges a)
   incoming-edges-complete a a' e = scan-finds a a' nodes e (nodes-complete a')
 
+
   -- Check if a node is convergent
   -- Strategy: Scan incoming-edges list to find 2 edges from distinct sources
   is-convergent? : (a : Node) → Dec (∥ is-convergent a ∥)
-  is-convergent? a = find-two-distinct (incoming-edges a) refl
+  is-convergent? a = find-two-distinct (incoming-edges a)
     where
       -- Try to find two edges from distinct sources in the scanned list
-      -- The equality proof witnesses that xs ≡ incoming-edges a
-      find-two-distinct : (xs : List (Σ[ a' ∈ Node ] Edge a' a)) →
-                          xs ≡ incoming-edges a →
-                          Dec (∥ is-convergent a ∥)
+      find-two-distinct : List (Σ[ a' ∈ Node ] Edge a' a) → Dec (∥ is-convergent a ∥)
 
       -- Empty list: no edges found, can't be convergent
-      find-two-distinct [] eq = no λ { (inc c) →
+      find-two-distinct [] = no λ { (inc c) →
         -- If witness c exists, it has edge₁ : Edge (c.source₁) a
-        -- By incoming-edges-complete, this edge should appear in the list
-        -- But the list is empty, so membership is impossible
-        ∥-∥-rec (hlevel 1) (λ (_ , mem) → absurd-empty (subst (_ ∈_) (sym eq) mem))
+        -- By incoming-edges-complete, this edge should appear in incoming-edges a
+        -- But incoming-edges a is [], so membership is impossible
+        ∥-∥-rec (hlevel 1) (λ (_ , mem) → absurd-empty mem)
                 (incoming-edges-complete a (c .is-convergent.source₁) (c .is-convergent.edge₁)) }
         where absurd-empty : ∀ {x} → x ∈ [] → ⊥
               absurd-empty ()
 
       -- Singleton list: only 1 source found, can't have 2 distinct sources
-      find-two-distinct ((s₁ , e₁) ∷ []) eq = no no-singleton
+      find-two-distinct ((s₁ , e₁) ∷ []) = no no-singleton
         where
           open import 1Lab.Path.Reasoning
 
@@ -127,31 +125,36 @@ module ConvergenceDetection
                   handle-second : (x₁ : Σ[ a' ∈ Node ] Edge a' a) → x₁ ∈ incoming-edges a →
                                   Σ _ (λ x → x ∈ incoming-edges a) → ⊥
                   handle-second x₁ mem₁ (x₂ , mem₂) =
-                    -- Transport to singleton and use fact that here means equal to (s₁, e₁)
-                    c .is-convergent.distinct (sources-both-s₁ x₁ x₂ mem₁' mem₂')
+                    -- Key insight: incoming-edges a = [(s₁, e₁)] is a singleton
+                    -- c.source₁ has edge c.edge₁ to a, so must appear in scan
+                    -- The only source in singleton is s₁, so c.source₁ = s₁
+                    -- Similarly c.source₂ = s₁, hence c.source₁ = c.source₂
+                    c .is-convergent.distinct
+                      (only-source-in-singleton (c .is-convergent.source₁) (c .is-convergent.edge₁)
+                       ∙ sym (only-source-in-singleton (c .is-convergent.source₂) (c .is-convergent.edge₂)))
                     where
-                      mem₁' : x₁ ∈ ((s₁ , e₁) ∷ [])
-                      mem₁' = subst (x₁ ∈_) (sym eq) mem₁
-
-                      mem₂' : x₂ ∈ ((s₁ , e₁) ∷ [])
-                      mem₂' = subst (x₂ ∈_) (sym eq) mem₂
-
-                      sources-both-s₁ : ∀ x₁ x₂ → x₁ ∈ ((s₁ , e₁) ∷ []) → x₂ ∈ ((s₁ , e₁) ∷ []) →
-                                        c .is-convergent.source₁ ≡ c .is-convergent.source₂
-                      sources-both-s₁ x₁ x₂ (here p₁) (here p₂) =
-                        c .is-convergent.source₁  ≡⟨ ap fst (Id≃path .fst p₁) ⟩
-                        s₁                         ≡˘⟨ ap fst (Id≃path .fst p₂) ⟩
-                        c .is-convergent.source₂  ∎
-                      sources-both-s₁ _ _ (here _) (there ())
-                      sources-both-s₁ _ _ (there ()) _
+                      -- If a source has an edge to a, and incoming-edges a is singleton [(s₁, e₁)],
+                      -- then that source must equal s₁
+                      only-source-in-singleton : ∀ (src : Node) (e : Edge src a) → src ≡ s₁
+                      only-source-in-singleton src e =
+                        -- By completeness, (src, e) appears in incoming-edges a
+                        -- incoming-edges a = [(s₁, e₁)] (we're pattern matching on singleton)
+                        -- So (src, e) ∈ [(s₁, e₁)], which means src = s₁
+                        -- Since Graph nodes form a groupoid, equality is a set, hence a proposition
+                        ∥-∥-rec (Path-is-hlevel' 1 (Graph.has-is-set G) src s₁) extract-source
+                          (incoming-edges-complete a src e)
+                        where
+                          extract-source : Σ _ (λ x → x ∈ incoming-edges a) → src ≡ s₁
+                          extract-source (x , here p) = sym (ap fst (Id≃path .fst p))
+                          extract-source (x , there ())
 
       -- Two or more elements: check if first two sources are distinct
-      find-two-distinct ((s₁ , e₁) ∷ (s₂ , e₂) ∷ rest) eq with node-eq? s₁ s₂
+      find-two-distinct ((s₁ , e₁) ∷ (s₂ , e₂) ∷ rest) with node-eq? s₁ s₂
       ... | yes _ =
         -- Same source, skip one and try with rest
-        -- Note: We rely on scan-incoming not producing duplicates in practice
+        -- Note: scan-incoming shouldn't produce duplicates in practice
         -- If all sources are the same, this will eventually hit the singleton/empty case
-        find-two-distinct ((s₁ , e₁) ∷ rest) refl
+        find-two-distinct ((s₁ , e₁) ∷ rest)
       ... | no s₁≠s₂ =
         -- Found two distinct sources! Construct the witness
         yes (inc (record
