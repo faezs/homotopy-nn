@@ -40,7 +40,12 @@ def arc_grid_to_tensor(
         - Remaining channels initialized with small noise
     """
     h, w = grid.height, grid.width
-    cells = grid.cells  # (h, w) numpy array
+
+    # Convert JAX array to numpy if needed
+    if hasattr(grid.cells, '__array__'):
+        cells = np.array(grid.cells)
+    else:
+        cells = grid.cells
 
     # Create tensor
     tensor = torch.zeros(1, num_channels, h, w, device=device)
@@ -48,7 +53,7 @@ def arc_grid_to_tensor(
     # One-hot encode colors
     for i in range(h):
         for j in range(w):
-            color = cells[i, j]
+            color = int(cells[i, j])  # Convert to Python int
             if color < num_channels:
                 tensor[0, color, i, j] = 1.0
 
