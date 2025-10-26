@@ -32,6 +32,7 @@ open import Neural.Graph.Fork.PathUniqueness
 open import Neural.Graph.Fork.Poset
 
 open import 1Lab.Prelude
+open import 1Lab.Path.Reasoning
 
 open import Data.Dec.Base
 open import Data.List
@@ -59,7 +60,7 @@ module ForkCategoricalStructure
   -- Re-export core fork datatypes
   open ForkConstruction G G-oriented node-eq? public
 
-  -- Re-export convergence detection
+  -- Re-export convergence detection (no module parameters needed)
   open ConvergenceDetection G G-oriented nodes nodes-complete edge? node-eq? public
 
   -- Re-export surgery (Γ̄ construction)
