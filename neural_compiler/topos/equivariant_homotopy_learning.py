@@ -46,6 +46,50 @@ from stacks_of_dnns import (
 # § -1: Sparse Attention for Vectorized Example Morphisms
 ################################################################################
 
+class IndividualMorphismWrapper(nn.Module):
+    """Wrapper to make example-specific morphism callable as nn.Module.
+
+    This allows using the vectorized architecture (shared encoder + adapter)
+    with the existing EquivariantHomotopyDistance class.
+    """
+
+    def __init__(self, learner: 'EquivariantHomotopyLearner', example_idx: int):
+        super().__init__()
+        self.learner = learner
+        self.example_idx = example_idx
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply example-specific morphism to input.
+
+        Args:
+            x: Input tensor (B, C_in, H, W)
+
+        Returns:
+            Output tensor (B, C_out, H, W)
+        """
+        # Compute shared features
+        shared_feat = self.learner.shared_encoder(x)
+
+        # Pool for attention
+        pooled = F.adaptive_avg_pool2d(shared_feat, (1, 1)).squeeze(-1).squeeze(-1)
+
+        # For single input, create dummy pooled_features tensor
+        # (Attention needs all examples, but we only have one input here)
+        # Solution: Use cached pooled features from training if available
+        if hasattr(self.learner, '_cached_pooled_features'):
+            pooled_features = self.learner._cached_pooled_features
+        else:
+            # Fallback: just use this example's features repeated
+            pooled_features = pooled.unsqueeze(0).repeat(self.learner.num_examples, 1)
+
+        # Apply individual morphism
+        output = self.learner._apply_individual_morphism(
+            x, self.example_idx, shared_feat, pooled_features
+        )
+
+        return output
+
+
 class SparseAttention(nn.Module):
     """Sparse attention for example-specific adaptation.
 
@@ -510,6 +554,9 @@ class EquivariantHomotopyLearner(nn.Module):
         # Stack pooled features for sparse attention
         pooled_features = torch.stack(pooled_features_list)  # (N, feature_dim)
 
+        # Cache pooled features for use by wrappers
+        self._cached_pooled_features = pooled_features.detach()
+
         # 2. Individual morphism reconstruction loss (using sparse attention)
         individual_recon_loss = 0.0
         individual_predictions = []
@@ -524,20 +571,24 @@ class EquivariantHomotopyLearner(nn.Module):
 
         individual_recon_loss /= N
 
-        # 3. Homotopy distance: d_H(f*, fᵢ) for all i
-        # For vectorized version, we compare canonical outputs to individual outputs
+        # 3. Homotopy distance: d_H(f*, fᵢ) for all i (GROUP-AWARE!)
+        # Use proper equivariant homotopy distance that measures:
+        # - Geometric distance: ||f*(x) - fᵢ(x)||²
+        # - Equivariance violation: ||f(g·x) - g·f(x)||²
         homotopy_loss = 0.0
 
-        for i, x_i in enumerate(sheaf_inputs):
-            # Canonical prediction
-            canonical_pred = self.canonical_morphism(x_i)
+        for i in range(N):
+            # Create wrapper for individual morphism i
+            individual_morphism_i = IndividualMorphismWrapper(self, i)
 
-            # Individual prediction (already computed above)
-            individual_pred = individual_predictions[i]
-
-            # Equivariant homotopy distance between the two predictions
-            # This measures how far individual morphisms are from canonical
-            homotopy_loss += F.mse_loss(canonical_pred, individual_pred.detach())
+            # Compute group-aware homotopy distance
+            d_h = self.homotopy_distance(
+                self.canonical_morphism,
+                individual_morphism_i,
+                sheaf_inputs,
+                group=self.group  # ← GROUP-AWARE!
+            )
+            homotopy_loss += d_h
 
         homotopy_loss /= N
 
