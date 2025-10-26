@@ -80,51 +80,78 @@ module ConvergenceDetection
   -- Check if a node is convergent
   -- Strategy: Scan incoming-edges list to find 2 edges from distinct sources
   is-convergent? : (a : Node) → Dec (∥ is-convergent a ∥)
-  is-convergent? a = find-two-distinct (incoming-edges a)
+  is-convergent? a = find-two-distinct (incoming-edges a) refl
     where
       -- Try to find two edges from distinct sources in the scanned list
-      find-two-distinct : List (Σ[ a' ∈ Node ] Edge a' a) → Dec (∥ is-convergent a ∥)
+      -- The equality proof witnesses that xs ≡ incoming-edges a
+      find-two-distinct : (xs : List (Σ[ a' ∈ Node ] Edge a' a)) →
+                          xs ≡ incoming-edges a →
+                          Dec (∥ is-convergent a ∥)
 
       -- Empty list: no edges found, can't be convergent
-      find-two-distinct [] = no λ { (inc c) →
+      find-two-distinct [] eq = no λ { (inc c) →
         -- If witness c exists, it has edge₁ : Edge (c.source₁) a
         -- By incoming-edges-complete, this edge should appear in the list
         -- But the list is empty, so membership is impossible
-        ∥-∥-rec (hlevel 1) (λ (_ , mem) → absurd-empty mem)
+        ∥-∥-rec (hlevel 1) (λ (_ , mem) → absurd-empty (subst (_ ∈_) (sym eq) mem))
                 (incoming-edges-complete a (c .is-convergent.source₁) (c .is-convergent.edge₁)) }
         where absurd-empty : ∀ {x} → x ∈ [] → ⊥
               absurd-empty ()
 
       -- Singleton list: only 1 source found, can't have 2 distinct sources
-      find-two-distinct ((s₁ , e₁) ∷ []) = no no-singleton
+      find-two-distinct ((s₁ , e₁) ∷ []) eq = no no-singleton
         where
           open import 1Lab.Path.Reasoning
 
+          -- Key insight: singleton list means both memberships point to same element
+          singleton-unique : ∀ {x y : Σ[ a' ∈ Node ] Edge a' a} →
+                             x ∈ ((s₁ , e₁) ∷ []) → y ∈ ((s₁ , e₁) ∷ []) →
+                             fst x ≡ fst y
+          singleton-unique (here p₁) (here p₂) =
+            ap fst (Id≃path .fst p₁) ∙ sym (ap fst (Id≃path .fst p₂))
+          singleton-unique (here _) (there ())
+          singleton-unique (there ()) _
+
           no-singleton : ∥ is-convergent a ∥ → ⊥
           no-singleton (inc c) =
-            ∥-∥-rec (hlevel 1) handle-first
+            -- Both edges appear in incoming-edges a via completeness
+            -- In a singleton list, both must equal (s₁, e₁), so sources are equal
+            ∥-∥-rec (hlevel 1) handle-both
               (incoming-edges-complete a (c .is-convergent.source₁) (c .is-convergent.edge₁))
             where
-              handle-first : Σ _ (λ x → x ∈ ((s₁ , e₁) ∷ [])) → ⊥
-              handle-first (x₁ , mem₁) =
-                ∥-∥-rec (hlevel 1) (handle-second mem₁)
+              handle-both : Σ _ (λ x → x ∈ incoming-edges a) → ⊥
+              handle-both (x₁ , mem₁) =
+                ∥-∥-rec (hlevel 1) (handle-second x₁ mem₁)
                   (incoming-edges-complete a (c .is-convergent.source₂) (c .is-convergent.edge₂))
                 where
-                  handle-second : x₁ ∈ ((s₁ , e₁) ∷ []) → Σ _ (λ x → x ∈ ((s₁ , e₁) ∷ [])) → ⊥
-                  handle-second (here p₁) (x₂ , here p₂) =
-                    c .is-convergent.distinct
-                      (c .is-convergent.source₁  ≡⟨ ap fst (sym p₁) ⟩
-                       s₁                         ≡⟨ ap fst p₂ ⟩
-                       c .is-convergent.source₂  ∎)
-                  handle-second (here _) (_ , there ())
-                  handle-second (there ()) _
+                  handle-second : (x₁ : Σ[ a' ∈ Node ] Edge a' a) → x₁ ∈ incoming-edges a →
+                                  Σ _ (λ x → x ∈ incoming-edges a) → ⊥
+                  handle-second x₁ mem₁ (x₂ , mem₂) =
+                    -- Transport to singleton and use fact that here means equal to (s₁, e₁)
+                    c .is-convergent.distinct (sources-both-s₁ x₁ x₂ mem₁' mem₂')
+                    where
+                      mem₁' : x₁ ∈ ((s₁ , e₁) ∷ [])
+                      mem₁' = subst (x₁ ∈_) (sym eq) mem₁
+
+                      mem₂' : x₂ ∈ ((s₁ , e₁) ∷ [])
+                      mem₂' = subst (x₂ ∈_) (sym eq) mem₂
+
+                      sources-both-s₁ : ∀ x₁ x₂ → x₁ ∈ ((s₁ , e₁) ∷ []) → x₂ ∈ ((s₁ , e₁) ∷ []) →
+                                        c .is-convergent.source₁ ≡ c .is-convergent.source₂
+                      sources-both-s₁ x₁ x₂ (here p₁) (here p₂) =
+                        c .is-convergent.source₁  ≡⟨ ap fst (Id≃path .fst p₁) ⟩
+                        s₁                         ≡˘⟨ ap fst (Id≃path .fst p₂) ⟩
+                        c .is-convergent.source₂  ∎
+                      sources-both-s₁ _ _ (here _) (there ())
+                      sources-both-s₁ _ _ (there ()) _
 
       -- Two or more elements: check if first two sources are distinct
-      find-two-distinct ((s₁ , e₁) ∷ (s₂ , e₂) ∷ rest) with node-eq? s₁ s₂
+      find-two-distinct ((s₁ , e₁) ∷ (s₂ , e₂) ∷ rest) eq with node-eq? s₁ s₂
       ... | yes _ =
-        -- Same source, this is a duplicate (shouldn't happen but handle it)
-        -- Skip the second one and recurse
-        find-two-distinct ((s₁ , e₁) ∷ rest)
+        -- Same source, skip one and try with rest
+        -- Note: We rely on scan-incoming not producing duplicates in practice
+        -- If all sources are the same, this will eventually hit the singleton/empty case
+        find-two-distinct ((s₁ , e₁) ∷ rest) refl
       ... | no s₁≠s₂ =
         -- Found two distinct sources! Construct the witness
         yes (inc (record

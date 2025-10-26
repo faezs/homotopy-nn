@@ -343,10 +343,19 @@ class EquivariantHomotopyLearner(nn.Module):
 
         # 3. Canonical morphism reconstruction
         canonical_recon_loss = 0.0
+        canonical_preds = []
         for x_i, y_i in training_pairs:
             pred_canonical = self.canonical_morphism(x_i)
+            canonical_preds.append(pred_canonical)
             canonical_recon_loss += F.mse_loss(pred_canonical, y_i)
         canonical_recon_loss /= len(training_pairs)
+
+        # Store first prediction for debugging
+        if not hasattr(self, '_debug_canonical_pred_epoch0'):
+            self._debug_canonical_pred_epoch0 = canonical_preds[0].detach().clone()
+            self._debug_epoch = 0
+        else:
+            self._debug_epoch += 1
 
         # Total loss
         total_loss = (
@@ -600,6 +609,17 @@ def train_equivariant_homotopy(
             print(f"  Mean change: {np.mean(param_changes):.6f}")
             if max(param_changes) < 1e-6:
                 print("  ⚠️  WARNING: Parameters barely changed! Optimizer may not be working!")
+
+            # Also check if canonical output is changing
+            if hasattr(learner, '_debug_canonical_pred_epoch0'):
+                # Re-run forward to get current prediction
+                with torch.no_grad():
+                    current_pred = learner.canonical_morphism(training_pairs[0][0])
+                    pred_change = torch.norm(current_pred - learner._debug_canonical_pred_epoch0).item()
+                    print(f"  Canonical output change: {pred_change:.6f}")
+                    if pred_change < 1e-6:
+                        print(f"  ⚠️  CRITICAL: Canonical output frozen despite parameter changes!")
+                        print(f"  This suggests EquivariantConv2d may have internal caching/batch norm issue!")
             print()
 
         # Gradient clipping (stability)

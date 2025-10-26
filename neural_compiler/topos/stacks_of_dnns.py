@@ -876,8 +876,9 @@ class EquivariantConv2d(nn.Module):
 
         Returns: (group_size, out_channels, in_channels, H, W)
         """
-        # Check if cached
-        current_hash = hash(self.kernel.data_ptr())
+        # Check if cached (FIXED: hash actual values, not pointer!)
+        # Use norm of kernel as a fast proxy for detecting changes
+        current_hash = (self.kernel.data_ptr(), self.kernel.data.norm().item())
         if self._transformed_kernels is not None and self._kernel_hash == current_hash:
             return self._transformed_kernels
 
