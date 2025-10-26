@@ -289,9 +289,15 @@ class EquivariantHomotopyDistance:
                 equivariance_violation /= len(group_elements)
 
             # Parameter smoothness (gradient penalty)
+            # Skip if parameter structures don't match (e.g., wrapper vs full network)
             smoothness_penalty = 0.0
-            for p_f, p_g in zip(morphism_f.parameters(), morphism_g.parameters()):
-                smoothness_penalty += torch.norm(p_f - p_g) ** 2
+            try:
+                for p_f, p_g in zip(morphism_f.parameters(), morphism_g.parameters()):
+                    if p_f.shape == p_g.shape:  # Only compare matching shapes
+                        smoothness_penalty += torch.norm(p_f - p_g) ** 2
+            except:
+                # If parameter iteration fails, skip smoothness penalty
+                smoothness_penalty = 0.0
 
             total_distance += (
                 self.alpha * geometric_dist +
@@ -401,10 +407,11 @@ class EquivariantHomotopyLearner(nn.Module):
         ).to(device)
 
         # Homotopy distance (group-aware)
+        # Note: gamma=0 since parameter smoothness doesn't apply to wrapper architecture
         self.homotopy_distance = EquivariantHomotopyDistance(
-            alpha=1.0,
-            beta=0.5,
-            gamma=0.1,
+            alpha=1.0,      # Geometric distance weight
+            beta=0.5,       # Equivariance violation weight
+            gamma=0.0,      # Parameter smoothness (disabled for wrappers)
             num_group_samples=8
         )
 
