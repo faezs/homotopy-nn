@@ -258,11 +258,13 @@ class ToposARCTrainer:
             )
         else:
             # No cached maps (shouldn't happen in training mode)
+            print("WARNING: No cached restriction maps found!")
             sheaf_losses = {
                 'composition': torch.tensor(0.0, device=prediction.device),
                 'identity': torch.tensor(0.0, device=prediction.device),
                 'orthogonality': torch.tensor(0.0, device=prediction.device),
-                'spectral': torch.tensor(0.0, device=prediction.device)
+                'spectral': torch.tensor(0.0, device=prediction.device),
+                'total': torch.tensor(0.0, device=prediction.device)
             }
 
         # 5. Total loss
@@ -293,6 +295,9 @@ class ToposARCTrainer:
         # Binary accuracy: 1 if all pixels match, 0 otherwise
         binary_acc = float(torch.all(pred_discrete[0] == target_discrete).item())
 
+        # Compute pixel accuracy for debugging
+        pixel_acc = (pred_discrete[0] == target_discrete).float().mean().item()
+
         metrics = {
             'total_loss': total_loss.item(),
             'task_loss': task_loss.item(),
@@ -304,6 +309,7 @@ class ToposARCTrainer:
             'spectral_loss': sheaf_losses['spectral'].item(),
             'compatibility_score': gluing_result.compatibility_score.item(),
             'binary_accuracy': binary_acc,  # 1 for correct, 0 for wrong
+            'pixel_accuracy': pixel_acc,  # Fraction of correct pixels
         }
 
         return metrics
@@ -330,6 +336,7 @@ class ToposARCTrainer:
                 'composition_loss': 0.0,
                 'compatibility_score': 0.0,
                 'binary_accuracy': 0.0,
+                'pixel_accuracy': 0.0,
             }
 
             # Train on all tasks
@@ -362,6 +369,7 @@ class ToposARCTrainer:
             print(f"Epoch {epoch+1}/{self.config.num_epochs}:")
             print(f"  Total Loss:        {epoch_metrics['total_loss']:.4f}")
             print(f"  Task Loss:         {epoch_metrics['task_loss']:.4f}")
+            print(f"  Pixel Accuracy:    {epoch_metrics['pixel_accuracy']:.4f} (fraction correct)")
             print(f"  Binary Accuracy:   {epoch_metrics['binary_accuracy']:.4f} (1=correct, 0=wrong)")
             print(f"  Compatibility:     {epoch_metrics['compatibility_loss']:.4f} (score: {epoch_metrics['compatibility_score']:.3f})")
             print(f"  Coverage:          {epoch_metrics['coverage_loss']:.4f}")
