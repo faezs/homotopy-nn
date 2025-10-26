@@ -523,15 +523,15 @@ def train_equivariant_homotopy(
         # Determine phase
         if epoch < phase_transition_epoch:
             # Phase 1: Fit examples
-            lambda_recon = 20.0
-            lambda_homotopy = 0.1
-            lambda_canonical = 0.5
+            lambda_recon = 50.0        # Strong reconstruction signal
+            lambda_homotopy = 0.01     # Very weak homotopy (let them diverge)
+            lambda_canonical = 1.0     # Weak canonical (background)
             phase = 1
         else:
             # Phase 2: Collapse to canonical
-            lambda_recon = 5.0
-            lambda_homotopy = 2.0
-            lambda_canonical = 10.0
+            lambda_recon = 1.0         # Reduce reconstruction
+            lambda_homotopy = 100.0    # VERY strong homotopy collapse!
+            lambda_canonical = 50.0    # Strong canonical reconstruction
             phase = 2
 
         # Forward pass

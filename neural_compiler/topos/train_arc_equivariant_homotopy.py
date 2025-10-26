@@ -42,12 +42,12 @@ def main():
     NUM_TASKS = 5
     DEVICE = 'cpu'
 
-    # Hyperparameters
+    # Hyperparameters (tuned for actual learning)
     NUM_CHANNELS = 10
-    FEATURE_DIM = 32
+    FEATURE_DIM = 64        # Increased from 32 (more capacity)
     KERNEL_SIZE = 3
-    NUM_EPOCHS = 100
-    PHASE_TRANSITION = 50
+    NUM_EPOCHS = 300        # Increased from 100 (more training time)
+    PHASE_TRANSITION = 150  # Moved to 50% of epochs
 
     # Group: D4 (rotations + reflections)
     D4 = DihedralGroup(n=4)
@@ -108,13 +108,13 @@ def main():
             print(f"  Feature dim: {FEATURE_DIM}")
             print()
 
-            # Train
+            # Train with tuned hyperparameters
             history = train_equivariant_homotopy(
                 learner=learner,
                 training_pairs=training_pairs,
                 num_epochs=NUM_EPOCHS,
-                lr_individual=1e-3,
-                lr_canonical=5e-4,
+                lr_individual=5e-3,     # Much faster learning
+                lr_canonical=1e-2,      # Very fast canonical learning
                 phase_transition_epoch=PHASE_TRANSITION,
                 verbose=True,
                 device=DEVICE
