@@ -1,4 +1,0 @@
-# file: /Users/faezs/homotopy-nn/neural_compiler/polyfunctor.py
-# hypothesis_version: 6.136.9
-
-[1000, '__main__', 'id', 'linear_flow', 'op', 'residual_fork', 'shape']

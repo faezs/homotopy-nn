@@ -1,4 +1,0 @@
-# file: /Users/faezs/homotopy-nn/neural_compiler/topos/geometric_morphism_torch.py
-# hypothesis_version: 6.136.9
-
-[0.0, 0.001, 0.01, 0.1, 1.0, 100, '.', '4', '8', '=', 'After training:', 'Before training:', 'Initial state:', 'Input grid:', 'RESULTS', 'Sheaf', '__main__', 'adjunction_violation', 'loss', 'reward', 'sections', 'sheaf_violation']

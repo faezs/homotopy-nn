@@ -27,3 +27,20 @@ result-*
 # Direnv (keep .envrc but ignore cache)
 .direnv/
 agda-mcp/
+
+# Python artifacts (all folders)
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Python testing (all folders)
+**/.hypothesis/
+**/.pytest_cache/
+
+# PyTorch/ML artifacts (all folders)
+**/checkpoints/
+**/runs/
+
+# ARC training results (all folders)
+**/arc_results/

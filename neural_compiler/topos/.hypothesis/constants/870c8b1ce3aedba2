@@ -1,4 +1,0 @@
-# file: /Users/faezs/homotopy-nn/neural_compiler/__init__.py
-# hypothesis_version: 6.136.9
-
-['0.1.0', 'JAXBackend', 'NeuralIR', 'PolynomialFunctor', 'compile_architecture', 'parse_ir']
