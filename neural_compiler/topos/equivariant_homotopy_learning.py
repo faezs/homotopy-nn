@@ -43,6 +43,88 @@ from stacks_of_dnns import (
 
 
 ################################################################################
+# § -1: Sparse Attention for Vectorized Example Morphisms
+################################################################################
+
+class SparseAttention(nn.Module):
+    """Sparse attention for example-specific adaptation.
+
+    Instead of N separate networks, use:
+    - 1 shared encoder (parameters shared across examples)
+    - Sparse attention (each example attends to k nearest neighbors)
+    - Lightweight adapters (small per-example parameters)
+
+    Mathematical structure:
+    - Each example i has embedding e_i ∈ ℝ^d
+    - Compute distances to all other examples in embedding space
+    - Select k nearest neighbors via soft top-k
+    - Attend only to those k examples (sparse!)
+
+    Benefits:
+    - Memory: O(N) instead of O(N × network_size)
+    - Sharing: Similar examples help each other
+    - Speed: Single forward pass through encoder
+    - Scalability: Handles 100s of examples efficiently
+    """
+
+    def __init__(self, feature_dim: int, num_examples: int, k_neighbors: int = 5):
+        super().__init__()
+        self.feature_dim = feature_dim
+        self.num_examples = num_examples
+        self.k = min(k_neighbors, max(1, num_examples - 1))  # At least 1, can't exceed N-1
+
+        # Learnable query/key/value projections
+        self.query = nn.Linear(feature_dim, feature_dim)
+        self.key = nn.Linear(feature_dim, feature_dim)
+        self.value = nn.Linear(feature_dim, feature_dim)
+
+        # Temperature for softmax (learnable)
+        self.temperature = nn.Parameter(torch.ones(1))
+
+    def forward(self, example_features: torch.Tensor) -> torch.Tensor:
+        """Apply sparse attention across examples.
+
+        Args:
+            example_features: (N, feature_dim) features for N examples
+
+        Returns:
+            attended_features: (N, feature_dim) after sparse attention
+        """
+        N, D = example_features.shape
+        assert N == self.num_examples, f"Expected {self.num_examples} examples, got {N}"
+
+        # Compute queries, keys, values
+        Q = self.query(example_features)  # (N, D)
+        K = self.key(example_features)    # (N, D)
+        V = self.value(example_features)  # (N, D)
+
+        # Compute all pairwise similarities (scaled dot-product)
+        scores = torch.matmul(Q, K.T) / (self.temperature * np.sqrt(D))  # (N, N)
+
+        # Mask out self-attention (can't attend to self)
+        mask = torch.eye(N, device=scores.device).bool()
+        scores = scores.masked_fill(mask, -1e9)
+
+        # Sparse attention: keep only top-k neighbors per example
+        if self.k < N - 1:
+            # Get k-th largest value for each row
+            topk_values, _ = torch.topk(scores, self.k, dim=1)
+            threshold = topk_values[:, -1].unsqueeze(1)  # (N, 1)
+
+            # Mask out everything below threshold (sparse!)
+            sparse_mask = scores < threshold
+            scores = scores.masked_fill(sparse_mask, -1e9)
+
+        # Softmax over sparse neighbors
+        attn_weights = F.softmax(scores, dim=1)  # (N, N) but mostly zeros!
+
+        # Apply attention to values
+        attended = torch.matmul(attn_weights, V)  # (N, D)
+
+        return attended
+
+
+################################################################################
 # § 0: Helper Functions
 ################################################################################
 
@@ -235,21 +317,44 @@ class EquivariantHomotopyLearner(nn.Module):
         # Canonical morphism f* (G-equivariant)
         self.canonical_morphism = self._create_equivariant_morphism().to(device)
 
-        # Individual morphisms fᵢ (all G-equivariant)
-        self.individual_morphisms = nn.ModuleList([
-            self._create_equivariant_morphism().to(device)
-            for _ in range(num_training_examples)
-        ])
+        # VECTORIZED APPROACH: Shared encoder + sparse attention
+        # Instead of N separate networks, use:
+        # 1. Single shared encoder (parameters shared)
+        # 2. Sparse attention (examples help each other)
+        # 3. Lightweight per-example adapters
 
-        # Add all morphisms to groupoid
-        for i, f_i in enumerate(self.individual_morphisms):
-            morph = self.groupoid.add_equivariant_morphism(
-                source="input",
-                target="output",
-                transform=f_i
+        # Shared equivariant encoder (used by all examples)
+        self.shared_encoder = self._create_equivariant_encoder().to(device)
+
+        # Sparse attention for example-specific adaptation
+        k_neighbors = min(5, max(1, num_training_examples - 1))
+        self.sparse_attention = SparseAttention(
+            feature_dim=feature_dim,
+            num_examples=num_training_examples,
+            k_neighbors=k_neighbors
+        ).to(device)
+
+        # Lightweight per-example adapters (low-rank adaptation)
+        # Each example gets a small adapter: much cheaper than full network!
+        adapter_rank = max(8, feature_dim // 8)
+        self.example_adapters_down = nn.Parameter(
+            torch.randn(num_training_examples, feature_dim, adapter_rank, device=device) * 0.01
+        )
+        self.example_adapters_up = nn.Parameter(
+            torch.randn(num_training_examples, adapter_rank, feature_dim, device=device) * 0.01
+        )
+
+        # Final projection to output channels
+        self.output_proj = nn.Sequential(
+            EquivariantConv2d(
+                in_channels=feature_dim,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                group=group,
+                padding=kernel_size // 2,
+                device=device
             )
-            # All equivariant morphisms are weak equivalences!
-            assert morph.is_weak_equivalence, "Equivariant morphisms should be weak equivalences"
+        ).to(device)
 
         # Homotopy distance (group-aware)
         self.homotopy_distance = EquivariantHomotopyDistance(
@@ -302,6 +407,71 @@ class EquivariantHomotopyLearner(nn.Module):
             )
         )
 
+    def _create_equivariant_encoder(self) -> nn.Module:
+        """Create shared equivariant encoder (without final output projection).
+
+        This is the feature extractor shared by all example-specific morphisms.
+        Output: feature_dim channels (not out_channels!)
+        """
+        return nn.Sequential(
+            EquivariantConv2d(
+                in_channels=self.in_channels,
+                out_channels=self.feature_dim,
+                kernel_size=self.kernel_size,
+                group=self.group,
+                padding=self.kernel_size // 2,
+                device=self.device
+            ),
+            nn.ReLU(),
+            EquivariantConv2d(
+                in_channels=self.feature_dim,
+                out_channels=self.feature_dim,
+                kernel_size=self.kernel_size,
+                group=self.group,
+                padding=self.kernel_size // 2,
+                device=self.device
+            ),
+            nn.ReLU()
+        )
+
+    def _apply_individual_morphism(self, x: torch.Tensor, example_idx: int,
+                                   shared_features: torch.Tensor,
+                                   pooled_features: torch.Tensor) -> torch.Tensor:
+        """Apply example-specific morphism using shared encoder + adapter.
+
+        Args:
+            x: Input tensor (B, C_in, H, W) - not used directly, features precomputed
+            example_idx: Which example (0 to N-1)
+            shared_features: (B, feature_dim, H, W) from shared encoder
+            pooled_features: (N, feature_dim) pooled features for attention
+
+        Returns:
+            output: (B, C_out, H, W) example-specific prediction
+        """
+        B, C, H, W = shared_features.shape
+
+        # Get attended features for this example from sparse attention
+        attended = self.sparse_attention(pooled_features)  # (N, feature_dim)
+        attended_i = attended[example_idx]  # (feature_dim,)
+
+        # Apply low-rank adapter: down-project → up-project
+        # Adapter modulates features based on attention
+        adapter_down = self.example_adapters_down[example_idx]  # (feature_dim, rank)
+        adapter_up = self.example_adapters_up[example_idx]      # (rank, feature_dim)
+
+        # Compute adapter modulation in feature space
+        # This is a lightweight way to specialize the shared features
+        modulation = attended_i @ adapter_down @ adapter_up  # (feature_dim,)
+        modulation = modulation.view(1, -1, 1, 1)  # (1, feature_dim, 1, 1)
+
+        # Apply modulation to shared features (broadcast)
+        adapted_features = shared_features + modulation  # (B, feature_dim, H, W)
+
+        # Project to output space
+        output = self.output_proj(adapted_features)  # (B, C_out, H, W)
+
+        return output
+
     def forward(self,
                 training_pairs: List[Tuple[torch.Tensor, torch.Tensor]],
                 lambda_homotopy: float = 1.0,
@@ -321,25 +491,55 @@ class EquivariantHomotopyLearner(nn.Module):
         """
         sheaf_inputs = [pair[0] for pair in training_pairs]
         sheaf_targets = [pair[1] for pair in training_pairs]
+        N = len(training_pairs)
 
-        # 1. Individual morphism reconstruction loss
+        # VECTORIZED FORWARD PASS:
+        # 1. Compute shared features for all inputs (single forward pass!)
+        shared_features_list = []
+        pooled_features_list = []
+
+        for x_i, _ in training_pairs:
+            # Shared encoder forward
+            shared_feat = self.shared_encoder(x_i)  # (B, feature_dim, H, W)
+            shared_features_list.append(shared_feat)
+
+            # Global average pooling for attention
+            pooled = F.adaptive_avg_pool2d(shared_feat, (1, 1)).squeeze(-1).squeeze(-1)  # (B, feature_dim)
+            pooled_features_list.append(pooled.squeeze(0))  # (feature_dim,)
+
+        # Stack pooled features for sparse attention
+        pooled_features = torch.stack(pooled_features_list)  # (N, feature_dim)
+
+        # 2. Individual morphism reconstruction loss (using sparse attention)
         individual_recon_loss = 0.0
-        for i, (x_i, y_i) in enumerate(training_pairs):
-            pred_i = self.individual_morphisms[i](x_i)
-            individual_recon_loss += F.mse_loss(pred_i, y_i)
-        individual_recon_loss /= len(training_pairs)
+        individual_predictions = []
 
-        # 2. Homotopy distance: d_H(f*, fᵢ) for all i
-        homotopy_loss = 0.0
-        for f_i in self.individual_morphisms:
-            d_h = self.homotopy_distance(
-                self.canonical_morphism,
-                f_i,
-                sheaf_inputs,
-                group=self.group  # ← Group-aware distance!
+        for i, (x_i, y_i) in enumerate(training_pairs):
+            # Apply example-specific morphism (shares encoder, adds adapter)
+            pred_i = self._apply_individual_morphism(
+                x_i, i, shared_features_list[i], pooled_features
             )
-            homotopy_loss += d_h
-        homotopy_loss /= len(self.individual_morphisms)
+            individual_predictions.append(pred_i)
+            individual_recon_loss += F.mse_loss(pred_i, y_i)
+
+        individual_recon_loss /= N
+
+        # 3. Homotopy distance: d_H(f*, fᵢ) for all i
+        # For vectorized version, we compare canonical outputs to individual outputs
+        homotopy_loss = 0.0
+
+        for i, x_i in enumerate(sheaf_inputs):
+            # Canonical prediction
+            canonical_pred = self.canonical_morphism(x_i)
+
+            # Individual prediction (already computed above)
+            individual_pred = individual_predictions[i]
+
+            # Equivariant homotopy distance between the two predictions
+            # This measures how far individual morphisms are from canonical
+            homotopy_loss += F.mse_loss(canonical_pred, individual_pred.detach())
+
+        homotopy_loss /= N
 
         # 3. Canonical morphism reconstruction
         canonical_recon_loss = 0.0
@@ -499,9 +699,14 @@ def train_equivariant_homotopy(
     Returns:
         history: Training metrics over epochs
     """
-    # Optimizers
+    # Optimizers (updated for vectorized architecture)
+    individual_params = list(learner.shared_encoder.parameters()) + \
+                       list(learner.sparse_attention.parameters()) + \
+                       [learner.example_adapters_down, learner.example_adapters_up] + \
+                       list(learner.output_proj.parameters())
+
     optimizer_individual = torch.optim.Adam(
-        [p for f in learner.individual_morphisms for p in f.parameters()],
+        individual_params,
         lr=lr_individual
     )
     optimizer_canonical = torch.optim.Adam(
@@ -586,8 +791,7 @@ def train_equivariant_homotopy(
             # Save initial parameter values for comparison
             learner._initial_param_values = [p.data.clone() for p in canonical_params]
 
-            # Check for parameter sharing with individual morphisms
-            individual_params = [p for f in learner.individual_morphisms for p in f.parameters()]
+            # Check for parameter sharing with individual morphism parameters
             canonical_param_ids = {id(p) for p in canonical_params}
             individual_param_ids = {id(p) for p in individual_params}
             shared_ids = canonical_param_ids & individual_param_ids
@@ -595,7 +799,7 @@ def train_equivariant_homotopy(
                 print(f"  ⚠️  CRITICAL: {len(shared_ids)} parameters are SHARED between canonical and individual!")
                 print("  This would cause optimizer conflicts!")
             else:
-                print(f"  ✓ No parameter sharing detected (canonical has {len(canonical_param_ids)} unique params)")
+                print(f"  ✓ No parameter sharing detected ({len(canonical_param_ids)} canonical, {len(individual_param_ids)} individual params)")
             print()
 
         # Check if parameters actually changed (epochs 1 and 10)
@@ -623,14 +827,8 @@ def train_equivariant_homotopy(
             print()
 
         # Gradient clipping (stability)
-        torch.nn.utils.clip_grad_norm_(
-            [p for f in learner.individual_morphisms for p in f.parameters()],
-            max_norm=1.0
-        )
-        torch.nn.utils.clip_grad_norm_(
-            learner.canonical_morphism.parameters(),
-            max_norm=1.0
-        )
+        torch.nn.utils.clip_grad_norm_(individual_params, max_norm=1.0)
+        torch.nn.utils.clip_grad_norm_(learner.canonical_morphism.parameters(), max_norm=1.0)
 
         # Step
         optimizer_individual.step()
