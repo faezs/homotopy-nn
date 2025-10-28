@@ -149,21 +149,10 @@ module _ (G : Graph o ℓ)
 
   Objects: ForkVertex (original, fork-star, fork-tang)
   Morphisms: Paths in Γ̄ (composable sequences of ForkEdges)
-  -}
 
-  Γ̄-Category : Precategory o (o ⊔ ℓ)  -- Ob level = o (ForkVertex), Hom level = o ⊔ ℓ (ForkPath)
-  Γ̄-Category .Precategory.Ob = ForkVertex
-  Γ̄-Category .Precategory.Hom v w = ForkPath v w
-  Γ̄-Category .Precategory.Hom-set v w = is-prop→is-set ForkPath-is-prop
-  Γ̄-Category .Precategory.id = nil
-  Γ̄-Category .Precategory._∘_ q p = p ++ q  -- Diagram order: q ∘ p = "first p, then q"
-  Γ̄-Category .Precategory.idr f = refl       -- f ∘ id = nil ++ f = f (trivial by path++)
-  Γ̄-Category .Precategory.idl f = ++-idr f   -- id ∘ f = f ++ nil = f
-  Γ̄-Category .Precategory.assoc f g h = ++-assoc h g f  -- (f∘g)∘h = f∘(g∘h)
+  NOTE: Γ̄-Category is imported from Neural.Graph.Fork.Category via ForkCategoricalStructure.
 
-  {-|
   ✅ **Thin Category Property** (October 2025):
-
   Γ̄-Category IS a thin category! Proven via:
   - Γ̄ is oriented (classical + acyclic) → Γ̄ is a forest
   - Forests have unique paths (see Neural.Graph.Forest)
@@ -518,10 +507,7 @@ module _ (G : Graph o ℓ)
   **Morphisms**: Lift X-paths to Γ̄-paths (edges are the same type)
   -}
 
-  -- Helper: Convert Path-in Γ̄ to ForkPath
-  edgepath-to-forkpath : ∀ {v w} → Path-in Γ̄ v w → ForkPath v w
-  edgepath-to-forkpath nil = nil
-  edgepath-to-forkpath (cons fe rest) = cons fe (edgepath-to-forkpath rest)
+  -- NOTE: edgepath-to-forkpath is imported from Fork.Category via ForkCategoricalStructure
 
   -- Helper: Lift X-paths to Γ̄-paths (ForkPath)
   -- X-Edges may be composites (tip-tang-composite), so we expand them to paths
