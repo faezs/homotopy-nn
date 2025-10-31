@@ -55,7 +55,7 @@ open import 1Lab.HLevel.Closure using (hlevel-instance)
 open import Cat.Instances.Graphs using (Graph; Graph-hom; Graphs)
 open import Cat.Diagram.Coproduct
 
-open import Data.Sum.Base using (_⊎_; inl; inr)
+open import Data.Sum.Base using (_⊎_; inl; inr; elim)
 open import Data.Sum.Properties using (⊎-is-hlevel; Discrete-⊎; inl-inj; inr-inj)
 open import Data.Dec.Base using (Dec)
 
@@ -191,6 +191,80 @@ inr-convergent {G = G} {H = H} {H-oriented = H-oriented} {GH-oriented = GH-orien
   ; edge₁ = ForkConstruction.is-convergent.edge₁ conv-H  -- Edge preserved in coproduct
   ; edge₂ = ForkConstruction.is-convergent.edge₂ conv-H  -- Edge preserved in coproduct
   }
+
+-- Inverse: Non-convergence in coproduct implies non-convergence in component
+-- (Contrapositive of forward transport)
+inl-not-convergent : ∀ {o ℓ} {G H : Graph o ℓ}
+                   {G-oriented : is-oriented G}
+                   {GH-oriented : is-oriented (G +ᴳ H)}
+                   {G-discrete : ∀ (x y : G .Graph.Node) → Dec (x ≡ y)}
+                   {GH-discrete : ∀ (x y : (G +ᴳ H) .Graph.Node) → Dec (x ≡ y)}
+                   {v : G .Graph.Node}
+                   → ¬ ForkConstruction.is-convergent (G +ᴳ H) GH-oriented GH-discrete (inl v)
+                   → ¬ ForkConstruction.is-convergent G G-oriented G-discrete v
+inl-not-convergent {G = G} {H = H} {G-oriented = G-oriented} {GH-oriented = GH-oriented}
+                   {G-discrete = G-discrete} {GH-discrete = GH-discrete} {v = v}
+                   not-conv-coproduct conv-g =
+  not-conv-coproduct (inl-convergent conv-g)
+
+inr-not-convergent : ∀ {o ℓ} {G H : Graph o ℓ}
+                   {H-oriented : is-oriented H}
+                   {GH-oriented : is-oriented (G +ᴳ H)}
+                   {H-discrete : ∀ (x y : H .Graph.Node) → Dec (x ≡ y)}
+                   {GH-discrete : ∀ (x y : (G +ᴳ H) .Graph.Node) → Dec (x ≡ y)}
+                   {v : H .Graph.Node}
+                   → ¬ ForkConstruction.is-convergent (G +ᴳ H) GH-oriented GH-discrete (inr v)
+                   → ¬ ForkConstruction.is-convergent H H-oriented H-discrete v
+inr-not-convergent {G = G} {H = H} {H-oriented = H-oriented} {GH-oriented = GH-oriented}
+                   {H-discrete = H-discrete} {GH-discrete = GH-discrete} {v = v}
+                   not-conv-coproduct conv-h =
+  not-conv-coproduct (inr-convergent conv-h)
+
+-- Forward extraction: Convergence in coproduct implies convergence in component
+-- This works because _+ᴳ_ has no cross-edges
+inl-convergent-inv : ∀ {o ℓ} {G H : Graph o ℓ}
+                   {G-oriented : is-oriented G}
+                   {GH-oriented : is-oriented (G +ᴳ H)}
+                   {G-discrete : ∀ (x y : G .Graph.Node) → Dec (x ≡ y)}
+                   {GH-discrete : ∀ (x y : (G +ᴳ H) .Graph.Node) → Dec (x ≡ y)}
+                   {v : G .Graph.Node}
+                   → ForkConstruction.is-convergent (G +ᴳ H) GH-oriented GH-discrete (inl v)
+                   → ForkConstruction.is-convergent G G-oriented G-discrete v
+inl-convergent-inv record { source₁ = inl s₁ ; source₂ = inl s₂ ; distinct = dist ; edge₁ = e₁ ; edge₂ = e₂ } =
+  record
+  { source₁ = s₁
+  ; source₂ = s₂
+  ; distinct = λ eq → dist (ap inl eq)
+  ; edge₁ = e₁  -- Edges preserved: (G +ᴳ H).Edge (inl s₁) (inl v) = G.Edge s₁ v
+  ; edge₂ = e₂  -- Edges preserved: (G +ᴳ H).Edge (inl s₂) (inl v) = G.Edge s₂ v
+  }
+-- Impossible cases: cross-edges
+inl-convergent-inv record { source₁ = inl s₁ ; source₂ = inr s₂ ; edge₂ = e₂ } =
+  absurd (Lift.lower e₂)  -- Cross-edge is Lift ℓ ⊥
+inl-convergent-inv record { source₁ = inr s₁ ; edge₁ = e₁ } =
+  absurd (Lift.lower e₁)  -- Cross-edge is Lift ℓ ⊥
+
+inr-convergent-inv : ∀ {o ℓ} {G H : Graph o ℓ}
+                   {H-oriented : is-oriented H}
+                   {GH-oriented : is-oriented (G +ᴳ H)}
+                   {H-discrete : ∀ (x y : H .Graph.Node) → Dec (x ≡ y)}
+                   {GH-discrete : ∀ (x y : (G +ᴳ H) .Graph.Node) → Dec (x ≡ y)}
+                   {v : H .Graph.Node}
+                   → ForkConstruction.is-convergent (G +ᴳ H) GH-oriented GH-discrete (inr v)
+                   → ForkConstruction.is-convergent H H-oriented H-discrete v
+inr-convergent-inv record { source₁ = inr s₁ ; source₂ = inr s₂ ; distinct = dist ; edge₁ = e₁ ; edge₂ = e₂ } =
+  record
+  { source₁ = s₁
+  ; source₂ = s₂
+  ; distinct = λ eq → dist (ap inr eq)
+  ; edge₁ = e₁  -- Edges preserved: (G +ᴳ H).Edge (inr s₁) (inr v) = H.Edge s₁ v
+  ; edge₂ = e₂  -- Edges preserved: (G +ᴳ H).Edge (inr s₂) (inr v) = H.Edge s₂ v
+  }
+-- Impossible cases: cross-edges
+inr-convergent-inv record { source₁ = inr s₁ ; source₂ = inl s₂ ; edge₂ = e₂ } =
+  absurd (Lift.lower e₂)  -- Cross-edge is Lift ℓ ⊥
+inr-convergent-inv record { source₁ = inl s₁ ; edge₁ = e₁ } =
+  absurd (Lift.lower e₁)  -- Cross-edge is Lift ℓ ⊥
 
 --------------------------------------------------------------------------------
 -- § 5: Coproduct Laws (TODO)

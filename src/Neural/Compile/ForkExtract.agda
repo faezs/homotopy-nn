@@ -49,7 +49,7 @@ open import Neural.Graph.Fork.Fork
 open import Neural.Graph.Fork.Category
 
 -- Import graph coproduct for compositional reasoning
-open import Neural.Compile.GraphCoproduct using (_+ᴳ_; inl-convergent; inr-convergent)
+open import Neural.Compile.GraphCoproduct using (_+ᴳ_; inl-convergent; inr-convergent; inl-not-convergent; inr-not-convergent; inl-convergent-inv; inr-convergent-inv)
 
 -- Import smooth analysis
 open import Neural.Smooth.Base using (ℝ; 0ℝ; _+ℝ_; _·ℝ_)
@@ -480,11 +480,11 @@ detect-convergent (f ⊙ g) v =
                                                 (build-graph-node-eq? (f ⊙ g)) v ∥))
     (λ v-g → 1Lab.Type.case detect-convergent g v-g of λ
       { (yes conv-g) → yes (∥-∥-map inl-convergent conv-g)
-      ; (no not-conv-g) → no {!!}
+      ; (no not-conv-g) → no λ conv-coproduct → not-conv-g (∥-∥-map inl-convergent-inv conv-coproduct)
       })
     (λ v-f → 1Lab.Type.case detect-convergent f v-f of λ
       { (yes conv-f) → yes (∥-∥-map inr-convergent conv-f)
-      ; (no not-conv-f) → no {!!}
+      ; (no not-conv-f) → no λ conv-coproduct → not-conv-f (∥-∥-map inr-convergent-inv conv-coproduct)
       })
     v
 
@@ -499,11 +499,11 @@ detect-convergent (Fork f g) v =
                                                 (build-graph-node-eq? (Fork f g)) v ∥))
     (λ v-f → 1Lab.Type.case detect-convergent f v-f of λ
       { (yes conv-f) → yes (∥-∥-map inl-convergent conv-f)
-      ; (no not-conv-f) → no {!!}
+      ; (no not-conv-f) → no λ conv-coproduct → not-conv-f (∥-∥-map inl-convergent-inv conv-coproduct)
       })
     (λ v-g → 1Lab.Type.case detect-convergent g v-g of λ
       { (yes conv-g) → yes (∥-∥-map inr-convergent conv-g)
-      ; (no not-conv-g) → no {!!}
+      ; (no not-conv-g) → no λ conv-coproduct → not-conv-g (∥-∥-map inr-convergent-inv conv-coproduct)
       })
     v
 
@@ -514,11 +514,11 @@ detect-convergent (Join f g) v =
                                                 (build-graph-node-eq? (Join f g)) v ∥))
     (λ v-f → 1Lab.Type.case detect-convergent f v-f of λ
       { (yes conv-f) → yes (∥-∥-map inl-convergent conv-f)
-      ; (no not-conv-f) → no {!!}
+      ; (no not-conv-f) → no λ conv-coproduct → not-conv-f (∥-∥-map inl-convergent-inv conv-coproduct)
       })
     (λ v-g → 1Lab.Type.case detect-convergent g v-g of λ
       { (yes conv-g) → yes (∥-∥-map inr-convergent conv-g)
-      ; (no not-conv-g) → no {!!}
+      ; (no not-conv-g) → no λ conv-coproduct → not-conv-g (∥-∥-map inr-convergent-inv conv-coproduct)
       })
     v
 
