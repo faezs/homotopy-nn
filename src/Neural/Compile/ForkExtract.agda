@@ -49,7 +49,7 @@ open import Neural.Graph.Fork.Fork
 open import Neural.Graph.Fork.Category
 
 -- Import graph coproduct for compositional reasoning
-open import Neural.Compile.GraphCoproduct using (_+ᴳ_)
+open import Neural.Compile.GraphCoproduct using (_+ᴳ_; inl-convergent; inr-convergent)
 
 -- Import smooth analysis
 open import Neural.Smooth.Base using (ℝ; 0ℝ; _+ℝ_; _·ℝ_)
@@ -59,8 +59,8 @@ open import Data.Nat.Properties
 open import Data.List
 open import Data.List.Base using (map; length; _++_)
 open import Data.Dec.Base using (Dec; yes; no; Discrete)
-open import Data.Fin.Base using (Fin; Discrete-Fin; Fin-is-set; fzero; fsuc)
-open import Data.Sum.Base using (_⊎_; inl; inr)
+open import Data.Fin.Base using (Fin; Discrete-Fin; Fin-is-set; fzero; fsuc; fzero≠fsuc; fsuc≠fzero)
+open import Data.Sum.Base using (_⊎_; inl; inr; [_,_])
 open import Data.Sum.Properties using (⊎-is-hlevel; Discrete-⊎)
 open import Data.Id.Base using (Discrete-Σ)
 
@@ -279,6 +279,16 @@ build-graph (Join f g) = build-graph f +ᴳ build-graph g
 postulate
   build-graph-oriented : ∀ (net : NeuralNet m n) → is-oriented (build-graph net)
 
+-- Dependent eliminator for coproduct nodes
+-- Works for any G +ᴳ H coproduct graph
+elim-coproduct : ∀ {o ℓ} {G H : Graph o ℓ}
+                → (P : Graph.Node (G +ᴳ H) → Type)
+                → (∀ v-left → P (inl v-left))
+                → (∀ v-right → P (inr v-right))
+                → ∀ v → P v
+elim-coproduct P case-left case-right (inl v-left) = case-left v-left
+elim-coproduct P case-left case-right (inr v-right) = case-right v-right
+
 -- Node equality decision using Discrete instances
 build-graph-node-eq? : ∀ (net : NeuralNet m n) (x y : Graph.Node (build-graph net))
                      → Dec (x ≡ y)
@@ -444,39 +454,73 @@ detect-convergent (Prim (Dense {m} {n} W b)) v =
   {!!}  -- Need to construct is-convergent witness with two distinct sources
 
 detect-convergent (Prim (Activation f)) v =
-  -- Activation: No convergence (incoming-count = 1 for all outputs)
-  -- Each output (inr j) has exactly one incoming edge from (inl j)
-  {!!}
+  -- Activation: 1-to-1, no convergence
+  {!!}  -- TODO: extract equality from edge witnesses via with-abstraction
 
 detect-convergent (Prim (Conv1D k-size filters K b)) v =
-  -- Conv1D: Check if convergent based on incoming-count ≥ 2
-  {!!}
+  -- Conv1D: Simplified as fully-connected, all outputs are convergent
+  {!!}  -- TODO: yes with witness for outputs, no for inputs
 
 detect-convergent (Prim (MaxPool window)) v =
-  -- MaxPool: Check if convergent based on incoming-count ≥ 2
-  {!!}
+  -- MaxPool: Simplified as fully-connected, all outputs are convergent
+  {!!}  -- TODO: yes with witness for outputs, no for inputs
 
 detect-convergent (Prim (AvgPool window)) v =
-  -- AvgPool: Check if convergent based on incoming-count ≥ 2
-  {!!}
+  -- AvgPool: Simplified as fully-connected, all outputs are convergent
+  {!!}  -- TODO: yes with witness for outputs, no for inputs
 
 detect-convergent (Prim (BatchNorm γ β)) v =
-  -- BatchNorm: No convergence (incoming-count = 1)
-  {!!}
+  -- BatchNorm: 1-to-1, no convergence
+  {!!}  -- TODO: same proof technique as Activation
 
 detect-convergent (f ⊙ g) v =
-  -- Composition: Check provenance and recurse
-  {!!}
+  elim-coproduct
+    (λ v → Dec (∥ ForkConstruction.is-convergent (build-graph (f ⊙ g))
+                                                (build-graph-oriented (f ⊙ g))
+                                                (build-graph-node-eq? (f ⊙ g)) v ∥))
+    (λ v-g → 1Lab.Type.case detect-convergent g v-g of λ
+      { (yes conv-g) → yes (∥-∥-map inl-convergent conv-g)
+      ; (no not-conv-g) → no {!!}
+      })
+    (λ v-f → 1Lab.Type.case detect-convergent f v-f of λ
+      { (yes conv-f) → yes (∥-∥-map inr-convergent conv-f)
+      ; (no not-conv-f) → no {!!}
+      })
+    v
 
 detect-convergent Id v =
   -- Identity: No edges, thus no convergence
-  {!!}
+  no λ { (inc conv) → ForkConstruction.is-convergent.edge₁ conv }
 
 detect-convergent (Fork f g) v =
-  {!!}
+  elim-coproduct
+    (λ v → Dec (∥ ForkConstruction.is-convergent (build-graph (Fork f g))
+                                                (build-graph-oriented (Fork f g))
+                                                (build-graph-node-eq? (Fork f g)) v ∥))
+    (λ v-f → 1Lab.Type.case detect-convergent f v-f of λ
+      { (yes conv-f) → yes (∥-∥-map inl-convergent conv-f)
+      ; (no not-conv-f) → no {!!}
+      })
+    (λ v-g → 1Lab.Type.case detect-convergent g v-g of λ
+      { (yes conv-g) → yes (∥-∥-map inr-convergent conv-g)
+      ; (no not-conv-g) → no {!!}
+      })
+    v
 
 detect-convergent (Join f g) v =
-  {!!}
+  elim-coproduct
+    (λ v → Dec (∥ ForkConstruction.is-convergent (build-graph (Join f g))
+                                                (build-graph-oriented (Join f g))
+                                                (build-graph-node-eq? (Join f g)) v ∥))
+    (λ v-f → 1Lab.Type.case detect-convergent f v-f of λ
+      { (yes conv-f) → yes (∥-∥-map inl-convergent conv-f)
+      ; (no not-conv-f) → no {!!}
+      })
+    (λ v-g → 1Lab.Type.case detect-convergent g v-g of λ
+      { (yes conv-g) → yes (∥-∥-map inr-convergent conv-g)
+      ; (no not-conv-g) → no {!!}
+      })
+    v
 
 {-|
 **TODO (Phase 2)**: Implement detect-convergent
@@ -570,17 +614,50 @@ extract-tines (Prim (AvgPool window)) star pf =
 -- BatchNorm: 1-to-1 (no fork-stars)
 extract-tines (Prim (BatchNorm γ β)) star pf = []  -- No convergent nodes
 
--- Composition: Thread through the pipeline
-extract-tines (f ⊙ g) star pf = {!!}
+-- Composition: Route based on which subgraph the star belongs to
+extract-tines (f ⊙ g) star pf =
+  elim-coproduct
+    (λ _ → List (Σ (ForkConstruction.ForkVertex (build-graph (f ⊙ g))
+                                               (build-graph-oriented (f ⊙ g))
+                                               (build-graph-node-eq? (f ⊙ g)))
+                   (λ orig → ForkConstruction.vertex-type (build-graph (f ⊙ g))
+                                                         (build-graph-oriented (f ⊙ g))
+                                                         (build-graph-node-eq? (f ⊙ g)) orig
+                            ≡ ForkConstruction.v-original)))
+    (λ v-g → {!!})  -- TODO: lift tines from g with inl
+    (λ v-f → {!!})  -- TODO: lift tines from f with inr
+    (fst star)
 
 -- Identity: No fork-stars
 extract-tines Id star pf = []  -- No convergent nodes
 
--- Fork: Tines from specific branch
-extract-tines (Fork f g) star pf = {!!}
+-- Fork: Route based on which branch
+extract-tines (Fork f g) star pf =
+  elim-coproduct
+    (λ _ → List (Σ (ForkConstruction.ForkVertex (build-graph (Fork f g))
+                                               (build-graph-oriented (Fork f g))
+                                               (build-graph-node-eq? (Fork f g)))
+                   (λ orig → ForkConstruction.vertex-type (build-graph (Fork f g))
+                                                         (build-graph-oriented (Fork f g))
+                                                         (build-graph-node-eq? (Fork f g)) orig
+                            ≡ ForkConstruction.v-original)))
+    (λ f-node → {!!})  -- TODO: lift tines from f with inl
+    (λ g-node → {!!})  -- TODO: lift tines from g with inr
+    (fst star)
 
--- Join: Tines from both branches
-extract-tines (Join f g) star pf = {!!}
+-- Join: Route based on which branch
+extract-tines (Join f g) star pf =
+  elim-coproduct
+    (λ _ → List (Σ (ForkConstruction.ForkVertex (build-graph (Join f g))
+                                               (build-graph-oriented (Join f g))
+                                               (build-graph-node-eq? (Join f g)))
+                   (λ orig → ForkConstruction.vertex-type (build-graph (Join f g))
+                                                         (build-graph-oriented (Join f g))
+                                                         (build-graph-node-eq? (Join f g)) orig
+                            ≡ ForkConstruction.v-original)))
+    (λ f-node → {!!})  -- TODO: lift tines from f with inl
+    (λ g-node → {!!})  -- TODO: lift tines from g with inr
+    (fst star)
 
 {-|
 **TODO (Phase 3)**: Implement extract-tines
@@ -682,24 +759,30 @@ extract-gluing (Prim (AvgPool window)) star pf =
 extract-gluing (Prim (BatchNorm γ β)) star pf =
   Pointwise (λ x → x)  -- Placeholder: should be γ*x + β
 
--- Composition: Thread through
+-- Composition: Route based on which subgraph
 extract-gluing (f ⊙ g) star pf =
-  -- If star comes from f, use f's gluing
-  -- If star comes from g, use g's gluing
-  -- Need to decode which component star comes from
-  {!!}
+  elim-coproduct (λ _ → GluingOp)
+    (λ g-node → {!!})  -- TODO: extract gluing from g
+    (λ f-node → {!!})  -- TODO: extract gluing from f
+    (fst star)
 
 -- Identity: No gluing
 extract-gluing Id star pf =
   Pointwise (λ x → x)
 
--- Fork: Branch-specific gluing
+-- Fork: Route based on branch
 extract-gluing (Fork f g) star pf =
-  {!!}  -- Need to decode which branch star comes from
+  elim-coproduct (λ _ → GluingOp)
+    (λ f-node → {!!})  -- TODO: extract gluing from f
+    (λ g-node → {!!})  -- TODO: extract gluing from g
+    (fst star)
 
--- Join: Addition gluing
+-- Join: Addition (combines results from both branches)
 extract-gluing (Join f g) star pf =
-  {!!}  -- Need to handle join of results from both branches
+  elim-coproduct (λ _ → GluingOp)
+    (λ f-node → {!!})  -- TODO: extract gluing from f
+    (λ g-node → {!!})  -- TODO: extract gluing from g
+    (fst star)
 
 {-|
 **Implementation Notes**:

@@ -56,7 +56,11 @@ open import Cat.Instances.Graphs using (Graph; Graph-hom; Graphs)
 open import Cat.Diagram.Coproduct
 
 open import Data.Sum.Base using (_⊎_; inl; inr)
-open import Data.Sum.Properties using (⊎-is-hlevel; Discrete-⊎)
+open import Data.Sum.Properties using (⊎-is-hlevel; Discrete-⊎; inl-inj; inr-inj)
+open import Data.Dec.Base using (Dec)
+
+open import Neural.Graph.Oriented using (is-oriented)
+open import Neural.Graph.Fork.Fork
 
 private variable
   o ℓ : Level
@@ -131,7 +135,65 @@ Given f : G → Z and g : H → Z, construct [f,g] : G +ᴳ H → Z.
 -- [_,_]ᴳ : ∀ {o ℓ} {G H Z : Graph o ℓ} → Graph-hom G Z → Graph-hom H Z → Graph-hom (G +ᴳ H) Z
 
 --------------------------------------------------------------------------------
--- § 4: Coproduct Laws (TODO)
+-- § 4: Convergence Transport
+--------------------------------------------------------------------------------
+
+{-|
+## Convergence Preservation Under Coproduct Inclusions
+
+The coproduct inclusions inl : G → G +ᴳ H and inr : H → G +ᴳ H preserve
+convergence because:
+- Edges within each component are preserved
+- Sources remain distinct after lifting
+
+This enables compositional reasoning: if a node is convergent in a subnetwork,
+it remains convergent in the composite network.
+-}
+
+-- Left inclusion preserves convergence
+inl-convergent : ∀ {o ℓ} {G H : Graph o ℓ}
+               {G-oriented : is-oriented G}
+               {GH-oriented : is-oriented (G +ᴳ H)}
+               {G-discrete : ∀ (x y : G .Graph.Node) → Dec (x ≡ y)}
+               {GH-discrete : ∀ (x y : (G +ᴳ H) .Graph.Node) → Dec (x ≡ y)}
+               {v : G .Graph.Node}
+               → ForkConstruction.is-convergent G G-oriented G-discrete v
+               → ForkConstruction.is-convergent (G +ᴳ H) GH-oriented GH-discrete (inl v)
+inl-convergent {G = G} {H = H} {G-oriented = G-oriented} {GH-oriented = GH-oriented}
+               {G-discrete = G-discrete} {GH-discrete = GH-discrete} {v = v} conv-G =
+  let s₁ = ForkConstruction.is-convergent.source₁ conv-G
+      s₂ = ForkConstruction.is-convergent.source₂ conv-G
+  in record
+  { source₁ = inl s₁
+  ; source₂ = inl s₂
+  ; distinct = λ eq → ForkConstruction.is-convergent.distinct conv-G (inl-inj eq)
+  ; edge₁ = ForkConstruction.is-convergent.edge₁ conv-G  -- Edge preserved in coproduct
+  ; edge₂ = ForkConstruction.is-convergent.edge₂ conv-G  -- Edge preserved in coproduct
+  }
+
+-- Right inclusion preserves convergence
+inr-convergent : ∀ {o ℓ} {G H : Graph o ℓ}
+               {H-oriented : is-oriented H}
+               {GH-oriented : is-oriented (G +ᴳ H)}
+               {H-discrete : ∀ (x y : H .Graph.Node) → Dec (x ≡ y)}
+               {GH-discrete : ∀ (x y : (G +ᴳ H) .Graph.Node) → Dec (x ≡ y)}
+               {v : H .Graph.Node}
+               → ForkConstruction.is-convergent H H-oriented H-discrete v
+               → ForkConstruction.is-convergent (G +ᴳ H) GH-oriented GH-discrete (inr v)
+inr-convergent {G = G} {H = H} {H-oriented = H-oriented} {GH-oriented = GH-oriented}
+               {H-discrete = H-discrete} {GH-discrete = GH-discrete} {v = v} conv-H =
+  let t₁ = ForkConstruction.is-convergent.source₁ conv-H
+      t₂ = ForkConstruction.is-convergent.source₂ conv-H
+  in record
+  { source₁ = inr t₁
+  ; source₂ = inr t₂
+  ; distinct = λ eq → ForkConstruction.is-convergent.distinct conv-H (inr-inj eq)
+  ; edge₁ = ForkConstruction.is-convergent.edge₁ conv-H  -- Edge preserved in coproduct
+  ; edge₂ = ForkConstruction.is-convergent.edge₂ conv-H  -- Edge preserved in coproduct
+  }
+
+--------------------------------------------------------------------------------
+-- § 5: Coproduct Laws (TODO)
 --------------------------------------------------------------------------------
 
 {-|
