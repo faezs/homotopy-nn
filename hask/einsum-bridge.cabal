@@ -1,0 +1,48 @@
+cabal-version: 3.0
+name: einsum-bridge
+version: 0.1.0.0
+synopsis: Haskell bridge to Python einsum execution
+description: FFI layer connecting Agda-extracted Haskell to Python PyTorch einsum operations
+homepage: https://github.com/faezs/homotopy-nn
+license: MIT
+author: Faez Shakil
+maintainer: faez.shakil@gmail.com
+category: AI, Mathematics
+build-type: Simple
+
+library
+  exposed-modules:
+    Einsum.PythonBridge
+  build-depends:
+    base >= 4.14 && < 5,
+    aeson >= 2.0,
+    bytestring >= 0.10,
+    text >= 1.2,
+    process >= 1.6
+  hs-source-dirs: src
+  default-language: Haskell2010
+  default-extensions:
+    OverloadedStrings
+    RecordWildCards
+    NamedFieldPuns
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+
+executable einsum-repl
+  main-is: Main.hs
+  build-depends:
+    base >= 4.14 && < 5,
+    einsum-bridge,
+    text >= 1.2
+  hs-source-dirs: app
+  default-language: Haskell2010
+  default-extensions:
+    OverloadedStrings
+  ghc-options: -Wall -threaded
