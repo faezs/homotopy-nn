@@ -429,7 +429,7 @@ This work formalizes and extends:
 - Email: [your email]
 
 **Looking for:**
-- Research positions (Symbolica AI, Anthropic, DeepMind)
+- Research positions
 - Collaborations on categorical AI
 - Early users of the compiler
 
