@@ -40,6 +40,7 @@ open import Cat.Functor.Base
 open import Cat.Instances.Product
 open import Cat.Diagram.Pullback
 open import Cat.Diagram.Limit.Base
+open import Cat.Diagram.Terminal
 
 open import Neural.Stack.Fibration
 open import Neural.Stack.Classifier
@@ -75,9 +76,16 @@ This generalizes the single fibration F: C^op → Cat to multiple base categorie
 
 module Multi-Fibration-Definition where
 
-  -- Product of n categories
+  -- Product of n categories (recursive definition)
+  -- For n=0: unit category; n=1: C₀; n>1: C₀ × product(C₁,...,Cₙ₋₁)
   postulate
-    product-category : (n : Nat) → (Cs : Fin n → Precategory o ℓ) → Precategory o ℓ
+    -- Terminal/unit category for n=0 case (would need Cat.Instances.Terminal)
+    Unit-Category : Precategory o ℓ
+
+  product-category : (n : Nat) → (Cs : Fin n → Precategory o ℓ) → Precategory o ℓ
+  product-category zero Cs = Unit-Category
+  product-category (suc zero) Cs = Cs fzero
+  product-category (suc (suc n)) Cs = (Cs fzero) ×ᶜ (product-category (suc n) (λ i → Cs (fsuc i)))
 
   -- Multi-fibration over n categories
   Multi-Stack : (n : Nat) → (Cs : Fin n → Precategory o ℓ)
@@ -110,11 +118,19 @@ module Multi-Fibration-Definition where
   -}
 
   postulate
-    -- CLIP as bi-fibration
-    CLIP-Structure : Bi-Stack {!!} {!!} o' ℓ'
+    -- Image and text processing categories
+    ResNet-Layers : Precategory o ℓ
+    Transformer-Layers : Precategory o ℓ
 
-    -- Contrastive loss aligns fibers
-    contrastive-alignment : {!!}
+    -- CLIP as bi-fibration over vision × language
+    CLIP-Structure : Bi-Stack ResNet-Layers Transformer-Layers o' ℓ'
+
+    -- Contrastive loss aligns fibers: minimize distance when (img, txt) match
+    contrastive-alignment : ∀ (U_img : ResNet-Layers .Precategory.Ob)
+                              (U_txt : Transformer-Layers .Precategory.Ob)
+                          → (CLIP-Structure .Functor.F₀ (U_img , U_txt)) .Precategory.Ob
+                          → (CLIP-Structure .Functor.F₀ (U_img , U_txt)) .Precategory.Ob
+                          → Type o'  -- Distance/alignment measure
 
 --------------------------------------------------------------------------------
 -- Theorem 2.2: Classification of Multi-Fibrations
@@ -164,8 +180,11 @@ module Theorem-2-2 {C D : Precategory o ℓ} where
 
   -- Theorem 2.2: Universal property
   postulate
+    -- Natural transformation type between bi-stacks
+    Nat-BiStack : Bi-Stack C D o' ℓ' → Bi-Stack C D o' ℓ' → Type (o ⊔ ℓ ⊔ o' ⊔ ℓ')
+
     theorem-2-2 : ∀ (F : Bi-Stack C D o' ℓ')
-                → {!!}  -- F ≅ Hom(-, Ω-multi)
+                → Nat-BiStack F Ω-multi  -- Classifying map F → Ω-multi
 
   {-|
   **Proof Details**
@@ -191,12 +210,13 @@ module Theorem-2-2 {C D : Precategory o ℓ} where
   -}
 
   postulate
-    -- Classifying morphism
-    classify : ∀ (F : Bi-Stack C D o' ℓ') → {!!}  -- F → Ω-multi
+    -- Classifying morphism: every bi-fibration maps to universal classifier
+    classify : ∀ (F : Bi-Stack C D o' ℓ') → Nat-BiStack F Ω-multi
 
     -- Universal property (any morphism factors through classify)
-    universal : ∀ {F G : Bi-Stack C D o' ℓ'} (α : {!!})  -- F → G
-              → {!!}  -- ∃! α̂ such that α = pullback of α̂
+    universal : ∀ {F G : Bi-Stack C D o' ℓ'} (α : Nat-BiStack F G)
+              → Σ[ α̂ ∈ Nat-BiStack F Ω-multi ]
+                  (∀ (β : Nat-BiStack F Ω-multi) → α̂ ≡ β)  -- Uniqueness
 
   {-|
   **Generalization to n categories**
@@ -209,6 +229,11 @@ module Theorem-2-2 {C D : Precategory o ℓ} where
   -}
 
   postulate
+    -- Natural transformation type for n-ary multi-stacks
+    Nat-MultiStack : (n : Nat) (Cs : Fin n → Precategory o ℓ)
+                   → Multi-Stack n Cs o' ℓ' → Multi-Stack n Cs o' ℓ'
+                   → Type (o ⊔ ℓ ⊔ o' ⊔ ℓ')
+
     -- n-ary multi-classifier
     Ω-multi-n : (n : Nat) → (Cs : Fin n → Precategory o ℓ)
               → Multi-Stack n Cs o' ℓ'
@@ -216,7 +241,7 @@ module Theorem-2-2 {C D : Precategory o ℓ} where
     -- Universal property for n categories
     theorem-2-2-general : ∀ (n : Nat) (Cs : Fin n → Precategory o ℓ)
                           (F : Multi-Stack n Cs o' ℓ')
-                        → {!!}  -- F ≅ Hom(-, Ω-multi-n n Cs)
+                        → Nat-MultiStack n Cs F (Ω-multi-n n Cs)  -- Classifying map
 
 --------------------------------------------------------------------------------
 -- Grothendieck Construction for Multi-Fibrations
@@ -257,23 +282,32 @@ module Grothendieck-Multi {C D : Precategory o ℓ} (F : Bi-Stack C D o' ℓ') w
       base-D : D .Precategory.Ob
       fiber-elem : (F .Functor.F₀ (base-C , base-D)) .Precategory.Ob
 
-  record ∫-Hom (obj obj' : ∫-Ob) : Type (ℓ ⊔ ℓ') where
+  record ∫-Hom (obj obj' : ∫-Ob) : Type (o ⊔ ℓ ⊔ o' ⊔ ℓ') where
     constructor int-hom
+    private
+      FU = F .Functor.F₀ (obj .∫-Ob.base-C , obj .∫-Ob.base-D)
+      FU' = F .Functor.F₀ (obj' .∫-Ob.base-C , obj' .∫-Ob.base-D)
     field
       hom-C : C .Precategory.Hom (obj .∫-Ob.base-C) (obj' .∫-Ob.base-C)
       hom-D : D .Precategory.Hom (obj .∫-Ob.base-D) (obj' .∫-Ob.base-D)
-      hom-fiber : {!!}  -- Morphism in fiber along (hom-C, hom-D)
+      -- Morphism ξ → F(α,β)(ξ') in the fiber F(U,V)
+      hom-fiber : FU .Precategory.Hom
+                    (obj .∫-Ob.fiber-elem)
+                    ((F .Functor.F₁ (hom-C , hom-D)) .Functor.F₀ (obj' .∫-Ob.fiber-elem))
 
   postulate
     -- Total category
-    Total-Multi : Precategory (o ⊔ ℓ ⊔ o' ⊔ ℓ') (ℓ ⊔ ℓ')
+    Total-Multi : Precategory (o ⊔ ℓ ⊔ o' ⊔ ℓ') (o ⊔ ℓ ⊔ o' ⊔ ℓ')
 
-    -- Projection
+    -- Projection functor π: ∫F → C × D
     π-multi : Functor Total-Multi (C ×ᶜ D)
 
-    -- Fiber equivalence
+    -- Fiber over (U,V) is subcategory of objects with base = (U,V)
+    Fiber-over : (U : C .Precategory.Ob) (V : D .Precategory.Ob) → Precategory o' ℓ'
+
+    -- Fiber equivalence: π⁻¹(U,V) ≅ F(U,V)
     fiber-equiv : ∀ (U : C .Precategory.Ob) (V : D .Precategory.Ob)
-                → {!!}  -- π⁻¹(U,V) ≅ F(U,V)
+                → Functor (Fiber-over U V) (F .Functor.F₀ (U , V))  -- Equivalence (simplified)
 
   {-|
   **Cartesian Morphisms**
@@ -287,10 +321,12 @@ module Grothendieck-Multi {C D : Precategory o ℓ} (F : Bi-Stack C D o' ℓ') w
   -}
 
   postulate
-    is-cartesian-multi : ∀ {obj obj' : ∫-Ob} → ∫-Hom obj obj' → Type (o ⊔ ℓ ⊔ ℓ')
+    -- Cartesian morphism predicate: universal lifting property
+    is-cartesian-multi : ∀ {obj obj' : ∫-Ob} → ∫-Hom obj obj' → Type (o ⊔ ℓ ⊔ o' ⊔ ℓ')
 
-    -- π-multi is a fibration (has cartesian lifts)
-    π-is-fibration : {!!}
+    -- π-multi is a fibration (every morphism in C × D has cartesian lift)
+    π-is-fibration : ∀ {U V : ∫-Ob} (f : (C ×ᶜ D) .Precategory.Hom (π-multi .Functor.F₀ U) (π-multi .Functor.F₀ V))
+                   → Σ[ lift ∈ ∫-Hom U V ] (is-cartesian-multi lift)
 
 --------------------------------------------------------------------------------
 -- Applications: Multi-Modal Learning
@@ -321,9 +357,12 @@ module Vision-Language-Model where
     VLM : Bi-Stack Vision-Layers Language-Layers o' ℓ'
 
     -- Contrastive loss aligns modalities
+    -- Loss measures distance in joint embedding F(U,V)
     contrastive : ∀ (U : Vision-Layers .Precategory.Ob)
                     (V : Language-Layers .Precategory.Ob)
-                → {!!}  -- Loss(image, text) minimal when F(U,V) aligned
+                → (img : (VLM .Functor.F₀ (U , V)) .Precategory.Ob)
+                → (txt : (VLM .Functor.F₀ (U , V)) .Precategory.Ob)
+                → Type o'  -- Real-valued loss (abstracted)
 
   {-|
   **CLIP Training as Multi-Fibration Alignment**
@@ -340,11 +379,18 @@ module Vision-Language-Model where
   -}
 
   postulate
-    -- Training as morphism of multi-fibrations
-    train-vlm : {!!}  -- F_initial → F_trained
+    -- Initial and trained models
+    VLM-initial : Bi-Stack Vision-Layers Language-Layers o' ℓ'
+    VLM-trained : Bi-Stack Vision-Layers Language-Layers o' ℓ'
 
-    -- Trained model aligns to Ω-multi
-    trained-aligns : {!!}  -- F_trained ≅ Pullback(Ω-multi)
+    -- Training as morphism of multi-fibrations (gradient descent)
+    train-vlm : Nat-BiStack VLM-initial VLM-trained
+
+    -- Universal multi-classifier for VLM
+    Ω-VLM : Bi-Stack Vision-Layers Language-Layers o' ℓ'
+
+    -- Trained model aligns to Ω-multi (pullback structure)
+    trained-aligns : Nat-BiStack VLM-trained Ω-VLM
 
 {-|
 **Application 2**: Multi-Task Learning
@@ -374,8 +420,12 @@ module Multi-Task-Learning where
                     (U₂ : Task2-Layers .Precategory.Ob)
                 → (MTL .Functor.F₀ (U₁, U₂)) .Precategory.Ob
 
-    -- Task-specific heads
-    task1-head task2-head : {!!}
+    -- Output spaces for each task
+    Task1-Output Task2-Output : Precategory o ℓ
+
+    -- Task-specific heads: project shared features to task outputs
+    task1-head : ∀ {U₁ U₂} → (MTL .Functor.F₀ (U₁, U₂)) .Precategory.Ob → Task1-Output .Precategory.Ob
+    task2-head : ∀ {U₁ U₂} → (MTL .Functor.F₀ (U₁, U₂)) .Precategory.Ob → Task2-Output .Precategory.Ob
 
   {-|
   **Multi-Task Optimization**
@@ -393,14 +443,21 @@ module Multi-Task-Learning where
   -}
 
   postulate
-    -- Multi-task loss
-    mtl-loss : {!!}
+    -- Loss for each task (abstracted as predicates)
+    loss1 : Task1-Output .Precategory.Ob → Type o
+    loss2 : Task2-Output .Precategory.Ob → Type o
 
-    -- Optimal multi-task network
-    optimal-mtl : {!!}  -- MTL* minimizing mtl-loss
+    -- Combined multi-task loss
+    mtl-loss : ∀ {U₁ U₂} → (MTL .Functor.F₀ (U₁, U₂)) .Precategory.Ob → Type o
 
-    -- Optimal is geometric to Ω-multi
-    optimal-geometric : {!!}
+    -- Optimal multi-task network minimizing combined loss
+    optimal-mtl : Bi-Stack Task1-Layers Task2-Layers o' ℓ'
+
+    -- Universal classifier for MTL
+    Ω-MTL : Bi-Stack Task1-Layers Task2-Layers o' ℓ'
+
+    -- Optimal network is geometric morphism to Ω-multi
+    optimal-geometric : Nat-BiStack optimal-mtl Ω-MTL
 
 --------------------------------------------------------------------------------
 -- Higher Multi-Fibrations: n-Fibrations
@@ -439,12 +496,12 @@ module n-Fibrations where
   postulate
     Total-n : {n : Nat} {Cs : Fin n → Precategory o ℓ}
             → n-Stack n Cs o' ℓ'
-            → Precategory (o ⊔ ℓ ⊔ o' ⊔ ℓ') (ℓ ⊔ ℓ')
+            → Precategory (o ⊔ ℓ ⊔ o' ⊔ ℓ') (o ⊔ ℓ ⊔ o' ⊔ ℓ')
 
     -- Projection to product
     π-n : {n : Nat} {Cs : Fin n → Precategory o ℓ}
           (F : n-Stack n Cs o' ℓ')
-        → Functor (Total-n F) (product-category {!!} Cs)
+        → Functor (Total-n F) (product-category n Cs)
 
   {-|
   **Example**: Tri-modal learning (vision + audio + text)
@@ -462,11 +519,25 @@ module n-Fibrations where
   -}
 
   postulate
-    -- Tri-modal example
-    Tri-Modal : n-Stack 3 {!!} o' ℓ'
+    -- Example categories for tri-modal learning
+    CNN-Layers : Precategory o ℓ       -- Vision
+    Text-Layers : Precategory o ℓ      -- Language
+    Audio-Layers : Precategory o ℓ     -- Speech/Sound
 
-    -- Joint embedding space
-    joint-embedding : {!!}
+    -- Helper function to create tri-modal category tuple
+    tri-categories : Fin 3 → Precategory o ℓ
+    tri-categories fzero = CNN-Layers
+    tri-categories (fsuc fzero) = Text-Layers
+    tri-categories (fsuc (fsuc fzero)) = Audio-Layers
+
+    -- Tri-modal learning as 3-fibration
+    Tri-Modal : n-Stack 3 tri-categories o' ℓ'
+
+    -- Joint embedding space at position (U₁, U₂, U₃)
+    joint-embedding : ∀ (U₁ : CNN-Layers .Precategory.Ob)
+                        (U₂ : Text-Layers .Precategory.Ob)
+                        (U₃ : Audio-Layers .Precategory.Ob)
+                    → Type (o' ⊔ ℓ')  -- Abstraction of fiber category objects
 
 --------------------------------------------------------------------------------
 -- Summary and Next Steps

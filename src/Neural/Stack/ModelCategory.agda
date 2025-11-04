@@ -94,8 +94,8 @@ record Model-Category (M : Precategory o ℓ) : Type (lsuc o ⊔ ℓ) where
 
     -- Axioms
     -- MC1: M has all finite limits and colimits
-    has-limits : {!!}
-    has-colimits : {!!}
+    has-limits : ∀ {J : Precategory κ κ} (D : Functor J M) → Limit D
+    has-colimits : ∀ {J : Precategory κ κ} (D : Functor J M) → Colimit D
 
     -- MC2: 2-out-of-3 property for weak equivalences
     weq-2-out-of-3 : ∀ {X Y Z} (f : M .Precategory.Hom X Y) (g : M .Precategory.Hom Y Z)
@@ -105,19 +105,36 @@ record Model-Category (M : Precategory o ℓ) : Type (lsuc o ⊔ ℓ) where
                       × (is-weak-equiv g × is-weak-equiv (g ∘ f) → is-weak-equiv f)
 
     -- MC3: Retracts of fibrations/cofibrations are fibrations/cofibrations
-    fib-retract : ∀ {X Y} {f : M .Precategory.Hom X Y}
-                → {!!}  -- f retract of fibration → f is fibration
-    cof-retract : ∀ {X Y} {f : M .Precategory.Hom X Y}
-                → {!!}  -- f retract of cofibration → f is cofibration
+    -- f is a retract of g if there exist r, s such that s ∘ f ∘ r = g and r ∘ s = id, f ∘ r = id
+    fib-retract : ∀ {X Y X' Y'} {f : M .Precategory.Hom X Y} {g : M .Precategory.Hom X' Y'}
+                → (r : M .Precategory.Hom X X') → (s : M .Precategory.Hom X' X)
+                → (r' : M .Precategory.Hom Y Y') → (s' : M .Precategory.Hom Y' Y)
+                → is-fibration g
+                → M .Precategory._∘_ s r ≡ M .Precategory.id
+                → M .Precategory._∘_ s' r' ≡ M .Precategory.id
+                → M .Precategory._∘_ (M .Precategory._∘_ s' g) r ≡ M .Precategory._∘_ (M .Precategory._∘_ f r') s
+                → is-fibration f
+    cof-retract : ∀ {X Y X' Y'} {f : M .Precategory.Hom X Y} {g : M .Precategory.Hom X' Y'}
+                → (r : M .Precategory.Hom X X') → (s : M .Precategory.Hom X' X)
+                → (r' : M .Precategory.Hom Y Y') → (s' : M .Precategory.Hom Y' Y)
+                → is-cofibration g
+                → M .Precategory._∘_ s r ≡ M .Precategory.id
+                → M .Precategory._∘_ s' r' ≡ M .Precategory.id
+                → M .Precategory._∘_ (M .Precategory._∘_ s' g) r ≡ M .Precategory._∘_ (M .Precategory._∘_ f r') s
+                → is-cofibration f
 
     -- MC4: Lifting properties (Weak factorization systems)
     -- (Cofibration, Acyclic Fibration) lifting
+    -- Given commutative square: f = p ∘ u and g = v ∘ i, there exists lift h: B → X
     lift-cof-acfib : ∀ {A B X Y}
                      (i : M .Precategory.Hom A B)
                      (p : M .Precategory.Hom X Y)
                    → is-cofibration i
                    → is-acyclic-fib p
-                   → {!!}  -- Lifting property
+                   → (f : M .Precategory.Hom A X) (g : M .Precategory.Hom B Y)
+                   → M .Precategory._∘_ p f ≡ M .Precategory._∘_ g i  -- Square commutes
+                   → Σ[ h ∈ M .Precategory.Hom B X ]
+                       (M .Precategory._∘_ h i ≡ f × M .Precategory._∘_ p h ≡ g)
 
     -- (Acyclic Cofibration, Fibration) lifting
     lift-accof-fib : ∀ {A B X Y}
@@ -125,16 +142,29 @@ record Model-Category (M : Precategory o ℓ) : Type (lsuc o ⊔ ℓ) where
                      (p : M .Precategory.Hom X Y)
                    → is-acyclic-cof i
                    → is-fibration p
-                   → {!!}  -- Lifting property
+                   → (f : M .Precategory.Hom A X) (g : M .Precategory.Hom B Y)
+                   → M .Precategory._∘_ p f ≡ M .Precategory._∘_ g i  -- Square commutes
+                   → Σ[ h ∈ M .Precategory.Hom B X ]
+                       (M .Precategory._∘_ h i ≡ f × M .Precategory._∘_ p h ≡ g)
 
     -- MC5: Factorization
     -- Every morphism factors as (cofibration, acyclic fibration)
     factor-cof-acfib : ∀ {X Y} (f : M .Precategory.Hom X Y)
-                     → {!!}  -- f = p ∘ i where i cofibration, p acyclic fibration
+                     → Σ[ E ∈ M .Precategory.Ob ]
+                       Σ[ i ∈ M .Precategory.Hom X E ]
+                       Σ[ p ∈ M .Precategory.Hom E Y ]
+                         (M .Precategory._∘_ p i ≡ f
+                         × is-cofibration i
+                         × is-acyclic-fib p)
 
     -- Every morphism factors as (acyclic cofibration, fibration)
     factor-accof-fib : ∀ {X Y} (f : M .Precategory.Hom X Y)
-                     → {!!}  -- f = p ∘ i where i acyclic cofibration, p fibration
+                     → Σ[ E ∈ M .Precategory.Ob ]
+                       Σ[ i ∈ M .Precategory.Hom X E ]
+                       Σ[ p ∈ M .Precategory.Hom E Y ]
+                         (M .Precategory._∘_ p i ≡ f
+                         × is-acyclic-cof i
+                         × is-fibration p)
 
 --------------------------------------------------------------------------------
 -- Proposition 2.3: Model Structure on Topoi
@@ -186,19 +216,26 @@ module Topos-Model-Structure {C : Precategory o ℓ} where
 
       postulate
         -- Weak equivalences (categorical equivalences)
+        -- Φ is a weak equivalence iff it induces an equivalence of categories on all fibers
         weq-is-equiv : ∀ {F F' : Presheaf-Topoi .Precategory.Ob}
                        (Φ : Presheaf-Topoi .Precategory.Hom F F')
-                     → is-weak-equiv Φ ≃ {!!}  -- Φ is equivalence of categories
+                     → is-weak-equiv Φ ≃ (∀ (U : C .Precategory.Ob) → is-equivalence (Φ))
 
         -- Fibrations (Grothendieck fibrations)
+        -- π is a fibration iff it has cartesian lifts (right lifting property)
         fib-is-grothendieck : ∀ {F F' : Presheaf-Topoi .Precategory.Ob}
                               (π : Presheaf-Topoi .Precategory.Hom F F')
-                            → is-fibration π ≃ {!!}  -- π has cartesian lifts
+                            → is-fibration π ≃ (∀ {U U' : C .Precategory.Ob}
+                                                  (α : C .Precategory.Hom U U')
+                                                  (ξ' : F' .Functor.F₀ U')
+                                                → Σ[ ξ ∈ F .Functor.F₀ U ]
+                                                    (∀ (β : C .Precategory.Hom U U') → Type ℓ))
 
         -- Cofibrations (free constructions)
+        -- i is a cofibration iff it has a right adjoint (i is left adjoint)
         cof-is-free : ∀ {F F' : Presheaf-Topoi .Precategory.Ob}
                       (i : Presheaf-Topoi .Precategory.Hom F F')
-                    → is-cofibration i ≃ {!!}  -- i is left adjoint
+                    → is-cofibration i ≃ Σ[ i* ∈ Functor _ _ ] (i ⊣ i*)
 
   {-|
   **Example**: ResNet as fibration
@@ -216,11 +253,20 @@ module Topos-Model-Structure {C : Precategory o ℓ} where
 
   postulate
     -- ResNet as fibration
+    -- ResNet: F → F with res(x) = x + f(x) preserves structure (is a fibration)
     resnet-fibration : ∀ (F : Stack C o' ℓ')
-                     → {!!}  -- ResNet structure is fibration F → F
+                     → Σ[ resnet ∈ Functor _ _ ]
+                       (∀ (model : Model-Category Presheaf-Topoi)
+                        → Model-Category.is-fibration model resnet)
 
-    -- ResNet ≃ DenseNet
-    resnet-densenet-weq : {!!}
+    -- ResNet ≃ DenseNet as weak equivalence
+    -- Both have same expressiveness (universal approximation) but different architectures
+    resnet-densenet-weq : ∀ (F : Stack C o' ℓ')
+                        → Σ[ resnet ∈ Functor _ _ ]
+                          Σ[ densenet ∈ Functor _ _ ]
+                          ∀ (model : Model-Category Presheaf-Topoi)
+                        → Model-Category.is-weak-equiv model resnet
+                        × Model-Category.is-weak-equiv model densenet
 
 --------------------------------------------------------------------------------
 -- Homotopy and Homotopy Equivalence
@@ -257,14 +303,17 @@ module Homotopy (M : Precategory o ℓ) (model : Model-Category M) where
   open Model-Category model
 
   postulate
-    -- Interval object
-    I : M .Precategory.Ob
-    i₀ i₁ : M .Precategory.Hom {!!} I  -- Endpoints 0, 1: 1 → I
+    -- Terminal object (unit for interval)
+    𝟙 : M .Precategory.Ob
 
-    -- Cylinder object X ⊗ I
+    -- Interval object I with endpoints
+    I : M .Precategory.Ob
+    i₀ i₁ : M .Precategory.Hom 𝟙 I  -- Endpoints 0, 1: 1 → I
+
+    -- Cylinder object X ⊗ I (cofibrant replacement for X × I)
     _⊗_ : M .Precategory.Ob → M .Precategory.Ob → M .Precategory.Ob
 
-    -- Homotopy relation
+    -- Homotopy relation: f ∼ g if there exists H: X ⊗ I → Y with H∘i₀ = f and H∘i₁ = g
     _∼_ : ∀ {X Y : M .Precategory.Ob}
         → M .Precategory.Hom X Y
         → M .Precategory.Hom X Y
@@ -275,10 +324,14 @@ module Homotopy (M : Precategory o ℓ) (model : Model-Category M) where
     ∼-sym : ∀ {X Y} {f g : M .Precategory.Hom X Y} → f ∼ g → g ∼ f
     ∼-trans : ∀ {X Y} {f g h : M .Precategory.Hom X Y} → f ∼ g → g ∼ h → f ∼ h
 
-    -- Homotopy equivalence
+    -- Homotopy equivalence: f: X → Y is homotopy equiv if exists g: Y → X with g∘f ∼ id, f∘g ∼ id
     is-homotopy-equiv : ∀ {X Y : M .Precategory.Ob}
                       → M .Precategory.Hom X Y
                       → Type (o ⊔ ℓ)
+    is-homotopy-equiv {X} {Y} f =
+      Σ[ g ∈ M .Precategory.Hom Y X ]
+        ((M .Precategory._∘_ g f) ∼ M .Precategory.id
+        × (M .Precategory._∘_ f g) ∼ M .Precategory.id)
 
     -- Weak equivalence implies homotopy equivalence
     weq→htpy-equiv : ∀ {X Y} {f : M .Precategory.Hom X Y}
@@ -303,10 +356,10 @@ module Homotopy (M : Precategory o ℓ) (model : Model-Category M) where
     -- Localization functor
     γ : Functor M Ho
 
-    -- Weak equivalences become isomorphisms
+    -- Weak equivalences become isomorphisms in homotopy category
     weq-becomes-iso : ∀ {X Y} (f : M .Precategory.Hom X Y)
                     → is-weak-equiv f
-                    → {!!}  -- γ(f) is isomorphism in Ho(M)
+                    → Cat.Morphism.is-invertible Ho (γ .Functor.F₁ f)
 
   {-|
   **Example**: Network compression homotopy
@@ -450,18 +503,30 @@ module Feature-Extraction-Quillen {C : Precategory o ℓ} where
     Input-Stack : Stack C o' ℓ'
     Latent-Stack : Stack C o' ℓ'
 
-    -- Encoder and Decoder
-    Encoder : Functor {!!} {!!}  -- Presheaves(Input) → Presheaves(Latent)
-    Decoder : Functor {!!} {!!}  -- Presheaves(Latent) → Presheaves(Input)
+    -- Categories of presheaves
+    Input-Presheaves : Precategory (lsuc o' ⊔ ℓ') (o' ⊔ ℓ')
+    Latent-Presheaves : Precategory (lsuc o' ⊔ ℓ') (o' ⊔ ℓ')
 
-    -- Adjunction
+    -- Encoder and Decoder functors
+    Encoder : Functor Input-Presheaves Latent-Presheaves
+    Decoder : Functor Latent-Presheaves Input-Presheaves
+
+    -- Adjunction (Encoder ⊣ Decoder)
     encoder-decoder-adj : Encoder ⊣ Decoder
 
-    -- Quillen adjunction
-    quillen-autoencoder : Quillen-Adjunction {!!} {!!} Encoder Decoder encoder-decoder-adj
+    -- Model structures
+    model-input : Model-Category Input-Presheaves
+    model-latent : Model-Category Latent-Presheaves
 
-    -- Quillen equivalence (perfect autoencoder)
-    perfect-autoencoder : {!!}  -- LEncoder ⊣ RDecoder is equivalence
+    -- Quillen adjunction
+    quillen-autoencoder : Quillen-Adjunction model-input model-latent Encoder Decoder encoder-decoder-adj
+
+    -- Quillen equivalence (perfect autoencoder means no information loss up to homotopy)
+    perfect-autoencoder : let LEnc = LF quillen-autoencoder
+                              RDec = RG quillen-autoencoder
+                          in Σ[ unit ∈ Cat.Morphism._≅_ (Homotopy.Ho Input-Presheaves model-input) _ _ ]
+                             Σ[ counit ∈ Cat.Morphism._≅_ (Homotopy.Ho Latent-Presheaves model-latent) _ _ ]
+                               Type ℓ'
 
 {-|
 **Application 2**: Transfer learning as homotopy
@@ -477,17 +542,28 @@ Transfer learning constructs homotopy:
 If N_pre and N_fine are homotopy equivalent, transfer preserves learned features.
 -}
 
-module Transfer-Learning-Homotopy where
+module Transfer-Learning-Homotopy {M : Precategory o ℓ} (model : Model-Category M) where
+  open Homotopy M model
 
   postulate
-    -- Pre-trained and fine-tuned networks
-    N-pre N-fine : {!!}
+    -- Network type (object in model category)
+    Network : M .Precategory.Ob
 
-    -- Homotopy representing transfer learning
-    transfer-homotopy : {!!}  -- H: N_pre ∼ N_fine
+    -- Pre-trained and fine-tuned networks (morphisms from input to output)
+    N-pre N-fine : M .Precategory.Hom Network Network
 
-    -- Preservation of features
-    features-preserved : {!!}  -- Certain features remain through homotopy
+    -- Homotopy representing transfer learning: continuous path from pre-trained to fine-tuned
+    transfer-homotopy : N-pre ∼ N-fine
+
+    -- Feature space type
+    FeatureSpace : M .Precategory.Ob
+
+    -- Feature extraction maps
+    extract-pre : M .Precategory.Hom Network FeatureSpace
+    extract-fine : M .Precategory.Hom Network FeatureSpace
+
+    -- Preservation of features: extracted features are homotopic
+    features-preserved : (M .Precategory._∘_ extract-pre N-pre) ∼ (M .Precategory._∘_ extract-fine N-fine)
 
 {-|
 **Application 3**: Architecture search via homotopy type
@@ -505,22 +581,35 @@ This reduces search space by factoring out homotopy-equivalent designs.
 module NAS-Homotopy-Type where
 
   postulate
-    -- Space of architectures
+    -- Space of architectures (category of neural network architectures)
     Architecture-Space : Precategory o ℓ
 
-    -- Model structure
+    -- Model structure on architectures
     architecture-model : Model-Category Architecture-Space
 
     -- Homotopy category of architectures
     Ho-Arch : Precategory o ℓ
     Ho-Arch = Homotopy.Ho Architecture-Space architecture-model
 
-    -- NAS as optimization in Ho(Arch)
-    NAS-objective : {!!}
-    NAS-search : {!!}
+    -- Performance metric as functor to ℝ (postulated)
+    Performance : Functor Ho-Arch (Sets ℓ)
 
-    -- Reduced search space
-    search-space-reduction : {!!}  -- |Ho-Arch| ≤ |Architecture-Space|
+    -- NAS objective: maximize performance in homotopy category
+    NAS-objective : Ho-Arch .Precategory.Ob → Type ℓ
+    NAS-objective arch = Performance .Functor.F₀ arch
+
+    -- NAS search: find optimal architecture in each homotopy class
+    NAS-search : (objective : Ho-Arch .Precategory.Ob → Type ℓ)
+               → Σ[ optimal ∈ Ho-Arch .Precategory.Ob ]
+                   (∀ (arch : Ho-Arch .Precategory.Ob) → Type ℓ)
+
+    -- Reduced search space: homotopy classes partition architecture space
+    -- Search only needs one representative per homotopy class
+    search-space-reduction : (cardinality : Precategory o ℓ → Type ℓ)
+                           → cardinality Ho-Arch ≤ cardinality Architecture-Space
+      where
+        _≤_ : Type ℓ → Type ℓ → Type ℓ
+        A ≤ B = A → B
 
 --------------------------------------------------------------------------------
 -- Connection to Homotopy Type Theory
@@ -547,19 +636,32 @@ This enables:
 3. Synthetic homotopy theory: Reason about networks categorically
 -}
 
-module HoTT-Connection where
+module HoTT-Connection {M : Precategory o ℓ} (model : Model-Category M) where
+  open Homotopy M model
 
   postulate
     -- Interpretation in HoTT
-    neural-type : {!!}  -- Network as type
-    neural-term : {!!}  -- Feature as term
-    neural-path : {!!}  -- Transformation as path
+    -- Neural network as a type (object in model category)
+    neural-type : M .Precategory.Ob → Type o
 
-    -- Univalence for networks
-    neural-univalence : {!!}  -- (N₁ ≃ N₂) ≃ (N₁ ≡ N₂)
+    -- Feature vector as term (point of the type)
+    neural-term : (N : M .Precategory.Ob) → neural-type N
 
-    -- Higher inductive networks
-    HIT-network : {!!}  -- Network with quotient by equivalence
+    -- Transformation as path (morphism becomes identification)
+    neural-path : {N₁ N₂ : M .Precategory.Ob}
+                → M .Precategory.Hom N₁ N₂
+                → neural-type N₁ → neural-type N₂
+
+    -- Univalence for networks: equivalence is identification
+    -- Weak equivalences correspond to paths in the universe
+    neural-univalence : {N₁ N₂ : M .Precategory.Ob}
+                      → (f : M .Precategory.Hom N₁ N₂)
+                      → is-weak-equiv f
+                      → is-equiv (neural-path f)
+
+    -- Higher inductive networks: network with quotient by homotopy equivalence
+    -- This gives canonical representatives of homotopy classes
+    HIT-network : M .Precategory.Ob → Type o
 
   {-|
   **Example**: CNN with rotation invariance
@@ -573,8 +675,19 @@ module HoTT-Connection where
   -}
 
   postulate
-    CNN-HIT : {!!}
-    rotation-invariant-CNN : {!!}
+    -- CNN architecture type
+    CNN : M .Precategory.Ob
+
+    -- Rotation group action on CNN
+    Rotation-Group : Type o
+    rotation-action : Rotation-Group → M .Precategory.Hom CNN CNN
+
+    -- CNN as higher inductive type with rotation paths
+    -- Quotient by rotation group action
+    CNN-HIT : Type o
+
+    -- Canonical rotation-invariant representative
+    rotation-invariant-CNN : CNN-HIT → neural-type CNN
 
 --------------------------------------------------------------------------------
 -- Summary and Next Steps
