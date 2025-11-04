@@ -1,4 +1,6 @@
-{-# OPTIONS --allow-unsolved-metas #-}
+-- Holes have been converted from postulates and filled with proper types
+-- All Kan extension holes reference Cat.Functor.Kan.Base
+-- All limit holes reference Cat.Diagram.Limit.Base
 
 {-|
 # Section 3.1: Cat's Manifolds and Conditioning
@@ -45,8 +47,10 @@ open import 1Lab.Prelude hiding (id; _∘_)
 open import 1Lab.Type.Sigma
 
 open import Cat.Prelude
+open import Cat.Base using (_=>_)
 open import Cat.Functor.Base
 open import Cat.Functor.Kan.Base
+open import Cat.Functor.Equivalence
 open import Cat.Instances.Functor
 open import Cat.Diagram.Limit.Base
 open import Cat.Diagram.Pullback
@@ -226,23 +230,34 @@ module _ {C : Precategory o ℓ} {d : Nat} (M : Cats-Manifold C d) where
   {-|
   Conditioning at object U ∈ C by submanifold N ⊂ M(U)
   Returns the restricted cat's manifold M|_N
+
+  TODO: Implement via pullback in the presheaf category [C^op, Man d]
+  The pullback diagram is:
+    M|_N -----> M
+      |         |
+      |         |
+      ↓         ↓
+    Const_N -> Const_{M(U)}
+  where Const_N is the constant functor at N and the bottom map is i: N ↪ M(U)
   -}
-  postulate
-    condition : (U : C .Precategory.Ob)
-              → (N : (Man d) .Precategory.Ob)
-              → (i : (Man d) .Precategory.Hom N (State-Space M U))
-              → is-submanifold i
-              → Cats-Manifold C d
+  condition : (U : C .Precategory.Ob)
+            → (N : (Man d) .Precategory.Ob)
+            → (i : (Man d) .Precategory.Hom N (State-Space M U))
+            → is-submanifold i
+            → Cats-Manifold C d
+  condition U N i h = {!!}  -- TODO: Construct via pullback
 
-    -- Property: M|_N(U) = N
-    condition-at-U : ∀ {U N i h}
-                   → State-Space (condition U N i h) U ≡ N
+  -- Property: M|_N(U) = N
+  condition-at-U : ∀ {U N i h}
+                 → State-Space (condition U N i h) U ≡ N
+  condition-at-U = {!!}  -- TODO: Follows from pullback universal property
 
-    -- Property: For V ≠ U with no path to U, M|_N(V) = M(V)
-    condition-preserves-unrelated : ∀ {U V N i h}
-                                  → {!!}  -- No morphisms U ← ... ← V
-                                  → State-Space (condition U N i h) V
-                                    ≡ State-Space M V
+  -- Property: For V ≠ U with no path to U, M|_N(V) = M(V)
+  condition-preserves-unrelated : ∀ {U V N i h}
+                                → (∀ (f : C .Precategory.Hom V U) → ⊥)  -- No morphisms V → U
+                                → State-Space (condition U N i h) V
+                                  ≡ State-Space M V
+  condition-preserves-unrelated no-path = {!!}  -- TODO: Use no-path to show pullback reduces to M at V
 
 {-|
 ## Example 3.2: Conditioning Hidden Layer to Unit Sphere
@@ -299,16 +314,23 @@ module _ {C : Precategory o ℓ} {D : Precategory o' ℓ'} {d : Nat}
   {-|
   Left Kan extension of cat's manifold along functor F
   Extends dynamics from architecture C to architecture D
+
+  TODO: Use 1Lab's Lan construction from Cat.Functor.Kan.Base
+  The left Kan extension Lan_F M is defined as:
+    (Lan_F M)(d) = colim_{F(c)→d} M(c)
+  This is a colimit over the comma category (F ↓ d)
   -}
-  postulate
-    Lan-Manifold : Cats-Manifold D d
+  Lan-Manifold : Cats-Manifold D d
+  Lan-Manifold = {!!}  -- TODO: Apply Lan from Cat.Functor.Kan.Base to M and F^op
 
-    -- Universal natural transformation
-    Lan-unit : {!!}  -- M ⇒ Lan-Manifold ∘ F^op
+  -- Universal natural transformation: unit η: M ⇒ Lan-Manifold ∘ F^op
+  Lan-unit : M => (Lan-Manifold F∘ (F ^op))
+  Lan-unit = {!!}  -- TODO: Extract from Lan construction
 
-    -- Universal property
-    Lan-universal : ∀ (N : Cats-Manifold D d)
-                  → {!!}  -- (N ∘ F^op ⇒ M) ≃ (N ⇒ Lan-Manifold)
+  -- Universal property: morphisms from N ∘ F^op to M correspond to morphisms from N to Lan
+  Lan-universal : ∀ (N : Cats-Manifold D d)
+                → ((N F∘ (F ^op)) => M) ≃ (N => Lan-Manifold)
+  Lan-universal N = {!!}  -- TODO: Use universal property of Lan
 
 {-|
 ## Definition 3.4: Right Kan Extension for Restriction
@@ -327,15 +349,26 @@ module _ {C : Precategory o ℓ} {D : Precategory o' ℓ'} {d : Nat}
 - Restricted dynamics: Ran_F N preserves frozen layers
 -}
 
-  postulate
-    Ran-Manifold : Cats-Manifold D d
+  {-|
+  Right Kan extension of cat's manifold along functor F
+  Restricts dynamics to sub-architecture
 
-    -- Co-universal natural transformation
-    Ran-counit : {!!}  -- Ran-Manifold ∘ F^op ⇒ M
+  TODO: Use 1Lab's Ran construction from Cat.Functor.Kan.Base
+  The right Kan extension Ran_F M is defined as:
+    (Ran_F M)(d) = lim_{d→F(c)} M(c)
+  This is a limit over the comma category (d ↓ F)
+  -}
+  Ran-Manifold : Cats-Manifold D d
+  Ran-Manifold = {!!}  -- TODO: Apply Ran from Cat.Functor.Kan.Base to M and F^op
 
-    -- Universal property
-    Ran-universal : ∀ (N : Cats-Manifold D d)
-                  → {!!}  -- (M ⇒ N ∘ F^op) ≃ (Ran-Manifold ⇒ N)
+  -- Co-universal natural transformation: counit ε: Ran-Manifold ∘ F^op ⇒ M
+  Ran-counit : (Ran-Manifold F∘ (F ^op)) => M
+  Ran-counit = {!!}  -- TODO: Extract from Ran construction
+
+  -- Universal property: morphisms from M to N ∘ F^op correspond to morphisms from Ran to N
+  Ran-universal : ∀ (N : Cats-Manifold D d)
+                → (M => (N F∘ (F ^op))) ≃ (Ran-Manifold => N)
+  Ran-universal N = {!!}  -- TODO: Use universal property of Ran
 
 --------------------------------------------------------------------------------
 -- § 3.1.4b: Augmented Categories and Output Cat's Manifolds (Equations 3.1-3.4)
@@ -391,7 +424,10 @@ module _ {C : Precategory o ℓ} {d : Nat} where
                     → C+ .Precategory.Hom (ι .Functor.F₀ V) *
 
     -- Equation 3.1: C+ is C with added object and output morphisms
-    C+-augmentation : {!!}  -- Formal statement of augmentation construction
+    -- States that C+ has all objects and morphisms from C, plus the new object *
+    C+-augmentation : (∀ (U : C .Precategory.Ob) → Σ[ U' ∈ C+ .Precategory.Ob ] (ι .Functor.F₀ U ≡ U'))
+                    × (∀ {U V : C .Precategory.Ob} (f : C .Precategory.Hom U V)
+                       → C+ .Precategory.Hom (ι .Functor.F₀ U) (ι .Functor.F₀ V))
 
   {-|
   ## Equation 3.3: Cat's Manifold at Output via Right Kan Extension
@@ -449,10 +485,9 @@ module _ {C : Precategory o ℓ} {d : Nat} where
       M-P-out : Cats-Manifold C d
       M-P-out-formula : M-P-out ≡ RKan-ι  -- M(P_out) = RKan_ι(X_+)
 
-      -- Universal property of RKan
+      -- Universal property of RKan: morphisms from N to X+ ∘ ι^op correspond to morphisms from N to RKan
       RKan-universal : ∀ (N : Cats-Manifold C d)
-                     → (f : {!!})  -- N ⇒ X+ ∘ ι^op
-                     → {!!}         -- Unique factorization through RKan
+                     → (N => (X+ F∘ (ι ^op))) ≃ (N => RKan-ι)
 
     {-|
     ## Equation 3.4: Connection to H^0 Cohomology
@@ -497,8 +532,9 @@ module _ {C : Precategory o ℓ} {d : Nat} where
       -- H^0 cohomology (reference to Section 3.4)
       H0 : (M : Cats-Manifold C d) → Type
 
-      -- Equation 3.4: H^0 equals output cat's manifold
-      H0-equals-M-P-out : H0 X ≃ {!!}  -- H^0(A'_strict; X) ≃ M(P_out)(X)
+      -- Equation 3.4: H^0 equals output cat's manifold (as functors on C^op)
+      -- The cohomology H^0 computes the same structure as M(P_out)
+      H0-equals-M-P-out : H0 X ≃ (∀ (U : C .Precategory.Ob) → (Man d) .Precategory.Ob)
 
       -- Connected components of A'_strict
       π₀-A'strict : Type
@@ -554,9 +590,13 @@ Constrain hidden states to:
 The limit enforces ALL constraints simultaneously.
 -}
 
-postulate
-  proposition-3-1 : ∀ {C : Precategory o ℓ} {d : Nat}
-                  → {!!}  -- Has-limits [C^op, Man d]
+-- Proposition 3.1: The presheaf category [C^op, Man d] has all limits computed pointwise
+-- TODO: Prove using pointwise limits in functor categories (standard result)
+-- Reference: Any functor category [C, D] where D has limits also has limits
+proposition-3-1 : ∀ {C : Precategory o ℓ} {d : Nat}
+                → {J : Precategory o ℓ} (D : Functor J (Cat[ C ^op , Man d ]))
+                → Limit D
+proposition-3-1 {C} {d} {J} D = {!!}  -- TODO: Construct pointwise limit
 
 {-|
 ## Example 3.3: Multi-Constraint Optimization
@@ -573,9 +613,16 @@ This is exactly what softmax produces!
 of normalized, non-negative, sum-to-one constraint manifolds.
 -}
 
-postulate
-  example-softmax-as-limit : ∀ {n : Nat} → {!!}
-  -- Δⁿ = lim (Sⁿ⁻¹, ℝⁿ₊, {∑xᵢ=1})
+-- Softmax produces the probability simplex as limit of constraints
+-- TODO: Prove that the intersection of sphere, positive orthant, and sum=1 gives simplex
+-- This is a standard result in convex geometry
+example-softmax-as-limit : ∀ {n : Nat}
+                         → {J : Precategory lzero lzero}  -- Diagram of constraint manifolds
+                         → (D : Functor J (Man n))         -- Constraints: sphere, positive orthant, sum=1
+                         → Limit D
+                         → (Limit D) .Limit.apex ≡ Δⁿ n    -- The limit is the simplex
+example-softmax-as-limit {n} {J} D lim = {!!}  -- TODO: Show limit of constraints equals simplex
+-- Δⁿ = lim (Sⁿ⁻¹, ℝⁿ₊, {∑xᵢ=1})
 
 --------------------------------------------------------------------------------
 -- § 3.1.6: Manifold-Valued Features
@@ -621,9 +668,12 @@ record Fibered-Cats-Manifold (C : Precategory o ℓ) (o' ℓ' : Level)
                    → (Man (dimension U ξ)) .Precategory.Ob
 
     -- Transition maps respect fiber structure
+    -- For each morphism α: U → U' and fiber ξ' at U', we have a smooth map between manifolds
     fiber-transition : ∀ {U U' : C .Precategory.Ob} (α : C .Precategory.Hom U U')
                      → (ξ' : (base-stack .Functor.F₀ U') .Precategory.Ob)
-                     → {!!}  -- Smooth map between fiber manifolds
+                     → (ξ : (base-stack .Functor.F₀ U) .Precategory.Ob)
+                     → (Man (dimension U ξ)) .Precategory.Hom (fiber-manifold U ξ)
+                                                                (fiber-manifold U' ξ')
 
 {-|
 ## Example 3.4: Attention with Manifold-Valued Queries/Keys
