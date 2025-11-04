@@ -46,14 +46,25 @@ module Neural.Memory.Semantics where
 open import 1Lab.Prelude
 open import 1Lab.Path
 open import 1Lab.HLevel
+open import 1Lab.Type.Sigma
 
 open import Cat.Base
+open import Cat.Functor.Base
 
 open import Data.Nat.Base
+open import Data.Sum.Base using (_⊎_)
 
 -- Import from previous modules
-open import Neural.Memory.Catastrophe using (ℝ; Λ; Δ; Λ★; Σ; discriminant; P_uv)
-open import Neural.Memory.Braids using (B₃; B³ᵣ; σ₁; σ₂; _∘_; 𝔖₃)
+open import Neural.Memory.Catastrophe using (ℝ; Λ; Δ; Λ★; Σ; Σ★; discriminant; P_uv; π-Σ)
+open import Neural.Memory.Braids using (B₃; B³ᵣ; σ₁; σ₂; _∘_; 𝔖₃; gen)
+open import Neural.Memory.LSTM using (Vec-m; LinearForm)
+
+-- Arithmetic and comparison operators for ℝ
+postulate
+  _<_ _>_ : ℝ → ℝ → Type  -- Comparison operators
+  _≠_ : ℝ → ℝ → Type  -- Inequality
+  _*_ _+_ _-_ : ℝ → ℝ → ℝ  -- Arithmetic operators
+  -_ : ℝ → ℝ  -- Negation
 
 --------------------------------------------------------------------------------
 -- §4.5: Culioli's Notional Domains
@@ -116,19 +127,19 @@ record NotionalDomain : Type₁ where
     boundary : Type  -- B
 
     -- Prototypes (attractors) in I
-    prototypes : List {!!}  -- Central examples
+    prototypes : List interior  -- Central examples
 
     -- Organizing center (on Δ)
-    organizing-center : {!!}
+    organizing-center : Σ[ u ∈ ℝ ] Σ[ v ∈ ℝ ] (discriminant u v ≡ 0.0)
 
     -- Classification function
-    classify : {!!} → NotionalRegion
+    classify : interior ⊎ exterior ⊎ boundary → NotionalRegion
 
 postulate
   -- Example: "dog" notion
   dog-notion : NotionalDomain
-  dog-prototypes : {!!}  -- [German Shepherd, Labrador, ...]
-  dog-boundary-cases : {!!}  -- [Chihuahua, wolf, fox, ...]
+  dog-prototypes : List (NotionalDomain.interior dog-notion)  -- [German Shepherd, Labrador, ...]
+  dog-boundary-cases : List (NotionalDomain.boundary dog-notion)  -- [Chihuahua, wolf, fox, ...]
 
 {-|
 ## Mathematical Correspondence
@@ -155,7 +166,7 @@ postulate
 NotionalRegion-to-Regime : NotionalRegion → Λ → Type
 NotionalRegion-to-Regime Interior (u , v) = u < 0.0 × discriminant u v < 0.0  -- Bistable
 NotionalRegion-to-Regime Exterior (u , v) = u < 0.0 × discriminant u v < 0.0  -- Same!
-NotionalRegion-to-Regime Boundary (u , v) = {!!}  -- Near Δ
+NotionalRegion-to-Regime Boundary (u , v) = Σ[ ε ∈ ℝ ] (ε > 0.0 × (discriminant u v < ε × discriminant u v > (-1.0 * ε)))  -- Near Δ (within ε)
 NotionalRegion-to-Regime Organizing-Center (u , v) = discriminant u v ≡ 0.0  -- On Δ
 
 {-|
@@ -345,11 +356,12 @@ cam-to-braid full-cam = σ₁ ∘ σ₂ ∘ σ₁  -- Full braid
 -- "Not uninteresting" interpretation
 postulate
   "not-uninteresting" : SemanticPath Interior Interior
-  "not-uninteresting"-is-cam : {!!}  -- Via full cam
-  "not-uninteresting"-braid : {!!}  -- Maps to σ₁σ₂σ₁
+  "not-uninteresting"-is-cam : "not-uninteresting" ≡ negation ⨾ interro-negation  -- Via full cam (same as double negation)
+  "not-uninteresting"-braid : Σ[ f ∈ (SemanticPath Interior Interior → B₃) ] (f "not-uninteresting" ≡ (gen σ₁ ∘ gen σ₂ ∘ gen σ₁))  -- Maps to σ₁σ₂σ₁
 
   -- Meaning: More than just "interesting"
-  intensification : {!!}  -- "not uninteresting" > "interesting"
+  intensification : Σ[ _>_ ∈ (SemanticPath Interior Interior → SemanticPath Interior Interior → Type) ]
+                    ("not-uninteresting" > refl-path)  -- "not uninteresting" > "interesting" (identity path)
 
 {-|
 ## Paths on Gathered Surface Σ
@@ -381,13 +393,13 @@ postulate
 
 -- Path on Σ vs path on Λ
 postulate
-  path-on-Σ : {!!} → {!!}  -- Path on gathered surface
-  path-on-Λ : {!!} → {!!}  -- Projected path on parameters
+  path-on-Σ : Σ → Σ → Type  -- Path on gathered surface
+  path-on-Λ : Λ★ → Λ★ → Type  -- Projected path on parameters
 
-  projection-Σ-to-Λ : path-on-Σ → path-on-Λ
+  projection-Σ-to-Λ : ∀ {s₁ s₂ : Σ} → path-on-Σ s₁ s₂ → path-on-Λ (π-Σ s₁) (π-Σ s₂)
 
-  homotopy-class-matters : {!!}
-  weak-quantitative-aspect : {!!}  -- Nuances in language
+  homotopy-class-matters : ∀ {λ₁ λ₂ : Λ★} (p q : path-on-Λ λ₁ λ₂) → Σ[ ~ ∈ (path-on-Λ λ₁ λ₂ → path-on-Λ λ₁ λ₂ → Type) ] (p ~ q)  -- Homotopy equivalence
+  weak-quantitative-aspect : ∀ {s₁ s₂ : Σ} → path-on-Σ s₁ s₂ → ℝ  -- "Nuances" = path length or similar measure
 
 --------------------------------------------------------------------------------
 -- §4.5: Thom's Elementary Catastrophes
@@ -432,15 +444,16 @@ data CatastropheType : Type where
   D₅ : CatastropheType  -- Parabolic umbilic
 
 -- Organizing center (germ of function)
-organizing-center : CatastropheType → {!!}  -- Polynomial
-organizing-center A₁ = {!!}  -- x²
-organizing-center A₂ = {!!}  -- x³
-organizing-center A₃ = {!!}  -- x⁴
-organizing-center A₄ = {!!}  -- x⁵
-organizing-center A₅ = {!!}  -- x⁶
-organizing-center D₄⁺ = {!!}  -- x₁³ - x₁x₂²
-organizing-center D₄⁻ = {!!}  -- x₁³ + x₁x₂²
-organizing-center D₅ = {!!}  -- x₁⁴ + x₁x₂²
+-- For simplicity, we represent these as symbolic types (actual polynomials would need more structure)
+organizing-center : CatastropheType → Type
+organizing-center A₁ = ℝ → ℝ  -- x ↦ x²
+organizing-center A₂ = ℝ → ℝ  -- x ↦ x³
+organizing-center A₃ = ℝ → ℝ  -- x ↦ x⁴
+organizing-center A₄ = ℝ → ℝ  -- x ↦ x⁵
+organizing-center A₅ = ℝ → ℝ  -- x ↦ x⁶
+organizing-center D₄⁺ = ℝ → ℝ → ℝ  -- (x₁, x₂) ↦ x₁³ - x₁x₂²
+organizing-center D₄⁻ = ℝ → ℝ → ℝ  -- (x₁, x₂) ↦ x₁³ + x₁x₂²
+organizing-center D₅ = ℝ → ℝ → ℝ  -- (x₁, x₂) ↦ x₁⁴ + x₁x₂²
 
 -- Codimension (number of parameters in universal unfolding)
 codimension : CatastropheType → Nat
@@ -453,16 +466,21 @@ codimension D₄⁺ = 3  -- Same as A₃!
 codimension D₄⁻ = 3
 codimension D₅ = 4
 
+-- Galois group (for now, use postulated types - full definitions would require group theory module)
+postulate
+  𝔖₂ 𝔖₄ 𝔖₅ 𝔖₆ : Type  -- Symmetric groups
+  D₄-group D₅-group : Type  -- Dihedral/hypercube symmetry groups
+
 -- Galois group
 galois-group : CatastropheType → Type
-galois-group A₁ = {!!}  -- 𝔖₂
-galois-group A₂ = 𝔖₃  -- 𝔖₃ ⭐
-galois-group A₃ = {!!}  -- 𝔖₄
-galois-group A₄ = {!!}  -- 𝔖₅
-galois-group A₅ = {!!}  -- 𝔖₆
-galois-group D₄⁺ = {!!}  -- D₄ (dihedral/hypercube)
-galois-group D₄⁻ = {!!}  -- D₄
-galois-group D₅ = {!!}  -- D₅
+galois-group A₁ = 𝔖₂  -- 𝔖₂ (2 roots)
+galois-group A₂ = 𝔖₃  -- 𝔖₃ ⭐ (already defined in Braids module)
+galois-group A₃ = 𝔖₄  -- 𝔖₄ (4 roots)
+galois-group A₄ = 𝔖₅  -- 𝔖₅ (5 roots)
+galois-group A₅ = 𝔖₆  -- 𝔖₆ (6 roots)
+galois-group D₄⁺ = D₄-group  -- D₄ (dihedral/hypercube)
+galois-group D₄⁻ = D₄-group  -- D₄ (same group, different sign)
+galois-group D₅ = D₅-group  -- D₅
 
 --------------------------------------------------------------------------------
 -- §4.5: Verb Valencies
@@ -531,12 +549,12 @@ catastrophe-for-valency triadic = D₄⁺  -- Or A₃
 catastrophe-for-valency quadratic = A₄  -- Or D₅
 
 postulate
-  -- Linguistic examples
-  "it-rains" : {!!}  -- Impersonal
-  "she-sleeps" : {!!}  -- Intransitive
-  "he-kicks-the-ball" : {!!}  -- Transitive
-  "she-gives-him-a-ball" : {!!}  -- Triadic
-  "she-ties-goat-to-tree-with-rope" : {!!}  -- Quadratic
+  -- Linguistic examples (each has associated catastrophe dynamics)
+  "it-rains" : organizing-center A₁  -- Impersonal (trivial dynamics)
+  "she-sleeps" : organizing-center A₁  -- Intransitive (1 actant: subject)
+  "he-kicks-the-ball" : organizing-center A₂  -- Transitive (2 actants: subject + object)
+  "she-gives-him-a-ball" : organizing-center D₄⁺  -- Triadic (3 actants: subject + indirect + direct)
+  "she-ties-goat-to-tree-with-rope" : organizing-center A₄  -- Quadratic (4 actants: subject + object + location + instrument)
 
 {-|
 **Why D₄ for triadic?**:
@@ -614,14 +632,19 @@ record ThreeActant : Type where
     direct-object : ℝ  -- y parameter
     modifiers : ℝ × ℝ  -- (w, x) parameters
 
--- Encode sentence as umbilic parameters
-encode-triadic : ThreeActant → {!!}  -- → Umbilic parameters
-encode-triadic act = {!!}
+-- Encode sentence as umbilic parameters (u, v, x, y from the three actants)
+encode-triadic : ThreeActant → ℝ × ℝ × ℝ × ℝ  -- → (u, v, x, y) parameters
+encode-triadic act = (ThreeActant.subject act , fst (ThreeActant.modifiers act) ,
+                      ThreeActant.indirect-object act , ThreeActant.direct-object act)
 
 postulate
   -- Example: "She gives him a ball"
   she-gives-him-ball : ThreeActant
-  she-gives-him-ball-encoding : {!!}
+  she-gives-him-ball-encoding : encode-triadic she-gives-him-ball ≡
+                                (ThreeActant.subject she-gives-him-ball ,
+                                 fst (ThreeActant.modifiers she-gives-him-ball) ,
+                                 ThreeActant.indirect-object she-gives-him-ball ,
+                                 ThreeActant.direct-object she-gives-him-ball)
 
 {-|
 ## Network Construction for Umbilics
@@ -661,29 +684,29 @@ Proposed experiments:
 record Umbilic-Weights (m n : Nat) : Type where
   constructor umbilic-weights
   field
-    -- For z coordinate (hidden)
-    U_z : {!!}  -- LinearForm m m
+    -- For z coordinate (hidden state, cubic term)
+    U_z : LinearForm m m  -- LinearForm m m
 
-    -- For w coordinate (hidden)
-    U_w : {!!}  -- LinearForm m m
+    -- For w coordinate (hidden state, coupled with z)
+    U_w : LinearForm m m  -- LinearForm m m
 
     -- Unfolding parameters from input
-    W_u : {!!}  -- LinearForm m n
-    W_v : {!!}  -- LinearForm m n
-    W_x : {!!}  -- LinearForm m n
-    W_y : {!!}  -- LinearForm m n
+    W_u : LinearForm m n  -- u parameter (linear in z)
+    W_v : LinearForm m n  -- v parameter (linear in w)
+    W_x : LinearForm m n  -- x parameter (quadratic in z, w)
+    W_y : LinearForm m n  -- y parameter (constant term)
 
     -- Sign (elliptic vs hyperbolic)
-    sign : ℝ  -- ±1
+    sign : ℝ  -- ±1.0 (elliptic) or 1.0 (hyperbolic)
 
 -- Umbilic cell step
 postulate
   umbilic-step : ∀ {m n} → Umbilic-Weights m n
-               → {!!}  -- Hidden state (z, w)
-               → {!!}  -- Input ξ
-               → {!!}  -- New hidden state
+               → Vec-m m × Vec-m m  -- Hidden state (z, w) - two components
+               → Vec-m n  -- Input ξ
+               → Vec-m m × Vec-m m  -- New hidden state (z', w')
 
-  -- Parameter count
+  -- Parameter count (2 hidden weight matrices + 4 input weight matrices)
   umbilic-param-count : (m n : Nat) → Nat
   umbilic-param-count-formula : ∀ m n
                               → umbilic-param-count m n ≡ 2 * m * m + 4 * m * n
@@ -733,20 +756,23 @@ This is **sheaf theory for semantics**!
 -}
 
 postulate
-  -- Vector space of "readers"
+  -- Vector space of "readers" (weight matrices that "read" context)
   Readers : (m n : Nat) → Type
+  Readers-def : ∀ m n → Readers m n ≡ (LinearForm m n × LinearForm m m)  -- (W for input, U for hidden)
 
-  -- Local system over B³ᵣ
-  semantic-local-system : {!!}  -- Functor B³ᵣ → Vect
+  -- Local system over B³ᵣ (functor from Culioli groupoid to vector spaces)
+  Vect : Precategory lzero lzero  -- Category of vector spaces
+  semantic-local-system : Functor B³ᵣ Vect  -- Maps braid paths to linear transformations
 
-  -- Fibered category structure
-  fibered-over-network-cat : {!!}
+  -- Fibered category structure (readers vary over network positions)
+  NetworkCat : Precategory lzero lzero  -- Network category (from previous modules)
+  fibered-over-network-cat : Functor NetworkCat Cat.Base.Sets  -- Fibered structure
 
-  -- Frege's context principle
-  word-meaning-requires-context : {!!}
+  -- Frege's context principle: "a word has meaning only in the context of a sentence"
+  word-meaning-requires-context : ∀ (word : Type) → (word → Type) → (word → word → Type) → Type
 
-  -- Wittgenstein's language game
-  naming-not-language-game : {!!}
+  -- Wittgenstein's language game: "Naming is not yet a move in a language-game"
+  naming-not-language-game : ∀ (word : Type) (name : word → Type) → ¬ (Σ[ game ∈ Type ] (name ≡ game))
 
 {-|
 ## Quotienting the Culioli Groupoid

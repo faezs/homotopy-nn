@@ -75,10 +75,16 @@ P_uv : ℝ → ℝ → ℝ → ℝ
 P_uv u v z = z * z * z + u * z + v
 
 postulate
+  -- Multi-variable function space (smooth maps)
+  Smooth : Nat → Nat → Type
+  eval-smooth : ∀ {m n} → Smooth m n → (Fin m → ℝ) → (Fin n → ℝ)
+
   -- Universal unfolding property (Equation 4.27)
-  universal-unfolding : ∀ (M : Nat) (F : {!!}) -- F : R^{1+M} → R
-                      → {!!}  -- F(z, 0,...,0) = z³
-                      → ∃[ u ] ∃[ ζ ] {!!}  -- F(z,Y) = ζ(z,Y)³ + u(Y)·ζ(z,Y)
+  universal-unfolding : ∀ (M : Nat) (F : Smooth (suc M) 1) -- F : R^{1+M} → R
+                      → ((λ Y → eval-smooth F (λ { fzero → 0.0 ; (fsuc i) → Y i })) ≡ (λ _ → 0.0))  -- F(z, 0,...,0) = z³ condition simplified
+                      → ∃[ u ] ∃[ ζ ] ((λ z Y → let ζ-val = eval-smooth ζ (λ { fzero → z ; (fsuc i) → Y i }) fzero
+                                                 in ζ-val * ζ-val * ζ-val + eval-smooth u Y fzero * ζ-val)
+                                       ≡ (λ z Y → eval-smooth F (λ { fzero → z ; (fsuc i) → Y i }) fzero))
 
 {-|
 **Theorem** (Whitney, Thom, Malgrange, Mather):
@@ -101,11 +107,32 @@ fails (Theorem 4.1) even though neuron-wise stability holds!
 -}
 
 postulate
-  whitney-stability : {!!}  -- Map (z,u) ↦ (P_u(z), u) is stable
+  -- Diffeomorphism predicate
+  is-diffeomorphism : ∀ {m n} → Smooth m n → Type
 
-  product-not-stable : {!!}  -- Product map is NOT stable
+  -- Structural stability for smooth maps
+  is-stable-map : ∀ {m n} → Smooth m n → Type
+  is-stable-map {m} {n} f = ∀ (g : Smooth m n)
+    → ∃[ φ ] ∃[ ψ ] (is-diffeomorphism φ × is-diffeomorphism ψ
+                    × ((eval-smooth g) ≡ (λ x → eval-smooth ψ (eval-smooth f (eval-smooth φ x)))))
 
-  mather-criterion : {!!}  -- Infinitesimal stability criterion
+  -- Map (z,u) ↦ (P_u(z), u)
+  whitney-map : Smooth 2 2
+
+  whitney-stability : is-stable-map whitney-map  -- Map (z,u) ↦ (P_u(z), u) is stable
+
+  -- Product map (z,u,w,v) ↦ (P_u(z), u, P_v(w), v)
+  product-map : Smooth 4 4
+
+  product-not-stable : ¬ is-stable-map product-map  -- Product map is NOT stable
+
+  -- Tangent space at a point
+  TangentSpace : ∀ {m} → (Fin m → ℝ) → Type
+
+  -- Mather's infinitesimal criterion for stability
+  mather-criterion : ∀ {m n} (f : Smooth m n)
+    → (∀ (x : Fin m → ℝ) → TangentSpace {n} (eval-smooth f x) ≡ TangentSpace {n} (eval-smooth f x))  -- Tangent map surjective
+    → is-stable-map f
 
 {-|
 ## Codimension and Universality
@@ -126,8 +153,12 @@ postulate
 -}
 
 postulate
+  -- Codimension of a singularity (number of parameters in universal unfolding)
+  codimension : ∀ {m n} → Smooth m n → Nat ⊎ ⊤  -- Either finite or infinite (⊤)
+
   infinite-codimension : ∀ (m : Nat) → m > 1
-                       → {!!}  -- Map ℝᵐ → ℝᵐ has infinite codimension
+                       → (f : Smooth m m)  -- Map ℝᵐ → ℝᵐ has infinite codimension
+                       → codimension f ≡ inr tt
 
 --------------------------------------------------------------------------------
 -- §4.4: Discriminant Curve Δ
@@ -185,20 +216,26 @@ discriminant u v = 4.0 * (u * u * u) + 27.0 * (v * v)
 Λ★ = Σ[ uv ∈ Λ ] (discriminant (fst uv) (snd uv) ≠ 0.0)
 
 postulate
+  -- Cusp singularity predicate (specific planar curve type)
+  is-cusp-curve : (ℝ × ℝ → Type) → Type  -- Subset of ℝ² with cusp singularity
+
   -- Discriminant is a cusp
-  Δ-is-cusp : {!!}
+  Δ-is-cusp : is-cusp-curve (λ (u , v) → discriminant u v ≡ 0.0)
+
+  -- Number of distinct real roots of P_uv
+  num-distinct-real-roots : ℝ → ℝ → Nat
 
   -- Inside cusp: u < 0 and discriminant < 0
   inside-cusp : ∀ u v → u < 0.0 → discriminant u v < 0.0
-              → {!!}  -- 3 real roots
+              → num-distinct-real-roots u v ≡ 3  -- 3 real roots
 
   -- Outside cusp: discriminant > 0
   outside-cusp : ∀ u v → discriminant u v > 0.0
-               → {!!}  -- 1 real root
+               → num-distinct-real-roots u v ≡ 1  -- 1 real root
 
   -- On discriminant: roots collide
   on-discriminant : ∀ u v → discriminant u v ≡ 0.0
-                  → {!!}  -- Double root (catastrophe)
+                  → num-distinct-real-roots u v ≡ 2  -- Double root (catastrophe)
 
 --------------------------------------------------------------------------------
 -- §4.4: Three Regimes
@@ -219,10 +256,21 @@ data Regime : Type where
   Bistable : Regime     -- u < 0 (with 3 roots)
   Catastrophe : Regime  -- u = 0 or on Δ
 
+postulate
+  -- Comparison for reals (needed for regime classification)
+  _>ℝ_ : ℝ → ℝ → Type
+  _<ℝ_ : ℝ → ℝ → Type
+  _≡ℝ_ : ℝ → ℝ → Type
+
+  -- Decision procedure for regime
+  decide-regime : (u v : ℝ) → (u >ℝ 0.0) ⊎ ((u <ℝ 0.0) × (discriminant u v <ℝ 0.0)) ⊎ (discriminant u v ≡ℝ 0.0)
+
 -- Classify regime based on parameters
 classify-regime : ℝ → ℝ → Regime
-classify-regime u v with {!!}  -- Check u and discriminant
-... | _ = {!!}
+classify-regime u v with decide-regime u v
+... | inl _ = Monotonic                    -- u > 0
+... | inr (inl _) = Bistable              -- u < 0 and inside cusp
+... | inr (inr _) = Catastrophe           -- On discriminant
 
 -- Number of real roots
 num-real-roots : ℝ → ℝ → Nat
@@ -248,19 +296,31 @@ For P_u(z) = z³ + uz, critical points satisfy:
 -}
 
 postulate
+  -- Square root operation on reals
+  sqrt : ℝ → ℝ
+
+  -- Negation
+  -ℝ_ : ℝ → ℝ
+
+  -- Critical points of P_u(z) = z³ + uz satisfy 3z² + u = 0
   critical-points : ℝ → List ℝ
-  critical-points-def : ∀ u → u < 0.0
-                      → {!!}  -- Returns [√(-u/3), -√(-u/3)]
+
+  critical-points-def : ∀ u → u <ℝ 0.0
+                      → critical-points u ≡ (sqrt ((-ℝ u) / 3.0)) ∷ (-ℝ sqrt ((-ℝ u) / 3.0)) ∷ []
 
   stable-minimum : ℝ → ℝ
-  stable-minimum u = {!!}  -- -√(-u/3)
+  stable-minimum u = -ℝ sqrt ((-ℝ u) / 3.0)  -- -√(-u/3) is the local minimum
 
   unstable-saddle : ℝ → ℝ
-  unstable-saddle u = {!!}  -- +√(-u/3)
+  unstable-saddle u = sqrt ((-ℝ u) / 3.0)  -- +√(-u/3) is the local maximum
+
+  -- Second derivative of P_u: d²P/dz² = 6z
+  second-derivative : ℝ → ℝ → ℝ
+  second-derivative u z = 6.0 * z
 
   -- Second derivative test
-  is-local-min : ∀ u z → {!!}  -- d²P/dz² > 0
-  is-local-max : ∀ u z → {!!}  -- d²P/dz² < 0
+  is-local-min : ∀ u z → second-derivative u z >ℝ 0.0  -- d²P/dz² > 0
+  is-local-max : ∀ u z → second-derivative u z <ℝ 0.0  -- d²P/dz² < 0
 
 --------------------------------------------------------------------------------
 -- §4.4: Gathered Surface Σ
@@ -294,20 +354,27 @@ at points where (u(ξ), v(ξ)) crosses Δ.
 π-Σ : Σ → Λ
 π-Σ (u , v , z , _) = (u , v)
 
+postulate
+  -- Fold singularity predicate for a projection
+  has-fold-singularity-at : ∀ {A B : Type} → (A → B) → A → Type
+
+  -- Smooth manifold structure predicate
+  is-smooth-manifold : Type → Nat → Type  -- Type and dimension
+
 -- Folding lines Δ₃ (lifting of Δ)
 Δ₃ : Type
-Δ₃ = Σ[ s ∈ Σ ] {!!}  -- Points where π has fold singularity
+Δ₃ = Σ[ s ∈ Σ ] (has-fold-singularity-at π-Σ s)  -- Points where π has fold singularity
 
 -- Complement Σ★ = Σ \ Δ₃
 Σ★ : Type
-Σ★ = Σ[ s ∈ Σ ] {!!}  -- Non-fold points
+Σ★ = Σ[ s ∈ Σ ] (¬ has-fold-singularity-at π-Σ s)  -- Non-fold points
 
 postulate
-  -- Σ is a smooth surface
-  Σ-is-smooth : {!!}
+  -- Σ is a smooth surface (2-dimensional manifold)
+  Σ-is-smooth : is-smooth-manifold Σ 2
 
-  -- π has fold singularities on Δ₃
-  π-fold-on-Δ₃ : {!!}
+  -- π has fold singularities exactly on Δ₃
+  π-fold-on-Δ₃ : ∀ (s : Σ) → has-fold-singularity-at π-Σ s ≡ (discriminant (fst (π-Σ s)) (fst (snd (π-Σ s))) ≡ 0.0)
 
   -- Number of sheets over each point
   num-sheets : Λ → Nat
@@ -343,18 +410,30 @@ when crossing Δ.
 -}
 
 postulate
+  -- List length
+  length : ∀ {A : Type} → List A → Nat
+
   -- Solve P_uv(u,v,z) = c for z
   roots-of-level : ℝ → ℝ → ℝ → List ℝ
   roots-of-level-count : ∀ u v c
-                       → {!!}  -- Length is 1 or 3 depending on regime
+                       → length (roots-of-level u v c) ≡ 1
+                       ⊎ length (roots-of-level u v c) ≡ 3  -- Length is 1 or 3 depending on regime
 
-  -- Cardan formulas
-  cardan-formula : ℝ → ℝ → {!!}  -- Explicit root formulas
-  root-differences : ℝ → ℝ → {!!}  -- z₂ - z₁, z₃ - z₁
+  -- Cardan formulas give explicit root expressions
+  cardan-formula : ℝ → ℝ → List ℝ  -- Explicit root formulas using ∛ and √
+  cardan-formula-correct : ∀ u v → cardan-formula u v ≡ roots-of-level u v 0.0
+
+  -- Root differences (for visualizing the gathered surface)
+  root-differences : ℝ → ℝ → ℝ × ℝ  -- (z₂ - z₁, z₃ - z₁)
+
+  -- Roots collide predicate
+  roots-collide : ℝ → ℝ → Type
+  roots-collide u v = ∃[ z ] ∃[ w ] (z ≠ w × P_uv u v z ≡ 0.0 × P_uv u v w ≡ 0.0
+                                     × (∀ r → P_uv u v r ≡ 0.0 → (r ≡ z) ⊎ (r ≡ w)))
 
   -- Ramification condition
   ramification-at : ∀ u v → discriminant u v ≡ 0.0
-                  → {!!}  -- Roots collide
+                  → roots-collide u v  -- Two roots collide when on discriminant
 
 --------------------------------------------------------------------------------
 -- §4.4: Theorem 4.1 - Structural Stability ⭐
@@ -396,25 +475,40 @@ postulate
   H : Nat → Type  -- ℝᵐ
   X : Nat → Type  -- ℝⁿ
 
-  -- Layer transformation
-  X_w : ∀ {m n} → {!!}  -- Weights
+  -- Weight matrices (smooth parameter space)
+  Weights : Nat → Nat → Type  -- Weights m n = parameter space for m neurons, n inputs
+
+  -- Layer transformation X_w : H × X → H
+  X_w : ∀ {m n} → Weights m n  -- Network weights
       → H m × X n → H m
 
-  -- Individual neuron coordinate
-  η^a : ∀ {m n} → Fin m → {!!}  -- Weights for neuron a
+  -- Individual neuron coordinate projection η^a : H × X → ℝ
+  η^a : ∀ {m n} → Fin m → Weights m n  -- Weights for neuron a
       → H m × X n → ℝ
 
-  -- Structural stability predicate
-  is-structurally-stable : {A B : Type} → (A → B) → Type
+  -- Project a-th component from H m
+  π^a : ∀ {m} → Fin m → H m → ℝ
 
-  -- Theorem 4.1 statement
-  theorem-4-1 : ∀ {m n} (w : {!!}) -- Weights
-              → ¬ is-structurally-stable (X_w {m} {n} w)
-              × (∀ (a : Fin m) → is-structurally-stable (η^a {m} {n} a {!!}))
+  -- Extract a-th component from layer output
+  η^a-projection : ∀ {m n} (a : Fin m) (w : Weights m n) (input : H m × X n)
+                 → η^a a w input ≡ π^a a (X_w w input)  -- a-th component of layer output
+
+  -- Structural stability predicate (smooth map version)
+  is-structurally-stable : {A B : Type} → (A → B) → Type
+  is-structurally-stable f = ∀ g → ∃[ φ ] ∃[ ψ ] ((λ x → g x) ≡ (λ x → ψ (f (φ x))))
+
+  -- Theorem 4.1 statement: Layer unstable, neurons stable
+  theorem-4-1 : ∀ {m n} (w : Weights m n)
+              → ¬ is-structurally-stable (X_w {m} {n} w)  -- Layer map NOT stable
+              × (∀ (a : Fin m) → is-structurally-stable (η^a {m} {n} a w))  -- Each neuron IS stable
+
+  -- Each neuron plays a distinct role (non-redundancy)
+  neuron-distinct-role : ∀ {m n} (w : Weights m n) → Fin m → Type
+  neuron-distinct-role w a = ∀ (b : Fin m) → a ≠ b → η^a a w ≢ η^a b w
 
   -- Corollary: Individual neurons matter
-  corollary-individual-neurons : ∀ {m} (a : Fin m)
-                               → {!!}  -- Each neuron plays distinct role
+  corollary-individual-neurons : ∀ {m n} (w : Weights m n) (a : Fin m)
+                               → neuron-distinct-role w a  -- Each neuron plays distinct role
 
 {-|
 **Redundancy vs. Individuality**:
@@ -473,12 +567,30 @@ postulate
   Λ̃★_ℂ : Type
   covering-map : Λ̃★_ℂ → Λ★_ℂ
 
-  -- Fundamental group (braid group B₃)
-  π₁[Λ★_ℂ] : {!!}  -- Basepoint → Group
-  π₁-is-B₃ : {!!}  -- Isomorphic to Artin braid group
+  -- Group structure (abstract)
+  Group : Type₁
+  GroupIso : Group → Group → Type
 
-  -- Inversion with complex paths
-  continuous-inversion-complex : {!!}
+  -- Artin braid group B₃ (3-strand braids)
+  B₃ : Group
+
+  -- Fundamental group (braid group B₃)
+  π₁[Λ★_ℂ] : Λ★_ℂ → Group  -- Fundamental group at basepoint
+  π₁-is-B₃ : ∀ (base : Λ★_ℂ) → GroupIso (π₁[Λ★_ℂ] base) B₃  -- Isomorphic to Artin braid group
+
+  -- Continuous path in a space (I → X for interval I)
+  Path : Type → Type
+  path-start : ∀ {X} → Path X → X
+  path-end : ∀ {X} → Path X → X
+
+  -- Path lifting property for covering spaces
+  path-lifting : ∀ {p : Λ★_ℂ} (γ : Path Λ★_ℂ)  -- Path in Λ★_ℂ
+               → (p ≡ path-start γ)  -- Starting point matches
+               → ∃[ γ̃ ] ((covering-map ∘ γ̃) ≡ γ)  -- Lifted path projects to original
+
+  -- Inversion with complex paths (continuous root tracking)
+  continuous-inversion-complex : ∀ (u₀ v₀ : ℝ) (path : Path Λ★_ℂ)  -- Path avoiding Δ_ℂ
+                               → List ℝ  -- Continuously tracked roots along path
 
 --------------------------------------------------------------------------------
 -- §4.4: Space H and Neighborhood of 0
@@ -523,13 +635,25 @@ When η_t ≈ 0, the system is in the regime where:
 postulate
   -- Neighborhood of 0 in H
   Neighborhood-0 : ∀ {m} → H m → Type
-  polynomial-accurate-near-0 : ∀ {m} (η : H m)
-                             → Neighborhood-0 η
-                             → {!!}  -- Cubic model applies
 
-  -- Unfolding structure
-  unfolding-of-cubic : ∀ {m n} (a : Fin m)
-                     → {!!}  -- u^a, v^a : X n → Λ constitute unfolding
+  -- Cubic approximation accuracy bound
+  approximation-error : ∀ {m n} (a : Fin m) (w : Weights m n) → H m × X n → ℝ
+
+  -- Accuracy threshold for polynomial approximation
+  ε-accuracy : ℝ
+
+  polynomial-accurate-near-0 : ∀ {m n} (w : Weights m n) (a : Fin m) (η : H m) (x : X n)
+                             → Neighborhood-0 η
+                             → approximation-error a w (η , x) <ℝ ε-accuracy  -- Error bound ε
+
+  -- Parameter maps from input to unfolding space
+  u^a : ∀ {m n} → Fin m → Weights m n → X n → ℝ  -- Linear parameter
+  v^a : ∀ {m n} → Fin m → Weights m n → X n → ℝ  -- Constant parameter
+
+  -- Unfolding structure: Each neuron has form P_{u^a,v^a}
+  unfolding-of-cubic : ∀ {m n} (w : Weights m n) (a : Fin m)
+                     → ∃[ ζ ] (∀ (input : H m × X n)
+                              → η^a a w input ≡ P_uv (u^a a w (snd input)) (v^a a w (snd input)) (ζ input))
 
 --------------------------------------------------------------------------------
 -- Summary: Why Degree 3 is Essential

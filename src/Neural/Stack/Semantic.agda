@@ -590,8 +590,8 @@ Neural network as realizer:
 - Verification = Proving realizer always succeeds
 -}
 
-module Game-Semantics where
-  open Semantic-Brackets
+module Game-Semantics (E : Precategory o ℓ) where
+  open Semantic-Brackets E
 
   postulate
     -- Game interpretation
@@ -663,8 +663,8 @@ For neural networks:
   N₁ ~ N₂  iff  ∀ layer k, ∀ input x, Features_k(N₁, x) ~ Features_k(N₂, x)
 -}
 
-module Bisimulation where
-  open Semantic-Brackets
+module Bisimulation (E : Precategory o ℓ) where
+  open Semantic-Brackets E
 
   -- A network is represented as a term (morphism in the topos)
   Network : SimpleType → SimpleType → Type (o ⊔ ℓ)

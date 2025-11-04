@@ -89,18 +89,32 @@ Each layer U can express certain properties:
 - L(output) = "image contains class C with probability p"
 -}
 
+-- TODO: Define these properly as inductive types
+-- For now, postulated to allow type-checking of dependent definitions
 postulate
   -- Signature: symbols and arities
   Signature : Type (lsuc lzero)
   Symbol : Signature → Type
   arity : (Σ : Signature) → Symbol Σ → Nat
 
-  -- Terms over signature
+-- Could be defined as:
+-- data Term (Σ : Signature) : Type where
+--   var : Nat → Term Σ
+--   app : (s : Symbol Σ) → (Fin (arity Σ s) → Term Σ) → Term Σ
+postulate
   Term : Signature → Type
   var : ∀ {Σ} → Nat → Term Σ
   app : ∀ {Σ} → (s : Symbol Σ) → (Fin (arity Σ s) → Term Σ) → Term Σ
 
-  -- Formulas (atomic, conjunction, disjunction, quantifiers)
+-- Could be defined as:
+-- data Formula (Σ : Signature) : Type where
+--   atomic : Symbol Σ → (Fin (arity Σ s) → Term Σ) → Formula Σ
+--   _∧ᶠ_ : Formula Σ → Formula Σ → Formula Σ
+--   _∨ᶠ_ : Formula Σ → Formula Σ → Formula Σ
+--   _⇒ᶠ_ : Formula Σ → Formula Σ → Formula Σ
+--   ∀ᶠ : Formula Σ → Formula Σ
+--   ∃ᶠ : Formula Σ → Formula Σ
+postulate
   Formula : Signature → Type
   atomic : ∀ {Σ} → Symbol Σ → (Fin (arity Σ Symbol) → Term Σ) → Formula Σ
   _∧ᶠ_ : ∀ {Σ} → Formula Σ → Formula Σ → Formula Σ
@@ -132,8 +146,21 @@ record Language-Sheaf (C : Precategory o ℓ) (Σ : Signature)
                  ≡ restrict α (restrict β φ)
 
     -- Sheaf axioms (uniqueness and gluing)
-    sheaf-uniqueness : {!!}
-    sheaf-gluing : {!!}
+    -- TODO: These require a notion of covering/sieve on C
+    -- Standard formulation:
+    -- For covering {Uᵢ → U}, if φ, φ' ∈ formulas-at U agree on all Uᵢ,
+    -- then φ = φ'
+    sheaf-uniqueness : {!!}  -- ∀ (cover : Covering U)
+                              -- → (φ φ' : formulas-at U)
+                              -- → (∀ i → restrict (cover i) φ ≡ restrict (cover i) φ')
+                              -- → φ ≡ φ'
+
+    -- For compatible family {φᵢ ∈ formulas-at Uᵢ}, exists unique φ ∈ formulas-at U
+    -- such that restrict (cover i) φ = φᵢ
+    sheaf-gluing : {!!}  -- ∀ (cover : Covering U)
+                         -- → (family : ∀ i → formulas-at (cover-domain i))
+                         -- → (compat : ∀ i j → restrict ... (family i) ≡ restrict ... (family j))
+                         -- → Σ[ φ ∈ formulas-at U ] (∀ i → restrict (cover i) φ ≡ family i)
 
 {-|
 ## Example 3.14: Vision Network Language
@@ -286,8 +313,11 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
       where postulate _≤_ : ∀ {X} → Ω^ X → Ω^ X → Type ℓ'
 
     -- Strong hypothesis: composition is identity
-    π★-π★-id : ∀ {U U'} (α : C .Precategory.Hom U U') {X}
-             → Ω-transfer-upstream α (Ω-transfer-context α {X = X} {!!} {!!}) ≡ {!!}
+    -- This states that π★ ∘ π^★ = Id (section-retraction)
+    π★-π★-id : ∀ {U U'} (α : C .Precategory.Hom U U') {X X'}
+             → (h : (F₀ F U) .Precategory.Hom X ((F₁ F α) .Functor.F₀ X'))
+             → (P : Ω^ X)
+             → Ω-transfer-upstream α (Ω-transfer-context α h P) ≡ P
 
 {-|
 ## Notation Convention
@@ -414,12 +444,21 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
     }
   A-Category .Precategory._∘_ f g = record
     { base-mor = C .Precategory._∘_ (f .A-Hom.base-mor) (g .A-Hom.base-mor)
-    ; fiber-mor = {!!}  -- Composition in fiber
-    ; implies = ≤-trans (g .A-Hom.implies) {!!}  -- Transitivity
+    ; fiber-mor = (F₀ F _) .Precategory._∘_ (f .A-Hom.fiber-mor)
+                    (transport (λ α → (F₀ F _) .Precategory.Hom _ ((F₁ F α) .Functor.F₀ _))
+                               refl
+                               ((F₁ F (f .A-Hom.base-mor)) .Functor.F₁ (g .A-Hom.fiber-mor)))
+    ; implies = ≤-trans (g .A-Hom.implies)
+                  (transport (λ p → _ ≤ p)
+                             {!!}  -- π★ functoriality: π★_{f∘g} = π★_f ∘ π★_g
+                             (f .A-Hom.implies))
     }
-  A-Category .Precategory.idr f = {!!}
-  A-Category .Precategory.idl f = {!!}
-  A-Category .Precategory.assoc f g h = {!!}
+  A-Category .Precategory.idr f =
+    {!!}  -- Need: record equality using base idr, fiber idr, and ≤-is-prop
+  A-Category .Precategory.idl f =
+    {!!}  -- Need: record equality using base idl, fiber idl, and ≤-is-prop
+  A-Category .Precategory.assoc f g h =
+    {!!}  -- Need: record equality using base assoc, fiber assoc, and ≤-is-prop
 
   {-|
   ## Category A' (Cofibration over F)
@@ -437,12 +476,20 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
     }
   A'-Category .Precategory._∘_ f g = record
     { base-mor = C .Precategory._∘_ (f .A'-Hom.base-mor) (g .A'-Hom.base-mor)
-    ; fiber-mor = {!!}
-    ; co-implies = ≤-trans {!!} (f .A'-Hom.co-implies)
+    ; fiber-mor = (F₀ F _) .Precategory._∘_ (f .A'-Hom.fiber-mor)
+                    (transport (λ α → (F₀ F _) .Precategory.Hom _ ((F₁ F α) .Functor.F₀ _))
+                               refl
+                               ((F₁ F (f .A'-Hom.base-mor)) .Functor.F₁ (g .A'-Hom.fiber-mor)))
+    ; co-implies = ≤-trans
+                     {!!}  -- π^★ functoriality: π^★_{f∘g} = π^★_g ∘ π^★_f (contravariant)
+                     (f .A'-Hom.co-implies)
     }
-  A'-Category .Precategory.idr f = {!!}
-  A'-Category .Precategory.idl f = {!!}
-  A'-Category .Precategory.assoc f g h = {!!}
+  A'-Category .Precategory.idr f =
+    {!!}  -- Need: record equality using base idr, fiber idr, and ≤-is-prop
+  A'-Category .Precategory.idl f =
+    {!!}  -- Need: record equality using base idl, fiber idl, and ≤-is-prop
+  A'-Category .Precategory.assoc f g h =
+    {!!}  -- Need: record equality using base assoc, fiber assoc, and ≤-is-prop
 
   {-|
   ## A'_strict: Restricted Cofibration
@@ -468,11 +515,28 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
   A'-strict-Category : Precategory (o ⊔ ℓ ⊔ o' ⊔ ℓ') (o ⊔ ℓ ⊔ ℓ')
   A'-strict-Category .Precategory.Ob = A-Ob
   A'-strict-Category .Precategory.Hom = A'-strict-Hom
-  A'-strict-Category .Precategory.id = {!!}
-  A'-strict-Category .Precategory._∘_ = {!!}
-  A'-strict-Category .Precategory.idr = {!!}
-  A'-strict-Category .Precategory.idl = {!!}
-  A'-strict-Category .Precategory.assoc = {!!}
+  A'-strict-Category .Precategory.id {λ} = record
+    { base-mor = C .Precategory.id
+    ; fiber-mor = (F₀ F (λ .A-Ob.layer)) .Precategory.id
+    ; strict-eq = {!!}  -- Need: P = π^★(P) when α = id
+                        -- Should follow from π^★_id = id
+    }
+  A'-strict-Category .Precategory._∘_ f g = record
+    { base-mor = C .Precategory._∘_ (f .A'-strict-Hom.base-mor) (g .A'-strict-Hom.base-mor)
+    ; fiber-mor = (F₀ F _) .Precategory._∘_ (f .A'-strict-Hom.fiber-mor)
+                    (transport (λ α → (F₀ F _) .Precategory.Hom _ ((F₁ F α) .Functor.F₀ _))
+                               refl
+                               ((F₁ F (f .A'-strict-Hom.base-mor)) .Functor.F₁ (g .A'-strict-Hom.fiber-mor)))
+    ; strict-eq = {!!}  -- Need: P'' = π^★_{f∘g}(P)
+                        -- Given: P' = π^★_g(P) and P'' = π^★_f(P')
+                        -- Show: P'' = π^★_f(π^★_g(P)) = π^★_{f∘g}(P)
+    }
+  A'-strict-Category .Precategory.idr f =
+    {!!}  -- Need: record equality using base idr, fiber idr, and strict-eq propositional
+  A'-strict-Category .Precategory.idl f =
+    {!!}  -- Need: record equality using base idl, fiber idl, and strict-eq propositional
+  A'-strict-Category .Precategory.assoc f g h =
+    {!!}  -- Need: record equality using base assoc, fiber assoc, and strict-eq propositional
 
   {-|
   ## Monoidal Structure on Fibers
@@ -594,7 +658,12 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
   -- Semantic conditioning operation
   infixl 20 _·T_
   _·T_ : ∀ {U ξ} → Ω U ξ → Theory U ξ → Theory U ξ
-  _·T_ {U} {ξ} Q T = {!!}  -- Theory with axioms {Q ⇒ R | R axiom of T}
+  _·T_ {U} {ξ} Q T = {!!}  -- TODO: Construct theory T' where:
+                            --   theory-prop T' = Q ⇒ theory-prop T
+                            -- This requires:
+                            -- 1. A way to construct Theory from Ω U ξ (theory-prop is injective or has inverse)
+                            -- 2. Or, axioms of T' = {Q ⇒ R | R axiom of T}
+                            -- Need to postulate or implement theory construction
 
   -- Notation: T|_Q
   _|ᵀ_ : ∀ {U ξ} → Theory U ξ → Ω U ξ → Theory U ξ
@@ -613,9 +682,13 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
 
   postulate
     -- Conditioning satisfies adjunction
+    -- This is the key property from Equation 3.12
     conditioning-adjoint : ∀ {U ξ} (Q : Ω U ξ) (T T' : Theory U ξ)
-                         → {!!}  -- (theory-prop T' ∧ Q ≤ theory-prop T)
-                                 -- ≃ (theory-prop T' ≤ theory-prop (Q ·T T))
+                         → (theory-prop T' ∧ Q ≤ theory-prop T)
+                           ≃ (theory-prop T' ≤ theory-prop (Q ·T T))
+    -- Proof would use ⇒-adjoint at the Heyting algebra level:
+    -- (R ∧ Q ≤ P) ↔ (R ≤ (Q ⇒ P))
+    -- where R = theory-prop T', P = theory-prop T, and Q ⇒ P = theory-prop (Q ·T T)
 
   {-|
   ## Proposition 3.1: Conditioning Action on Theories
@@ -636,7 +709,13 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
                   → (P ≤ Q) → (P ≤ Q')
                   → (T : Theory U ξ)
                   → (Q ·T (Q' ·T T)) ≡ ((Q ∧ Q') ·T T)
-  proposition-3-1 = {!!}
+  proposition-3-1 = {!!}  -- Proof outline (from paper):
+                          -- Show: Q ⇒ (Q' ⇒ theory-prop T) = (Q ∧ Q') ⇒ theory-prop T
+                          -- Using Heyting algebra properties:
+                          -- (R ∧ Q' ∧ Q ≤ P) iff (R ∧ Q' ≤ (Q ⇒ P))
+                          --                   iff (R ≤ (Q' ⇒ (Q ⇒ P)))
+                          -- Therefore Q' ⇒ (Q ⇒ P) = (Q' ∧ Q) ⇒ P
+                          -- Need: theory equality from proposition equality
 
   {-|
   ## Proposition 3.2: Conditioning Preserves Θ_{U,ξ,P}
@@ -656,8 +735,15 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
   proposition-3-2 : ∀ {U ξ P} (Q : Ω U ξ)
                   → (P ≤ Q)
                   → (T : Θ (U , ξ , P))
-                  → {!!}  -- (Q ·T (fst T)) ∈ Θ (U , ξ , P)
-  proposition-3-2 = {!!}
+                  → Σ[ T' ∈ Theory U ξ ] (theory-prop T' ≤ ¬ P)
+                    -- Result: (Q ·T (fst T)) is in Θ (U , ξ , P)
+  proposition-3-2 Q P≤Q (T , T≤¬P) = {!!}  -- Proof outline (from paper):
+                                            -- Given: T ≤ ¬P (T excludes P)
+                                            -- Need: (Q ⇒ T) ≤ ¬P
+                                            -- Suppose T' with Q ∧ T' ≤ T
+                                            -- Then T' ∧ P ≤ T ∧ P ≤ ⊥ (since T ≤ ¬P)
+                                            -- So (Q ⇒ T) is maximal with Q ∧ (Q ⇒ T) ≤ T
+                                            -- Thus (Q ⇒ T) ∧ P ≤ ⊥, i.e., (Q ⇒ T) ≤ ¬P
 
   {-|
   ## Presheaf/Copresheaf Structure
@@ -696,8 +782,14 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
   lemma-3-1 : ∀ {λ λ' : A-Ob} (f : A-Hom λ λ')
             → {Q' : Ω (λ' .layer) (λ' .context)}
             → (λ' .proposition ≤ Q')
-            → {!!}  -- π★ gives presheaf structure
-  lemma-3-1 = {!!}
+            → (λ .proposition ≤ Ω-transfer-downstream (f .A-Hom.base-mor) (f .A-Hom.fiber-mor) Q')
+            -- π★ gives presheaf structure on propositions A_{U,ξ,P}
+  lemma-3-1 {λ} {λ'} f {Q'} P'≤Q' = {!!}  -- Proof outline (from paper):
+                                          -- Given: (α,h,ι): A_{U,ξ,P} → A_{U',ξ',P'}
+                                          -- where ι means P ≤ π★ P'
+                                          -- From P' ≤ Q', deduce P ≤ π★ P' ≤ π★ Q'
+                                          -- Therefore π★ is functor on propositions Q' ≥ P'
+                                          -- Need: ≤-trans applied to f.implies and π★-monotone
 
   {-|
   ## Lemma 3.2: Θ_{U,ξ,P} as Presheaf over A
@@ -713,9 +805,16 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
   -}
 
   lemma-3-2 : ∀ {λ λ' : A-Ob} (f : A-Hom λ λ')
-            → {T' : Θ λ'}
+            → (T' : Θ λ')
             → Θ-transfer-downstream f T' ∈ Θ λ
-  lemma-3-2 = {!!}
+            -- Proof: theories form presheaf over A
+  lemma-3-2 {λ} {λ'} f (T' , T'≤¬P') = {!!}  -- Proof outline (from paper):
+                                              -- Given: (α,h,ι): A_{U,ξ,P} → A_{U',ξ',P'}
+                                              -- where ι means P ≤ π★ P'
+                                              -- We deduce π★ ¬P' = ¬π★ P' ≤ ¬P
+                                              -- Since T' ≤ ¬P', we have π★ T' ≤ π★ ¬P' ≤ ¬P
+                                              -- Therefore π★ T' ∈ Θ_{U,ξ,P}
+                                              -- Need: π★ preserves ¬, and ≤-trans
 
   {-|
   ## Lemma 3.3: Copresheaves over A'_strict
@@ -727,8 +826,16 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
   -}
 
   lemma-3-3 : ∀ {λ λ' : A-Ob} (f : A'-strict-Hom λ λ')
-            → {!!}  -- Copresheaf property
-  lemma-3-3 = {!!}
+            → (T : Θ λ)
+            → Θ-transfer-upstream f T ∈ Θ λ'
+            -- Copresheaf property under strong hypothesis
+  lemma-3-3 {λ} {λ'} f (T , T≤¬P) = {!!}  -- Proof outline:
+                                          -- Given: strict morphism with P' = π^★ P
+                                          -- Need: π^★ T ≤ ¬P' = ¬(π^★ P)
+                                          -- From T ≤ ¬P, use that π^★ preserves ¬
+                                          -- So π^★ T ≤ π^★(¬P) = ¬(π^★ P) = ¬P'
+                                          -- Requires: strong hypothesis π★ ∘ π^★ = Id
+                                          --           and π^★ preserves logical structure
 
 {-|
 ## Summary: Theories and Conditioning
@@ -821,8 +928,18 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
               → (λ .A-Ob.proposition ≤ Q)
               → (ϕ : Φ λ)
               → (T' : Θ λ')
-              → {!!}  -- π★ Q.(Φ-transfer f ϕ)(T') = ϕ((Q ·T π★ T'))
-  theorem-3-1 = {!!}
+              → (Φ-action (Ω-transfer-upstream (f .A'-strict-Hom.base-mor) Q)
+                           {!!}  -- Need: P' ≤ π^★ Q
+                           (Φ-transfer f ϕ)) T'
+                ≡ ϕ {!!}  -- Need: (Q ·T (Θ-transfer-downstream {!!} T')) as element of Θ λ
+  theorem-3-1 {λ} {λ'} f {Q} P≤Q ϕ T' = {!!}  -- Proof from paper (Equation 3.16):
+                                              -- π★ Q.(Φ'★ ϕ_P)(T') = (Φ'★ ϕ_P)(T'|_{π★ Q})
+                                              --                      = ϕ_P[π★(T'|_{π★ Q})]
+                                              --                      = ϕ_P[π★(π★ Q ⇒ T')]
+                                              --                      = ϕ_P[π★ π★ Q ⇒ π★ T']  (geom. morph.)
+                                              --                      = ϕ_P[Q ⇒ π★ T']        (strong hyp.)
+                                              --                      = ϕ_P[π★(T')|_Q]
+                                              -- This is naturality: action commutes with transfer
 
   {-|
   ## Proposition 3.3: Presheaf Compatibility
@@ -837,10 +954,20 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} where
   -}
 
   proposition-3-3 : ∀ {λ λ' : A-Ob} (f : A-Hom λ λ')
-                  → {T' : Θ λ'}
+                  → (T' : Θ λ')
                   → {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)}
-                  → {!!}  -- Compatibility of presheaf with action
-  proposition-3-3 = {!!}
+                  → (λ .A-Ob.proposition ≤ Q)
+                  → {!!}  -- Compatibility: π★(Q' ·T T') = (π★ Q') ·T (π★ T')
+                          -- where Q' at layer U', Q at layer U
+                          -- This shows the presheaf Θ_loc is compatible with
+                          -- the monoidal action of presheaf A_loc
+  proposition-3-3 {λ} {λ'} f (T' , T'≤¬P') {Q} P≤Q = {!!}  -- Proof outline:
+                                                           -- If T' ≤ ¬P' and P ≤ π★ P',
+                                                           -- then ¬π★ P' ≤ ¬P
+                                                           -- So π★ T' ≤ ¬P
+                                                           -- Conditioning: use geometric morphism
+                                                           -- π★(Q' ⇒ T') = (π★ Q') ⇒ (π★ T')
+                                                           -- Need: π★ preserves ⇒ (geometric morphism)
 
 {-|
 ## Semantic Analogy to Probability Theory
@@ -899,8 +1026,13 @@ Ctx (contexts + judgments)
 - Cartesian lift: if φ provable at U', then restrict(φ) provable at U
 -}
 
+-- TODO: Define Context properly
+-- Could be defined as:
+-- data Context (Σ : Signature) : Type where
+--   ∅ : Context Σ
+--   _,_ : Context Σ → Term Σ → Context Σ
+-- Or as a list: Context Σ = List (Term Σ)
 postulate
-  -- Context: list of variable bindings
   Context : Signature → Type
   empty-ctx : ∀ {Σ} → Context Σ
   extend-ctx : ∀ {Σ} → Context Σ → Term Σ → Context Σ
@@ -908,9 +1040,17 @@ postulate
   -- Judgment: Γ ⊢ φ (φ is derivable in context Γ)
   record Judgment {Σ : Signature} (Γ : Context Σ) (φ : Formula Σ) : Type where
     field
-      derivation : {!!}  -- Proof tree
+      derivation : {!!}  -- TODO: Proof tree (inductive type of derivation rules)
+                         -- Would be defined as:
+                         -- data Derivation : Context Σ → Formula Σ → Type where
+                         --   axiom : ... → Derivation Γ φ
+                         --   ∧-intro : Derivation Γ φ → Derivation Γ ψ → Derivation Γ (φ ∧ᶠ ψ)
+                         --   ∧-elim-left : Derivation Γ (φ ∧ᶠ ψ) → Derivation Γ φ
+                         --   ... (all natural deduction rules)
 
   -- Category of contexts and judgments
+  -- Objects: pairs (Γ, φ) of context and formula
+  -- Morphisms: substitutions that preserve derivability
   Ctx-Category : Signature → Precategory (lsuc lzero) lzero
 
 record Deduction-Fibration (C : Precategory o ℓ) (Σ : Signature)
@@ -1076,7 +1216,11 @@ record Model {C : Precategory o ℓ} {E : Precategory o' ℓ'} {Σ : Signature}
     -- Axioms are satisfied
     satisfies : ∀ {U} {φ : T .Theory.language .Language-Sheaf.formulas-at U}
               → T .Theory.axioms U φ
-              → {!!}  -- interpret φ is inhabited (true in model)
+              → {!!}  -- TODO: interpret φ is inhabited (true in model)
+                      -- In topos E, "true" means:
+                      -- E .Precategory.Hom (E-terminal-object) (interpret φ)
+                      -- Or equivalently, global element of interpret φ
+                      -- Need: terminal object in E and notion of "truth"
 
 {-|
 ## Proposition 3.3: Categorical Completeness
@@ -1099,9 +1243,15 @@ This is the theoretical justification for neural architecture search!
 -}
 
 postulate
-  proposition-3-3 : ∀ {C : Precategory o ℓ} {E : Precategory o' ℓ'} {Σ : Signature}
-                  → (T : Theory C Σ)
-                  → {!!}  -- Consistency(T) → ∃ M: Model T
+  proposition-3-3-completeness : ∀ {C : Precategory o ℓ} {E : Precategory o' ℓ'} {Σ : Signature}
+                                → (T : Theory C Σ)
+                                → {!!}  -- TODO: Consistency(T) → Σ[ M ∈ Model T ] ⊤
+                                        -- Proof outline:
+                                        -- 1. Construct classifying topos Sh(T)
+                                        -- 2. Sh(T) is category of T-models in Set (Giraud)
+                                        -- 3. Geometric morphisms E → Sh(T) ≃ T-models in E
+                                        -- 4. Universal property gives existence
+                                        -- This is the topos-theoretic completeness theorem
 
 --------------------------------------------------------------------------------
 -- § 3.3.5: Kripke-Joyal Semantics
@@ -1176,7 +1326,10 @@ Interpretability = understanding which layers force which properties.
 postulate
   example-adversarial-forcing : ∀ {C : Precategory o ℓ} {Σ : Signature}
                               → (T : Theory C Σ)
-                              → {!!}
+                              → {!!}  -- TODO: Example showing adversarial detection requires deep layers
+                                      -- φ = ∃ x₀. ||x - x₀|| < ε ∧ label(x) ≠ label(x₀)
+                                      -- Show: input ⊮ φ, conv1 ⊮ φ, conv5 ⊩ φ, output ⊩ φ
+                                      -- This demonstrates interpretability via forcing
 
 --------------------------------------------------------------------------------
 -- § 3.3.6: Logical Modalities and Network Depth
@@ -1245,7 +1398,14 @@ This is a formal proof of a classic neural network result!
 
 postulate
   example-xor-depth : ∀ {C : Precategory o ℓ} {Σ : Signature}
-                    → {!!}  -- XOR requires hidden layer
+                    → {!!}  -- TODO: Formal proof that XOR requires depth ≥ 2
+                            -- φ = "computes XOR correctly"
+                            -- Proof:
+                            -- 1. @input(φ) = ⊥ (linear separator insufficient)
+                            -- 2. @hidden1(φ) = ⊤ (nonlinear combination works)
+                            -- 3. Therefore: ◇φ ∧ ¬@input(φ)
+                            -- 4. Conclusion: depth ≥ 2 required
+                            -- This uses modal logic to prove depth lower bounds!
 
 --------------------------------------------------------------------------------
 -- § 3.3.7: Summary and Connections

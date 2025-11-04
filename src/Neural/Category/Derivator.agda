@@ -65,6 +65,8 @@ open import Cat.Functor.Adjoint
 open import Cat.Diagram.Limit.Base
 open import Cat.Diagram.Colimit.Base
 open import Cat.Instances.Functor
+open import Cat.Instances.Shape.Terminal using (⊤Cat)
+open import Cat.Instances.Slice using (Slice; /-Obj; /-Hom)
 
 -- Import previous sections
 open import Neural.Category.TwoCategory
@@ -144,16 +146,22 @@ record Derivator (o ℓ : Level) : Type (lsuc (o ⊔ ℓ)) where
 
     -- Axiom Der 1: Sums → Products
     -- D(C + C') ≃ D(C) × D(C')
+    -- This expresses that derivators turn coproducts into products
     axiom-1-sums-to-products :
       ∀ {C C' : Precategory o ℓ}
-      → {!!}  -- Equivalence of categories
+      → {!!}  -- Need: equivalence D(C + C') ≃ D(C) × D(C')
+             -- Type: should be an adjoint equivalence or natural isomorphism
+             -- between the categories D(C⊔C') and D(C)×D(C')
 
     -- Axiom Der 2: Isomorphisms testable on objects
     -- If F, G ∈ D(C) and for all c ∈ C, F_c ≃ G_c, then F ≃ G
+    -- This is a form of "local-to-global" principle
     axiom-2-iso-on-objects :
       ∀ {C : Precategory o ℓ}
       → (F G : D C .Precategory.Ob)
-      → {!!}  -- Point-wise iso implies global iso
+      → {!!}  -- Need: (∀ c → eval_c F ≅ eval_c G) → (F ≅ G in D(C))
+             -- where eval_c : D(C) → D(★) evaluates at object c
+             -- This requires defining evaluation functors first
 
     -- Axiom Der 3: Adjoints (homotopy limits and colimits)
     -- For u: C → C', we have u! ⊣ u★ ⊣ u★
@@ -169,12 +177,16 @@ record Derivator (o ℓ : Level) : Type (lsuc (o ⊔ ℓ)) where
 
     -- Axiom Der 4: Local definition (Equations 5.13-5.14)
     -- This is the most important axiom for computations!
+    -- (u★F)_X' ≃ holim_{C|_X'} (F restricted to fiber)
     axiom-4-local-definition :
       ∀ {C C' : Precategory o ℓ}
       → (u : Functor C C')
       → (F : D C .Precategory.Ob)
       → (X' : C' .Precategory.Ob)
-      → {!!}  -- (u★F)_X' ≃ homotopy-limit over C|_X'
+      → {!!}  -- Need: isomorphism between evaluation of (u★F) at X'
+             -- and homotopy limit of F over the slice C|_X'
+             -- Type: eval_X' (u★ F) ≅ holim_{C|_{u/X'}} (j★ F)
+             -- where j: C|_{u/X'} → C is the inclusion
 
 open Derivator public
 
@@ -269,26 +281,44 @@ This is the **homotopy limit** of F restricted to the slice C|_X'.
 -}
 
 -- Slice category C|_X' (objects over X')
+-- This is the category of objects in C that map to X' under u
 module _ {C C' : Precategory o ℓ} (u : Functor C C') (X' : C' .Precategory.Ob) where
+  -- The slice category: objects are pairs (X, f: u(X) → X')
+  -- We construct this as a subcategory of the slice over X' in C'
+  -- pulled back along u
+
+  -- For now, we use the general construction from fiber of functor
   postulate
-    Slice : Precategory o ℓ  -- C|_X'
+    SliceOverFunctor : Precategory o ℓ  -- C|_{u/X'}
 
-    slice-inclusion : Functor Slice C  -- j: C|_X' → C
+    slice-inclusion : Functor SliceOverFunctor C  -- j: C|_X' → C
 
-    slice-to-terminal : Functor Slice (⊤Cat {o} {ℓ})  -- p: C|_X' → ★
+    slice-to-terminal : Functor SliceOverFunctor (⊤Cat {o} {ℓ})  -- p: C|_X' → ★
+    slice-to-terminal = record
+      { F₀ = λ _ → lift tt
+      ; F₁ = λ _ → lift tt
+      ; F-id = refl
+      ; F-∘ = λ _ _ → refl
+      }
 
   -- Equation 5.13: (u★F)_X' ≃ p★j★F
+  -- This expresses that the homotopy limit can be computed via
+  -- first restricting to the slice, then taking the limit to terminal
   local-definition-via-slice :
     (D : Derivator o ℓ)
     → (F : D .D C .Precategory.Ob)
-    → {!!}  -- Isomorphism (u★F)_X' ≃ p★j★F
+    → {!!}  -- Need: isomorphism in D(★)
+           -- eval_X' (u★ F) ≅ (p★ (j★ F))
+           -- where j★ : D(C) → D(C|_{u/X'}) and p★ : D(C|_{u/X'}) → D(★)
 
   -- Equation 5.14: (u★F)_X' ≃ H★(C|_X'; F|_{C|_X'})
-  -- This is the "Kan extension" form
+  -- This is the "Kan extension" form, same as above but using
+  -- cohomology notation H★ for the homotopy limit
   local-definition-via-holim :
     (D : Derivator o ℓ)
     → (F : D .D C .Precategory.Ob)
-    → {!!}  -- Isomorphism to homotopy limit
+    → {!!}  -- Same as above, using cohomology notation
+           -- eval_X' (u★ F) ≅ cohomology D SliceOverFunctor (j★ F)
 
 {-|
 **Example: Computing attention homotopy limit**
@@ -335,9 +365,17 @@ module _ (D : Derivator o ℓ) where
   open Derivator D
 
   -- Terminal category (point)
-  postulate
-    ★ : Precategory o ℓ
-    terminal-functor : ∀ (C : Precategory o ℓ) → Functor C ★
+  -- The terminal category has one object and one morphism (identity)
+  ★ : Precategory o ℓ
+  ★ = ⊤Cat {o} {ℓ}
+
+  terminal-functor : ∀ (C : Precategory o ℓ) → Functor C ★
+  terminal-functor C = record
+    { F₀ = λ _ → lift tt
+    ; F₁ = λ _ → lift tt
+    ; F-id = refl
+    ; F-∘ = λ _ _ → refl
+    }
 
   -- Cohomology (Equation 5.15)
   cohomology : ∀ (C : Precategory o ℓ) → D C .Precategory.Ob → D ★ .Precategory.Ob
@@ -353,19 +391,28 @@ module _ (D : Derivator o ℓ) where
 4. **Compatibility**: With limits and colimits (in good cases)
 -}
 
-postulate
+-- Cohomology properties
+module _ (D : Derivator o ℓ) where
+  private
+    open Derivator D
+
+  -- Functoriality: pullback followed by cohomology
   cohomology-functorial :
-    (D : Derivator o ℓ)
-    → {C C' : Precategory o ℓ}
+    {C C' : Precategory o ℓ}
     → (u : Functor C C')
     → (F : D .D C' .Precategory.Ob)
-    → {!!}  -- H★(C; u★F) related to H★(C'; F)
+    → {!!}  -- Need: morphism H★(C; u★F) → H★(C'; F) in D(★)
+           -- Or natural transformation making the square commute
+           -- This expresses that u★ : D(C') → D(C) is compatible with limits
 
+  -- Homotopy invariance: isomorphic objects have isomorphic cohomology
   cohomology-homotopy-invariant :
-    (D : Derivator o ℓ)
-    → {C : Precategory o ℓ}
+    {C : Precategory o ℓ}
     → {F G : D .D C .Precategory.Ob}
-    → {!!}  -- F ≃ G → H★(C; F) ≃ H★(C; G)
+    → (D .D C .Precategory.Hom F G)  -- Morphism F → G
+    → {!!}  -- Need: if F ≅ G (isomorphism), then H★(C; F) ≅ H★(C; G)
+           -- Type: Hom F G → is-invertible (in D C) →
+           --       Hom (cohomology D C F) (cohomology D C G)
 
 --------------------------------------------------------------------------------
 -- §5.3.6: Example 1 - Derived Categories (Equation 5.16)
@@ -404,17 +451,23 @@ postulate
   DerivedCategory : Precategory o ℓ → Precategory (lsuc o) (lsuc ℓ)
 
 -- Derived category derivator (Equation 5.16)
+-- This constructs the derivator from derived categories of abelian sheaves
 DerivedDerivator : Derivator o ℓ
 DerivedDerivator = record
   { D = λ I → DerivedCategory I  -- Der(Hom(I^op, Ab))
-  ; pullback = {!!}
-  ; pullback-comp = {!!}
-  ; pullback-id = {!!}
-  ; axiom-1-sums-to-products = {!!}
-  ; axiom-2-iso-on-objects = {!!}
-  ; axiom-3-left-adjoint = {!!}
-  ; axiom-3-right-adjoint = {!!}
-  ; axiom-4-local-definition = {!!}
+  ; pullback = {!!}  -- Given u: I → J, need functor Der(J^op,Ab) → Der(I^op,Ab)
+                      -- This is u★ = precomposition with u^op
+  ; pullback-comp = {!!}  -- Naturality of pullback functors
+                          -- Need: (u ∘ v)★ ≅ⁿ v★ ∘ u★
+  ; pullback-id = {!!}  -- Identity pullback
+                        -- Need: id★ ≅ⁿ Id
+  ; axiom-1-sums-to-products = {!!}  -- Der(I ⊔ J) ≃ Der(I) × Der(J)
+  ; axiom-2-iso-on-objects = {!!}  -- Point-wise quasi-isomorphism → global iso
+  ; axiom-3-left-adjoint = {!!}  -- Left Kan extension (homotopy colimit)
+                                  -- For u: I → J, u! : Der(I) → Der(J) with u! ⊣ u★
+  ; axiom-3-right-adjoint = {!!}  -- Right Kan extension (homotopy limit)
+                                   -- For u: I → J, u★ : Der(I) → Der(J) with u★ ⊣ u★
+  ; axiom-4-local-definition = {!!}  -- Compute via slice and hypercohomology
   }
 
 {-|
@@ -456,20 +509,30 @@ For M a closed model category:
 -}
 
 -- Representable derivator (Equation 5.17)
+-- This is the most concrete example: presheaves valued in a model category
 RepresentableDerivator : (M : Precategory o ℓ) → Derivator o ℓ
 RepresentableDerivator M = record
   { D = λ I → Cat[ I ^op , M ]  -- Functor category [I^op, M]
   ; pullback = λ u → precompose (u ^op)  -- Pullback by precomposition
-  ; pullback-comp = {!!}
-  ; pullback-id = {!!}
-  ; axiom-1-sums-to-products = {!!}
-  ; axiom-2-iso-on-objects = {!!}
-  ; axiom-3-left-adjoint = {!!}   -- Left Kan extension
-  ; axiom-3-right-adjoint = {!!}  -- Right Kan extension
-  ; axiom-4-local-definition = {!!}
+  ; pullback-comp = {!!}  -- (u ∘ v)★ = precomp (u∘v)^op ≅ⁿ precomp v^op ∘ precomp u^op
+                          -- This follows from functoriality of (-)^op
+  ; pullback-id = {!!}  -- id★ = precomp id^op ≅ⁿ Id
+                        -- Follows from id^op = id
+  ; axiom-1-sums-to-products = {!!}  -- [I⊔J, M] ≃ [I,M] × [J,M]
+                                      -- Standard result for functor categories
+  ; axiom-2-iso-on-objects = {!!}  -- Natural iso point-wise → natural iso globally
+                                    -- This is essentially the Yoneda lemma
+  ; axiom-3-left-adjoint = {!!}   -- Left Kan extension Lan_u : [I,M] → [J,M]
+                                   -- For u: I → J, Lan_u ⊣ u★
+  ; axiom-3-right-adjoint = {!!}  -- Right Kan extension Ran_u : [I,M] → [J,M]
+                                   -- For u: I → J, u★ ⊣ Ran_u
+  ; axiom-4-local-definition = {!!}  -- Pointwise computation via slice
+                                      -- (u★F)(j) ≅ lim_{i ∈ I/j} F(i)
   }
   where
-    postulate precompose : ∀ {I I'} → Functor I I' → Functor Cat[ I' ^op , M ] Cat[ I ^op , M ]
+    postulate
+      precompose : ∀ {I I'} → Functor I I' → Functor Cat[ I' ^op , M ] Cat[ I ^op , M ]
+      -- Given u: I → I' and F: I'^op → M, returns F ∘ u^op : I^op → M
 
 {-|
 **Application: Semantic information spaces** (from paper, p. 117-118)
@@ -539,11 +602,12 @@ module _ (M : Precategory o ℓ) where
     extend-carefully : InformationSpace T → InformationSpace T'
     extend-carefully = RepresentableDerivator M .axiom-3-right-adjoint φ .fst .Functor.F₀
 
-    -- Equivalence criterion
-    postulate
-      information-equivalent :
-        (F : InformationSpace T) (F' : InformationSpace T')
-        → {!!}  -- F' ≃ extend-carefully F
+    -- Equivalence criterion: when do two information spaces encode same information?
+    information-equivalent :
+      (F : InformationSpace T) (F' : InformationSpace T')
+      → {!!}  -- Need: type expressing F' ≃ φ★F (homotopy equivalence)
+             -- This would be: Hom (extend-carefully F) F' that is invertible
+             -- Or: isomorphism in the hom-category of D_M(T')
 
 {-|
 **Example: LSTM → LSTM+Attention**
@@ -598,14 +662,16 @@ This connects **logical/semantic structure** (information spaces) to
 **architectural structure** (network morphisms)!
 -}
 
-postulate
-  -- Realization problem
-  realize-information-equivalence :
-    ∀ {M : Precategory o ℓ}
-    → {T T' : Precategory o ℓ}
-    → (F : InformationSpace M T)
-    → (F' : InformationSpace M T')
-    → {!!}  -- F ≃ F' → ∃ network morphism realizing this
+-- Realization problem: find network transformation realizing information equivalence
+realize-information-equivalence :
+  ∀ {M : Precategory o ℓ}
+  → {T T' : Precategory o ℓ}
+  → (F : InformationSpace M T)
+  → (F' : InformationSpace M T')
+  → {!!}  -- Need: given F ≃ F' (information equivalence),
+         -- construct φ: T → T' (network morphism) that realizes it
+         -- Type: Σ (Functor T T') (λ φ → φ★ F' ≅ F)
+         -- This is the inverse of the architecture search problem!
 
 {-|
 **Example: Geometric morphism realization** (from paper, p. 118)
@@ -656,14 +722,20 @@ From the paper (p. 112):
 This is cutting-edge research direction!
 -}
 
-postulate
-  spectral-sequence :
-    (D : Derivator o ℓ)
-    → {C₁ C₂ C₃ : Precategory o ℓ}
-    → (u : Functor C₁ C₂)
-    → (v : Functor C₂ C₃)
-    → (F : D .D C₁ .Precategory.Ob)
-    → {!!}  -- Spectral sequence E_r^{p,q} ⇒ H★(C₃; (v∘u)★F)
+-- Grothendieck spectral sequence for composed transformations
+spectral-sequence :
+  (D : Derivator o ℓ)
+  → {C₁ C₂ C₃ : Precategory o ℓ}
+  → (u : Functor C₁ C₂)
+  → (v : Functor C₂ C₃)
+  → (F : D .D C₁ .Precategory.Ob)
+  → {!!}  -- Need: spectral sequence structure with pages E_r^{p,q}
+         -- E₂^{p,q} = (R^p v★)(R^q u★)(F)  (derived functors)
+         -- Converging to: R^{p+q}(v∘u)★(F) = H^{p+q}(C₃; (v∘u)★F)
+         -- This requires defining:
+         -- 1. Graded objects E_r^{p,q} for each page r
+         -- 2. Differentials d_r : E_r^{p,q} → E_r^{p+r,q-r+1}
+         -- 3. Convergence: E_∞ ≅ graded associated to filtration of target
 
 --------------------------------------------------------------------------------
 -- Summary
