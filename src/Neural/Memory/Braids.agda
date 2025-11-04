@@ -626,7 +626,10 @@ postulate
 -- Normal subgroup type (for each object, a normal subgroup of automorphisms)
 NormalSubgroupFamily : (𝒢 : Groupoid lzero lzero) → Type₁
 NormalSubgroupFamily 𝒢 = ∀ (x : Ob 𝒢) → Σ[ H ∈ (Aut 𝒢 x → Type) ]
-                           {!!}  -- H is a normal subgroup
+                           (is-prop H  -- H is a predicate
+                           × (∀ g → is-prop (H g))  -- Each H(g) is a proposition
+                           × {!!})  -- Additional normal subgroup conditions
+                           -- (closure, identity, inverses, normality)
 
 -- Quotient groupoid construction
 -- Same objects, but morphisms modulo normal subgroup action
@@ -709,25 +712,43 @@ For DNNs: Choice depends on task complexity!
 - Modular group = symmetries of semantic space
 -}
 
+-- Determinant of 2×2 real matrix
+det-real : Mat2×2 ℝ → ℝ
+det-real (mat a b c d) = a * d - b * c
+
+-- General linear group GL₂(ℝ): invertible 2×2 real matrices
+GL₂ℝ-carrier : Type
+GL₂ℝ-carrier = Σ[ M ∈ Mat2×2 ℝ ] (det-real M ≠ 0.0)
+
 postulate
-  -- Cardan representation
-  cardan-repr : B₃ → {!!}  -- GL₂(ℝ)
-  cardan-factorizes-𝔖₃ : {!!}
+  GL₂ℝ : Group lzero
+  GL₂ℝ-underlying : ⌞ GL₂ℝ ⌟ ≃ GL₂ℝ-carrier
 
-  -- Root differences
-  root-diff : ℝ → ℝ → {!!}  -- (u,v) → (z₂-z₁, z₃-z₁)
+  -- Cardan representation: B₃ → GL₂(ℝ)
+  -- Tracks differences of roots (z₂-z₁, z₃-z₁)
+  cardan-repr : Groups.Hom B₃-Group GL₂ℝ
+  cardan-factorizes-𝔖₃ : {!!}  -- Factors through B₃ → 𝔖₃
 
-  -- Elliptic curve
+  -- Root differences as 2-vector
+  RootDiff : Type
+  RootDiff = ℝ × ℝ  -- (z₂-z₁, z₃-z₁)
+
+  root-diff : ℝ → ℝ → RootDiff  -- (u,v) → (z₂-z₁, z₃-z₁)
+
+  -- Elliptic curve: z³ + y² + uz + v = 0
   Elliptic-Curve : ℝ → ℝ → Type
-  elliptic-equation : ∀ u v → Elliptic-Curve u v ≃ {!!}  -- z³ + y² + uz + v = 0
+  elliptic-equation : ∀ u v → Elliptic-Curve u v ≃ Σ[ z ∈ ℝ ] Σ[ y ∈ ℝ ]
+                      (z * z * z + y * y + u * z + v ≡ 0.0)
 
-  -- Holomorphic form
-  ω : {!!}  -- 2-form dz ∧ dy
-  ω-factorization : {!!}  -- ω = -(1/2) dP ∧ (dz/y)
+  -- Holomorphic 2-form (dz ∧ dy)
+  DifferentialForm : Type
+  ω : DifferentialForm  -- The 2-form dz ∧ dy
+  ω-factorization : {!!}  -- ω = -(1/2) dP ∧ (dz/y) where P = z³ + y² + uz + v
 
-  -- Elliptic representation
-  elliptic-repr : B₃ → SL₂ℤ
-  periods-give-repr : {!!}
+  -- Elliptic representation: B₃ → SL₂(ℤ)
+  -- Via period matrix of elliptic curve
+  elliptic-repr : Groups.Hom B₃-Group SL₂ℤ
+  periods-give-repr : {!!}  -- Period integrals ∫ dz/y give the representation
 
 {-|
 ### Stabilization and Higher Dimensions
