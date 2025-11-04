@@ -70,18 +70,22 @@ data LayerType : Type where
   junction-layer : LayerType  -- A_{i,j}
 
 -- RNN lattice category (simplified)
-postulate
-  RNN-Lattice : Precategory lzero lzero
+-- TODO: Implement full lattice category structure
+RNN-Lattice : Precategory lzero lzero
+RNN-Lattice = {!!}
 
-  -- Objects: Layers at lattice positions
-  Layer : LayerType → LatticeIndex → Type
+-- Objects: Layers at lattice positions
+Layer : LayerType → LatticeIndex → Type
+Layer = {!!}
 
-  -- Morphisms: Data flow edges
-  -- x_{i,j-1} → A_{i,j}
-  data-to-junction : ∀ {i j} → Layer data-layer (i , j - 1) → Layer junction-layer (i , j) → Type
+-- Morphisms: Data flow edges
+-- x_{i,j-1} → A_{i,j}
+data-to-junction : ∀ {i j} → Layer data-layer (i , j - 1) → Layer junction-layer (i , j) → Type
+data-to-junction = {!!}
 
-  -- h_{i-1,j} → A_{i,j}
-  hidden-to-junction : ∀ {i j} → Layer hidden-layer (i - 1 , j) → Layer junction-layer (i , j) → Type
+-- h_{i-1,j} → A_{i,j}
+hidden-to-junction : ∀ {i j} → Layer hidden-layer (i - 1 , j) → Layer junction-layer (i , j) → Type
+hidden-to-junction = {!!}
 
 --------------------------------------------------------------------------------
 -- Real numbers and basic operations
@@ -116,6 +120,14 @@ postulate
   τ-range : ∀ z → ((-ℝ 1.0) <ℝ τ z) × (τ z <ℝ 1.0)
   τ-at-zero : τ 0.0 ≡ 0.0
   τ-almost-linear-near-zero : ⊤
+
+--------------------------------------------------------------------------------
+-- Summation Helper
+
+-- Recursively sum over all elements of Fin n
+sum-Fin : {n : Nat} → (Fin n → ℝ) → ℝ
+sum-Fin {zero} f = 0.0
+sum-Fin {suc n} f = f fzero +ℝ sum-Fin (λ k → f (fsuc k))
 
 --------------------------------------------------------------------------------
 -- Hadamard Operations
@@ -229,7 +241,7 @@ record AffineForm (m n : Nat) : Type where
 
 -- Apply linear form
 apply-linear : ∀ {m n} → LinearForm m n → Vec-m n → Vec-m m
-apply-linear W v a = {!!}  -- ∑_{a'} W a a' * v a'
+apply-linear {m} {n} W v a = sum-Fin {n} (λ a' → W a a' *ℝ v a')
 
 -- Apply affine form
 apply-affine : ∀ {m n} → AffineForm m n → Vec-m n → Vec-m m
@@ -305,16 +317,16 @@ lstm-step {m} {n} W (lstm-state c' h') x = lstm-state c_new h_new
 
     -- Gates (affine forms before σ/τ)
     α_i : Vec-m m
-    α_i a = {!!}  -- W_i · x + U_i · h' + β_i
+    α_i a = apply-linear W_i x a +ℝ apply-linear U_i h' a +ℝ β_i a
 
     α_f : Vec-m m
-    α_f a = {!!}  -- W_f · x + U_f · h' + β_f
+    α_f a = apply-linear W_f x a +ℝ apply-linear U_f h' a +ℝ β_f a
 
     α_o : Vec-m m
-    α_o a = {!!}  -- W_o · x + U_o · h' + β_o
+    α_o a = apply-linear W_o x a +ℝ apply-linear U_o h' a +ℝ β_o a
 
     α_h : Vec-m m
-    α_h a = {!!}  -- W_h · x + U_h · h' + β_h
+    α_h a = apply-linear W_h x a +ℝ apply-linear U_h h' a +ℝ β_h a
 
     -- Apply nonlinearities
     gate_i = σ-vec α_i
@@ -346,10 +358,11 @@ The Hadamard products require equal dimensions:
 Therefore: dim(c) = dim(f) = dim(i) = dim(o) = dim(h) = m
 -}
 
-postulate
-  multiplicity-invariant : ∀ {m n} (W : LSTM-Weights m n) (s : LSTM-State m) (x : Input n)
-                         → let (lstm-state c h) = lstm-step W s x
-                            in ⊤  -- All dimensions equal m
+-- TODO: Prove that all gate dimensions equal m
+multiplicity-invariant : ∀ {m n} (W : LSTM-Weights m n) (s : LSTM-State m) (x : Input n)
+                       → let (lstm-state c h) = lstm-step W s x
+                          in ⊤  -- All dimensions equal m
+multiplicity-invariant = {!!}
 
 --------------------------------------------------------------------------------
 -- §4.2: GRU Cell
@@ -401,12 +414,19 @@ gru-step {m} W h' x = h_new
     open GRU-Weights W
 
     -- Gates
-    gate_z = σ-vec {!!}  -- σ(W_z·x + U_z·h' + β_z)
-    gate_r = σ-vec {!!}  -- σ(W_r·x + U_r·h' + β_r)
+    α_z : Vec-m m
+    α_z a = apply-linear W_z x a +ℝ apply-linear U_z h' a +ℝ β_z a
+    gate_z = σ-vec α_z
+
+    α_r : Vec-m m
+    α_r a = apply-linear W_r x a +ℝ apply-linear U_r h' a +ℝ β_r a
+    gate_r = σ-vec α_r
 
     -- Candidate (with reset gate applied to h')
     v_r = h' ⊙ gate_r
-    candidate = τ-vec {!!}  -- tanh(W_x·x + U_x·v_r + β_x)
+    α_x : Vec-m m
+    α_x a = apply-linear W_x x a +ℝ apply-linear U_x v_r a +ℝ β_x a
+    candidate = τ-vec α_x
 
     -- Output (Eq 4.10)
     v_1-z = (𝟙 ⊖ gate_z) ⊙ h'
@@ -467,13 +487,15 @@ mgu2-step {m} W h' x = h_new
 
     -- Unique gate (only depends on h'!)
     α_z : Vec-m m
-    α_z a = {!!}  -- U_z · h' (no bias, no x' dependency)
+    α_z a = apply-linear U_z h' a  -- NO bias, NO x' dependency!
 
     gate_z = σ-vec α_z
 
     -- Candidate with gated h'
     v_z_h = gate_z ⊙ h'
-    candidate = τ-vec {!!}  -- tanh(W_x·x + U_x·v_z_h + β_x)
+    α_x : Vec-m m
+    α_x a = apply-linear W_x x a +ℝ apply-linear U_x v_z_h a +ℝ β_x a
+    candidate = τ-vec α_x
 
     -- Output
     v_1-z = (𝟙 ⊖ gate_z) ⊙ h'
@@ -538,9 +560,17 @@ mlstm-step {m} W (lstm-state γ' η') ξ = lstm-state γ_new η_new
   where
     open MLSTM-Weights W
 
-    gate_α = σ-vec {!!}  -- σ(U_α · η')
-    gate_β = σ-vec {!!}  -- σ(U_β · η')
-    input_δ = τ-vec {!!}  -- τ(W_δ · ξ)
+    α_α : Vec-m m
+    α_α a = apply-linear U_α η' a
+    gate_α = σ-vec α_α
+
+    α_β : Vec-m m
+    α_β a = apply-linear U_β η' a
+    gate_β = σ-vec α_β
+
+    α_δ : Vec-m m
+    α_δ a = apply-linear W_δ ξ a
+    input_δ = τ-vec α_δ
 
     -- Cell state update (Eq 4.18)
     term1 = gate_α ⊙ gate_β
@@ -605,17 +635,17 @@ cubic-step {m} W η ξ = η_new
 
     -- Linear form α in η
     α : Vec-m m
-    α = λ a → {!!}  -- U_α · η (no bias!)
+    α = apply-linear U_α η  -- No bias!
 
     σ-α : Vec-m m
     σ-α = σ-vec α
 
     -- Unfolding parameters u, v from input ξ
     u : Vec-m m
-    u = τ-vec {!!}  -- tanh(W_u · ξ)
+    u = τ-vec (apply-linear W_u ξ)  -- tanh(W_u · ξ)
 
     v : Vec-m m
-    v = τ-vec {!!}  -- tanh(W_v · ξ)
+    v = τ-vec (apply-linear W_v ξ)  -- tanh(W_v · ξ)
 
     -- Pure cubic formula (Eq 4.21)
     cubic-term : Vec-m m
@@ -637,16 +667,16 @@ cubic-step-residual {m} W η ξ = η_new
     open Cubic-Weights W
 
     α : Vec-m m
-    α = {!!}
+    α = apply-linear U_α η
 
     σ-α : Vec-m m
     σ-α = σ-vec α
 
     u : Vec-m m
-    u = τ-vec {!!}
+    u = τ-vec (apply-linear W_u ξ)
 
     v : Vec-m m
-    v = τ-vec {!!}
+    v = τ-vec (apply-linear W_v ξ)
 
     cubic-term : Vec-m m
     cubic-term = σ-α ⊙ σ-α ⊙ σ-α
@@ -719,7 +749,64 @@ record Complex-Cubic-Weights (m n : Nat) : Type where
 
 -- Complex cubic step (Eq 4.24)
 complex-cubic-step : ∀ {m n} → Complex-Cubic-Weights m n → Vec-m m → Input n → Vec-m m
-complex-cubic-step W η ξ = {!!}  -- Implementation following Eq 4.24
+complex-cubic-step {m} W η ξ = η_new
+  where
+    open Complex-Cubic-Weights W
+
+    -- Compute α and β gates
+    α : Vec-m m
+    α = apply-linear U_α η
+
+    σ-α : Vec-m m
+    σ-α = σ-vec α
+
+    β : Vec-m m
+    β = apply-linear U_β η
+
+    σ-β : Vec-m m
+    σ-β = σ-vec β
+
+    -- Unfolding parameters from ξ
+    u : Vec-m m
+    u = τ-vec (apply-linear W_u ξ)
+
+    v : Vec-m m
+    v = τ-vec (apply-linear W_v ξ)
+
+    w : Vec-m m
+    w = τ-vec (apply-linear W_w ξ)
+
+    z : Vec-m m
+    z = τ-vec (apply-linear W_z ξ)
+
+    -- Compute Equation 4.24: η^a_t = σ_α³ ± σ_α·[σ_β² + u] + v·σ_β + w·[σ_α² + σ_β²] + z
+    σ-α² : Vec-m m
+    σ-α² = σ-α ⊙ σ-α
+
+    σ-α³ : Vec-m m
+    σ-α³ = σ-α² ⊙ σ-α
+
+    σ-β² : Vec-m m
+    σ-β² = σ-β ⊙ σ-β
+
+    term1 : Vec-m m
+    term1 = σ-α³  -- σ_α³
+
+    term2 : Vec-m m
+    term2 = σ-α ⊙ (σ-β² ⊕ u)  -- σ_α·[σ_β² + u]
+
+    term3 : Vec-m m
+    term3 = v ⊙ σ-β  -- v·σ_β
+
+    term4 : Vec-m m
+    term4 = w ⊙ (σ-α² ⊕ σ-β²)  -- w·[σ_α² + σ_β²]
+
+    term5 : Vec-m m
+    term5 = z  -- z
+
+    -- Combine all terms (using + for simplicity, the ± depends on sign convention)
+    η_new : Vec-m m
+    η_new = term1 ⊕ term2 ⊕ term3 ⊕ term4 ⊕ term5
 
 --------------------------------------------------------------------------------
 -- Summary and Comparison
