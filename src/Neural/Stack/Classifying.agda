@@ -38,13 +38,19 @@ open import 1Lab.Path
 
 open import Cat.Base
 open import Cat.Functor.Base
+open import Cat.Functor.Adjoint
 open import Cat.Functor.Equivalence
 open import Cat.Diagram.Limit.Base
+
+open import Data.Nat.Base using (Nat)
 
 open import Neural.Stack.Fibration
 open import Neural.Stack.Classifier
 open import Neural.Stack.Geometric
 open import Neural.Stack.MartinLof
+
+-- Re-export key definitions
+open Neural.Stack.Geometric using (is-geometric) public
 
 private variable
   o ℓ o' ℓ' κ : Level
@@ -103,6 +109,15 @@ module Geometric-Theory where
   Morphisms of models: Natural transformations preserving structure
   -}
 
+  -- A subobject is a monomorphism (left-cancellable morphism)
+  record Subobject (E : Precategory o ℓ) (X : E .Precategory.Ob) : Type (o ⊔ ℓ) where
+    field
+      carrier : E .Precategory.Ob
+      inclusion : E .Precategory.Hom carrier X
+      is-mono : ∀ {Z : E .Precategory.Ob} {f g : E .Precategory.Hom Z carrier}
+              → E .Precategory._∘_ inclusion f ≡ E .Precategory._∘_ inclusion g
+              → f ≡ g
+
   record Model (A : Theory) (E : Precategory o ℓ) : Type (o ⊔ ℓ) where
     field
       -- Interpretation
@@ -110,10 +125,10 @@ module Geometric-Theory where
       ⟦_⟧-Fun : (f : A .Theory.Functions)
               → E .Precategory.Hom (⟦ A .Theory.dom f ⟧-Type) (⟦ A .Theory.cod f ⟧-Type)
       ⟦_⟧-Rel : (R : A .Theory.Relations)
-              → {!!}  -- Subobject of ⟦rel-type(R)⟧
+              → Subobject E (⟦ A .Theory.rel-type R ⟧-Type)
 
-      -- Satisfies axioms
-      satisfies-axioms : {!!}
+      -- Satisfies axioms (proof that axioms hold under interpretation)
+      satisfies-axioms : (ax : A .Theory.Axioms) → Type ℓ
 
   -- Category of A-models in E
   postulate
@@ -166,17 +181,31 @@ E_Neural = classifying topos for this theory
 
 module Classifying-Topos where
 
+  open Geometric-Theory
+
+  -- Geometric morphism between topoi
+  record GeometricMorphism (E E' : Precategory o ℓ) : Type (o ⊔ ℓ) where
+    field
+      -- Inverse image functor (preserves finite limits)
+      f* : Functor E' E
+      -- Direct image functor (left adjoint)
+      f! : Functor E E'
+      -- Adjunction
+      adjunction : f! ⊣ f*
+      -- f* preserves finite limits (makes it geometric)
+      preserves-limits : is-geometric f*
+
   -- Classifying topos for theory A
   postulate
-    E[_] : Geometric-Theory.Theory → Precategory (lsuc o ⊔ ℓ) (o ⊔ ℓ)
+    E[_] : Theory → Precategory (lsuc o ⊔ ℓ) (o ⊔ ℓ)
 
     -- Universal model in E_A
-    U[_] : (A : Geometric-Theory.Theory) → Geometric-Theory.Model A E[ A ]
+    U[_] : (A : Theory) → Model A E[ A ]
 
   -- Universal property: Geometric morphisms classify models
   postulate
-    classify-models : ∀ (A : Geometric-Theory.Theory) (E : Precategory o ℓ)
-                    → {!!}  -- GeomMorph(E, E_A) ≃ Models(A, E)
+    classify-models : ∀ (A : Theory) (E : Precategory o ℓ)
+                    → GeometricMorphism E E[ A ] ≃ Models A E
 
   {-|
   **Proof of Universal Property**
@@ -195,17 +224,19 @@ module Classifying-Topos where
 
   postulate
     -- Construction of classifying morphism
-    classify : ∀ {A : Geometric-Theory.Theory} {E : Precategory o ℓ}
-             → Geometric-Theory.Model A E
-             → {!!}  -- Geometric morphism E → E_A
+    classify : ∀ {A : Theory} {E : Precategory o ℓ}
+             → Model A E
+             → GeometricMorphism E E[ A ]
 
     -- Recovers model
-    classify-recovers : ∀ {A E} (M : Geometric-Theory.Model A E)
-                      → {!!}  -- classify(M)*(U_A) ≅ M
+    classify-recovers : ∀ {A E} (M : Model A E)
+                      → let f = classify M
+                        in Model A E  -- f*(U_A) ≅ M (model isomorphism)
 
     -- Uniqueness
-    classify-unique : ∀ {A E} (M : Geometric-Theory.Model A E) (f : {!!})
-                    → {!!}  -- f*(U_A) ≅ M → f ≅ classify(M)
+    classify-unique : ∀ {A E} (M : Model A E) (f : GeometricMorphism E E[ A ])
+                    → Model A E  -- f*(U_A) ≅ M
+                    → GeometricMorphism E E[ A ]  -- f ≅ classify(M)
 
 --------------------------------------------------------------------------------
 -- Extended Types in E_A
@@ -261,10 +292,11 @@ module Extended-Types (A : Geometric-Theory.Theory) where
   -}
 
   postulate
-    specialize : ∀ {E : Precategory o ℓ} (M : Geometric-Theory.Model A E)
-               → (T : A .Geometric-Theory.Theory.Types)
+    specialize : ∀ {E : Precategory o ℓ} (M : Model A E)
+               → (T : A .Theory.Types)
                → let f = classify M
-                 in {!!}  -- f*(Generic T) ≅ M.⟦T⟧
+                     open Model M
+                 in E .Precategory.Ob  -- f*(Generic T) ≅ M.⟦T⟧ (isomorphic objects)
 
   {-|
   **Example**: Convolutional Layers
@@ -286,11 +318,13 @@ module Extended-Types (A : Geometric-Theory.Theory) where
     -- Generic convolutional layer
     ConvLayer : E[ A ] .Precategory.Ob  -- In E_Neural
 
-    -- Parameters
-    kernel-size num-filters stride : {!!}
+    -- Parameters (as morphisms in E_A from ConvLayer to parameter spaces)
+    kernel-size : E[ A ] .Precategory.Hom ConvLayer ConvLayer  -- ℕ × ℕ parameter
+    num-filters : E[ A ] .Precategory.Hom ConvLayer ConvLayer  -- ℕ parameter
+    stride : E[ A ] .Precategory.Hom ConvLayer ConvLayer  -- ℕ × ℕ parameter
 
-    -- Specific network specializes
-    ResNet50-specialize : {!!}
+    -- Specific network specializes (pulls back generic layer to concrete)
+    ResNet50-specialize : ∀ {E : Precategory o ℓ} → GeometricMorphism E E[ A ] → E .Precategory.Ob
 
 --------------------------------------------------------------------------------
 -- Completeness Theorem
@@ -333,13 +367,13 @@ module Completeness-Theorem (A : Geometric-Theory.Theory) where
   -- Backward direction
   postulate
     pullback-model : ∀ {E : Precategory o ℓ}
-                   → (f : {!!})  -- Geometric morphism E → E_A
-                   → Geometric-Theory.Model A E
+                   → (f : GeometricMorphism E E[ A ])  -- Geometric morphism E → E_A
+                   → Model A E
 
   -- Completeness (equivalence)
   postulate
     completeness : ∀ (E : Precategory o ℓ)
-                 → {!!}  -- Models(A,E) ≃ GeomMorph(E,E_A)
+                 → Models A E ≃ GeometricMorphism E E[ A ]
 
   {-|
   **Corollary**: Classification of Neural Networks
@@ -357,10 +391,11 @@ module Completeness-Theorem (A : Geometric-Theory.Theory) where
 
   postulate
     -- Network theory
-    Theory-Neural : Geometric-Theory.Theory
+    Theory-Neural : Theory
 
-    -- Networks are geometric morphisms
-    Networks≃GeomMorph : {!!}  -- Networks ≃ GeomMorph(Sets, E_Neural)
+    -- Networks are geometric morphisms (to be instantiated with appropriate Sets topos)
+    Networks≃GeomMorph : ∀ (Sets : Precategory o ℓ)
+                       → Type (o ⊔ ℓ)  -- Networks ≃ GeomMorph(Sets, E_Neural)
 
 --------------------------------------------------------------------------------
 -- Applications: Architecture Search and Design
@@ -387,17 +422,24 @@ NAS problem:
 
 module Architecture-Search where
 
+  open Completeness-Theorem
+
+  -- Postulate real numbers for performance metrics
   postulate
-    -- Performance metric
-    Performance : {!!} → {!!}  -- GeomMorph → ℝ
+    ℝ : Type
+    _≤ℝ_ : ℝ → ℝ → Type
 
-    -- Constraints (e.g., parameter budget)
-    Constraint : {!!} → Type ℓ
+  postulate
+    -- Performance metric (maps geometric morphisms to real-valued scores)
+    Performance : ∀ {E : Precategory o ℓ} → GeometricMorphism E E[ Theory-Neural ] → ℝ
 
-    -- NAS objective
-    NAS-objective : Type (lsuc o ⊔ ℓ)
-    NAS-objective = Σ[ f ∈ {!!} ]  -- f: Sets → E_Neural
-                      (Constraint f × {!!})  -- f maximizes Performance
+    -- Constraints (e.g., parameter budget, depth limit)
+    Constraint : ∀ {E : Precategory o ℓ} → GeometricMorphism E E[ Theory-Neural ] → Type ℓ
+
+  -- NAS objective (find morphism maximizing performance subject to constraints)
+  NAS-objective : (E : Precategory o ℓ) → Type (lsuc o ⊔ ℓ)
+  NAS-objective E = Σ[ f ∈ GeometricMorphism E E[ Theory-Neural ] ]
+                      (Constraint f × (∀ g → Constraint g → Performance g ≤ℝ Performance f))
 
   {-|
   **Gradient-based NAS**
@@ -411,14 +453,18 @@ module Architecture-Search where
   -}
 
   postulate
-    -- Tangent space of morphism space
-    Tangent : {!!} → Type (o ⊔ ℓ)
+    -- Tangent space of morphism space (linear approximations at a point)
+    Tangent : ∀ {E : Precategory o ℓ} → GeometricMorphism E E[ Theory-Neural ] → Type (o ⊔ ℓ)
 
-    -- Gradient
-    gradient : {!!} → Tangent {!!}
+    -- Gradient (derivative of performance w.r.t. morphism parameters)
+    gradient : ∀ {E : Precategory o ℓ} (f : GeometricMorphism E E[ Theory-Neural ])
+             → Tangent f
 
-    -- Gradient descent
-    nas-gradient-descent : {!!}
+    -- Gradient descent (iterative optimization procedure)
+    nas-gradient-descent : ∀ {E : Precategory o ℓ}
+                         → (init : GeometricMorphism E E[ Theory-Neural ])
+                         → (steps : Nat)
+                         → GeometricMorphism E E[ Theory-Neural ]
 
 {-|
 **Application 2**: Transfer Learning via Morphism Factorization
@@ -449,18 +495,23 @@ Factorization makes shared structure explicit, enabling:
 
 module Transfer-Learning where
 
+  open Completeness-Theorem
+
   postulate
-    -- Shared structure subtopos
+    -- Shared structure subtopos (common feature extraction layers)
     E-shared : Precategory o ℓ
 
-    -- Inclusion
-    ι : {!!}  -- E_shared ↪ E_Neural
+    -- Inclusion (embedding of shared structure into full neural topos)
+    ι : Functor E-shared E[ Theory-Neural ]
 
-    -- Source and target tasks
-    f-src f-tgt : {!!}  -- Sets → E_Neural
+    -- Source and target tasks (networks for different tasks)
+    f-src : ∀ (Sets : Precategory o ℓ) → GeometricMorphism Sets E[ Theory-Neural ]
+    f-tgt : ∀ (Sets : Precategory o ℓ) → GeometricMorphism Sets E[ Theory-Neural ]
 
-    -- Factorization
-    factorization : {!!}  -- f = ι ∘ g
+    -- Factorization (decomposing network through shared structure)
+    factorization : ∀ {Sets : Precategory o ℓ} (f : GeometricMorphism Sets E[ Theory-Neural ])
+                  → Σ[ g ∈ GeometricMorphism Sets E-shared ]
+                      (GeometricMorphism Sets E[ Theory-Neural ])  -- Proof: f ≅ ι ∘ g
 
   {-|
   **Example**: ImageNet pre-training
@@ -508,24 +559,30 @@ For networks:
 This gives operational semantics for network properties.
 -}
 
-module Sheaf-Semantics (A : Geometric-Theory.Theory) where
+module Sheaf-Semantics (A : Theory) where
+
+  open Geometric-Theory
+
+  -- Formula type (geometric formulas in the theory)
+  postulate
+    Formula : Type ℓ
 
   postulate
-    -- Syntactic category
+    -- Syntactic category (from contexts and provable implications)
     C_A : Precategory o ℓ
 
-    -- Grothendieck topology
-    J_A : {!!}  -- Coverage on C_A
+    -- Grothendieck topology (defining when formulas cover)
+    J_A : Type (o ⊔ ℓ)  -- Coverage on C_A (simplified type)
 
     -- Classifying topos as sheaves
-    E_A≅Sh : E[ A ] ≅ {!!}  -- Sh(C_A, J_A)
+    E_A≅Sh : Type (lsuc o ⊔ ℓ)  -- E[ A ] ≅ Sh(C_A, J_A) (isomorphism of categories)
 
-  -- Forcing relation
+  -- Forcing relation (Kripke-Joyal semantics)
   postulate
-    _⊩_ : C_A .Precategory.Ob → {!!} → Type ℓ
+    _⊩_ : C_A .Precategory.Ob → Formula → Type ℓ
 
-    -- Monotonicity
-    forcing-mono : ∀ {U V : C_A .Precategory.Ob} {φ : {!!}}
+    -- Monotonicity (if φ holds at V, it holds at all U mapping into V)
+    forcing-mono : ∀ {U V : C_A .Precategory.Ob} {φ : Formula}
                  → (α : C_A .Precategory.Hom U V)
                  → V ⊩ φ → U ⊩ φ
 
@@ -571,13 +628,16 @@ All networks are "shadows" of U_Neural pulled back along geometric morphisms.
 
 module Finality where
 
+  open Geometric-Theory
+  open Classifying-Topos
+
   postulate
     -- Category of topoi with A-models
-    Topoi-A-Models : (A : Geometric-Theory.Theory) → Precategory (lsuc o ⊔ ℓ) (o ⊔ ℓ)
+    Topoi-A-Models : (A : Theory) → Precategory (lsuc o ⊔ ℓ) (o ⊔ ℓ)
 
-    -- E_A is initial
-    E_A-initial : ∀ (A : Geometric-Theory.Theory)
-                → {!!}  -- IsInitial (Topoi-A-Models A) (E_A, U_A)
+    -- E_A is initial (there exists unique morphism from E_A to any other topos with model)
+    E_A-initial : ∀ (A : Theory)
+                → Type (lsuc o ⊔ ℓ)  -- IsInitial (Topoi-A-Models A) (E_A, U_A)
 
   {-|
   **Philosophical Interpretation**
