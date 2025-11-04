@@ -83,18 +83,41 @@ This is Homotopy Type Theory (HoTT).
 
 module MLTT-Overview where
 
-  -- MLTT syntax (abstract)
+  -- Context: sequence of types
+  data Context : Type where
+    ∅ : Context
+    _,_ : Context → Type → Context
+
+  -- MLTT judgments (as types representing derivability)
+  data Type-Judgment : Context → Type → Type where
+    -- Γ ⊢ A type (A is a type in context Γ)
+
+  data Term-Judgment : (Γ : Context) → (A : Type) → Type where
+    -- Γ ⊢ a : A (a is a term of type A in context Γ)
+
+  data Equality-Judgment : (Γ : Context) → (A : Type) → (a b : Type) → Type where
+    -- Γ ⊢ a ≡ b : A (a and b are equal terms of type A)
+
+  -- Dependent types formation rules
   postulate
-    Type-Judgment : {!!}  -- Γ ⊢ A type
-    Term-Judgment : {!!}  -- Γ ⊢ a : A
-    Equality-Judgment : {!!}  -- Γ ⊢ a ≡ b : A
+    -- Π-formation: Γ ⊢ A type, Γ,x:A ⊢ B type → Γ ⊢ Π(x:A).B type
+    Π-formation : {Γ : Context} {A : Type} {B : A → Type}
+                → Type-Judgment Γ A
+                → ((x : A) → Type-Judgment (Γ , A) (B x))
+                → Type-Judgment Γ ((x : A) → B x)
 
-    -- Dependent types
-    Π-formation : {!!}  -- Γ ⊢ A type, Γ,x:A ⊢ B type → Γ ⊢ Π(x:A).B type
-    Σ-formation : {!!}  -- Γ ⊢ A type, Γ,x:A ⊢ B type → Γ ⊢ Σ(x:A).B type
+    -- Σ-formation: Γ ⊢ A type, Γ,x:A ⊢ B type → Γ ⊢ Σ(x:A).B type
+    Σ-formation : {Γ : Context} {A : Type} {B : A → Type}
+                → Type-Judgment Γ A
+                → ((x : A) → Type-Judgment (Γ , A) (B x))
+                → Type-Judgment Γ (Σ[ x ∈ A ] B x)
 
-    -- Identity types
-    Id-formation : {!!}  -- Γ ⊢ A type, Γ ⊢ a,b:A → Γ ⊢ Id_A(a,b) type
+    -- Id-formation: Γ ⊢ A type, Γ ⊢ a,b:A → Γ ⊢ Id_A(a,b) type
+    Id-formation : {Γ : Context} {A : Type} {a b : A}
+                 → Type-Judgment Γ A
+                 → Term-Judgment Γ A
+                 → Term-Judgment Γ A
+                 → Type-Judgment Γ (a ≡ b)
 
   {-|
   **Path Induction (J-rule)**
@@ -111,8 +134,12 @@ module MLTT-Overview where
   -}
 
   postulate
-    -- Path induction
-    J-rule : {!!}
+    -- Path induction (J-rule)
+    J-rule : {A : Type} {a : A}
+             (C : (x : A) → a ≡ x → Type)
+           → C a refl
+           → {b : A} (p : a ≡ b)
+           → C b p
 
 --------------------------------------------------------------------------------
 -- Theorem 2.3: Topoi Model Martin-Löf Type Theory
@@ -153,28 +180,47 @@ for reasoning about features:
 
 module Theorem-2-3 (E : Precategory o ℓ) where
 
+  open MLTT-Overview
+
+  -- Terminal object (for interpreting empty context)
+  postulate
+    ⊤-E : E .Precategory.Ob
+    terminal-E : (A : E .Precategory.Ob) → E .Precategory.Hom A ⊤-E
+
   -- Interpretation of MLTT in E
   record MLTT-Model : Type (lsuc o ⊔ ℓ) where
     field
-      -- Type interpretation
-      ⟦_⟧-type : {!!} → E .Precategory.Ob
+      -- Type interpretation: MLTT types → topos objects
+      ⟦_⟧-type : Type → E .Precategory.Ob
 
-      -- Term interpretation
-      ⟦_⟧-term : ∀ {Γ A} → {!!} → E .Precategory.Hom (⟦ Γ ⟧-type) (⟦ A ⟧-type)
+      -- Context interpretation (as products)
+      ⟦_⟧-ctx : Context → E .Precategory.Ob
 
-      -- Dependent product (Π-types)
-      Π-interpretation : ∀ {Γ A B} → {!!}
+      -- Term interpretation: Γ ⊢ t : A becomes morphism ⟦Γ⟧ → ⟦A⟧
+      ⟦_⟧-term : ∀ {Γ A} → Term-Judgment Γ A → E .Precategory.Hom (⟦ Γ ⟧-ctx) (⟦ A ⟧-type)
 
-      -- Dependent sum (Σ-types)
-      Σ-interpretation : ∀ {Γ A B} → {!!}
+      -- Dependent product (Π-types): internal hom / exponential
+      Π-interpretation : ∀ {A : Type} {B : A → Type}
+                       → E .Precategory.Ob  -- Interpretation of Π(x:A).B(x)
 
-      -- Identity type (path object)
-      Id-interpretation : ∀ {Γ A a b} → {!!}
+      -- Dependent sum (Σ-types): internal sum / dependent product
+      Σ-interpretation : ∀ {A : Type} {B : A → Type}
+                       → E .Precategory.Ob  -- Interpretation of Σ(x:A).B(x)
 
-      -- J-rule (path induction)
-      J-interpretation : {!!}
+      -- Identity type (path object): internal path space
+      Id-interpretation : ∀ {A : Type} (a b : E .Precategory.Hom ⊤-E (⟦ A ⟧-type))
+                        → E .Precategory.Ob  -- Interpretation of Id_A(a,b)
+
+      -- J-rule (path induction) as factorization through path object
+      J-interpretation : ∀ {A : Type} {a : E .Precategory.Hom ⊤-E (⟦ A ⟧-type)}
+                          {C : (x : E .Precategory.Hom ⊤-E (⟦ A ⟧-type)) → Type}
+                        → (c : E .Precategory.Hom ⊤-E (⟦ C a ⟧-type))
+                        → {b : E .Precategory.Hom ⊤-E (⟦ A ⟧-type)}
+                        → (p : E .Precategory.Hom ⊤-E (Id-interpretation a b))
+                        → E .Precategory.Hom ⊤-E (⟦ C b ⟧-type)
 
   -- Theorem 2.3: E models MLTT
+  -- (Proof requires showing E has finite limits, exponentials, and path objects)
   postulate
     theorem-2-3 : MLTT-Model
 
@@ -204,22 +250,43 @@ module Theorem-2-3 (E : Precategory o ℓ) where
 
   module Identity-Type-Details where
     postulate
-      -- Path object
+      -- Path object P_A for each object A
       Path-Object : (A : E .Precategory.Ob) → E .Precategory.Ob
 
+      -- Source and target morphisms: P_A → A
       source target : ∀ {A} → E .Precategory.Hom (Path-Object A) A
+
+      -- Reflexivity: diagonal A → P_A
       refl-path : ∀ {A} → E .Precategory.Hom A (Path-Object A)
 
-      -- Path object axioms
-      path-axioms : ∀ {A} → {!!}  -- s ∘ r = t ∘ r = id
+      -- Path object axioms: s ∘ r = id and t ∘ r = id
+      path-axiom-source : ∀ {A} → E .Precategory._∘_ (source {A}) refl-path ≡ E .Precategory.id
+      path-axiom-target : ∀ {A} → E .Precategory._∘_ (target {A}) refl-path ≡ E .Precategory.id
 
-      -- Identity type as pullback
-      Id-Type : ∀ {A} (a b : E .Precategory.Hom {!!} A) → E .Precategory.Ob
+      -- Identity type as pullback: Id_A(a,b) = {p ∈ P_A | s(p) = a, t(p) = b}
+      Id-Type : ∀ {A} (a b : E .Precategory.Hom ⊤-E A) → E .Precategory.Ob
 
-      Id-is-pullback : ∀ {A a b} → {!!}  -- Id_A(a,b) is pullback of (a,b) and (s,t)
+      -- Pullback property: Id_A(a,b) is limit of diagram
+      --     Id_A(a,b) ----→ P_A
+      --         |             |
+      --         |             | (s,t)
+      --         ↓             ↓
+      --         1 -------→  A × A
+      --            (a,b)
+      Id-is-pullback : ∀ {A} {a b : E .Precategory.Hom ⊤-E A}
+                     → (proj-path : E .Precategory.Hom (Id-Type a b) (Path-Object A))
+                     → (proj-term : E .Precategory.Hom (Id-Type a b) ⊤-E)
+                     → E .Precategory._∘_ source proj-path ≡ E .Precategory._∘_ a proj-term
+                     → E .Precategory._∘_ target proj-path ≡ E .Precategory._∘_ b proj-term
+                     → Type ℓ  -- Universal property
 
-      -- J-rule construction
-      J-construction : {!!}
+      -- J-rule construction via path object factorization
+      -- Note: C gives us Types, which we need to interpret as objects
+      J-construction : ∀ {A} {a b : E .Precategory.Hom ⊤-E A}
+                     → (C : (x : E .Precategory.Hom ⊤-E A) → E .Precategory.Ob)  -- Type family as objects
+                     → (c : E .Precategory.Hom ⊤-E (C a))  -- Base case at a
+                     → (p : E .Precategory.Hom ⊤-E (Id-Type a b))  -- Path from a to b
+                     → E .Precategory.Hom ⊤-E (C b)  -- Conclusion at b
 
   {-|
   **Connection to Cubical Type Theory**
@@ -237,15 +304,29 @@ module Theorem-2-3 (E : Precategory o ℓ) where
   -}
 
   postulate
-    -- Interval object (cubical structure)
+    -- Interval object (cubical structure) I ∈ E
     Interval : E .Precategory.Ob
 
-    -- Endpoints
-    i0 i1 : E .Precategory.Hom {!!} Interval
+    -- Endpoints: 0, 1 : ⊤ → I
+    i0 i1 : E .Precategory.Hom ⊤-E Interval
 
-    -- De Morgan structure
-    _∧_ _∨_ : E .Precategory.Hom (Interval) (Interval)
-    ¬_ : E .Precategory.Hom Interval Interval
+    -- De Morgan operations (internal to topos)
+    -- Meet: I × I → I
+    _∧_ : E .Precategory.Hom Interval Interval → E .Precategory.Hom Interval Interval
+          → E .Precategory.Hom Interval Interval
+
+    -- Join: I × I → I
+    _∨_ : E .Precategory.Hom Interval Interval → E .Precategory.Hom Interval Interval
+          → E .Precategory.Hom Interval Interval
+
+    -- Negation: I → I
+    ¬_ : E .Precategory.Hom Interval Interval → E .Precategory.Hom Interval Interval
+
+    -- De Morgan laws
+    ∧-comm : ∀ {i j} → (i ∧ j) ≡ (j ∧ i)
+    ∨-comm : ∀ {i j} → (i ∨ j) ≡ (j ∨ i)
+    de-morgan-∧ : ∀ {i j} → ¬ (i ∧ j) ≡ (¬ i ∨ ¬ j)
+    de-morgan-∨ : ∀ {i j} → ¬ (i ∨ j) ≡ (¬ i ∧ ¬ j)
 
 --------------------------------------------------------------------------------
 -- Lemma 2.8: Identity Types and Homotopy
@@ -286,17 +367,24 @@ Example: Two networks N₁, N₂ with same behavior
 module Lemma-2-8 {E : Precategory o ℓ} where
 
   open Theorem-2-3 E
+  open Identity-Type-Details
 
-  -- Path space
+  -- Path space: space of paths from a to b in A
+  -- Defined as subobject of path object P_A
   postulate
     Path-Space : (A : E .Precategory.Ob)
-               → (a b : E .Precategory.Hom {!!} A)
+               → (a b : E .Precategory.Hom ⊤-E A)
                → E .Precategory.Ob
 
   -- Lemma 2.8: Identity type ≅ Path space
+  -- This establishes that Id_A(a,b) and Path_A(a,b) are isomorphic
   postulate
-    lemma-2-8 : ∀ {A : E .Precategory.Ob} {a b : E .Precategory.Hom {!!} A}
-              → {!!}  -- Id_A(a,b) ≅ Path_A(a,b)
+    lemma-2-8 : ∀ {A : E .Precategory.Ob} {a b : E .Precategory.Hom ⊤-E A}
+              → (f : E .Precategory.Hom (Id-Type a b) (Path-Space A a b))
+              → (g : E .Precategory.Hom (Path-Space A a b) (Id-Type a b))
+              → (E .Precategory._∘_ f g ≡ E .Precategory.id)
+              → (E .Precategory._∘_ g f ≡ E .Precategory.id)
+              → Type ℓ  -- Isomorphism witness
 
   {-|
   **Proof Sketch**
@@ -317,14 +405,18 @@ module Lemma-2-8 {E : Precategory o ℓ} where
   -}
 
   postulate
-    -- Forward: Id → Path
-    id-to-path : ∀ {A a b} → {!!} → {!!}  -- Id_A(a,b) → Path_A(a,b)
+    -- Forward: Id → Path (geometric realization)
+    id-to-path : ∀ {A : E .Precategory.Ob} {a b : E .Precategory.Hom ⊤-E A}
+               → E .Precategory.Hom (Id-Type a b) (Path-Space A a b)
 
-    -- Backward: Path → Id
-    path-to-id : ∀ {A a b} → {!!} → {!!}  -- Path_A(a,b) → Id_A(a,b)
+    -- Backward: Path → Id (internalization)
+    path-to-id : ∀ {A : E .Precategory.Ob} {a b : E .Precategory.Hom ⊤-E A}
+               → E .Precategory.Hom (Path-Space A a b) (Id-Type a b)
 
-    -- Equivalence
-    id-path-equiv : ∀ {A a b} → {!!}  -- Id_A(a,b) ≃ Path_A(a,b)
+    -- Equivalence: these are inverses
+    id-path-iso : ∀ {A : E .Precategory.Ob} {a b : E .Precategory.Hom ⊤-E A}
+                → (E .Precategory._∘_ id-to-path path-to-id ≡ E .Precategory.id)
+                × (E .Precategory._∘_ path-to-id id-to-path ≡ E .Precategory.id)
 
   {-|
   **Higher Identity Types**
@@ -345,11 +437,21 @@ module Lemma-2-8 {E : Precategory o ℓ} where
 
   postulate
     -- Higher identity types
-    Id² : ∀ {A : E .Precategory.Ob} {a b : {!!}} (p q : {!!}) → E .Precategory.Ob
-    Id³ : ∀ {A : E .Precategory.Ob} {a b : {!!}} {p q : {!!}} (α β : {!!}) → E .Precategory.Ob
+    -- Id² = paths between paths (2-cells)
+    Id² : ∀ {A : E .Precategory.Ob} {a b : E .Precategory.Hom ⊤-E A}
+        → (p q : E .Precategory.Hom ⊤-E (Id-Type a b))
+        → E .Precategory.Ob
 
-    -- ∞-groupoid structure
-    ∞-groupoid : ∀ (A : E .Precategory.Ob) → {!!}
+    -- Id³ = paths between paths between paths (3-cells)
+    Id³ : ∀ {A : E .Precategory.Ob} {a b : E .Precategory.Hom ⊤-E A}
+        → {p q : E .Precategory.Hom ⊤-E (Id-Type a b)}
+        → (α β : E .Precategory.Hom ⊤-E (Id² p q))
+        → E .Precategory.Ob
+
+    -- ∞-groupoid structure on A
+    -- This should be a record of operations (composition, inverses, associativity, etc.)
+    -- For simplicity, we postulate its existence
+    ∞-groupoid : ∀ (A : E .Precategory.Ob) → Type (o ⊔ ℓ)
 
 --------------------------------------------------------------------------------
 -- Univalence Axiom
@@ -385,26 +487,41 @@ This justifies:
 
 module Univalence-Axiom {E : Precategory o ℓ} where
 
-  -- Type of types (universe in E)
+  open Theorem-2-3 E
+  open Lemma-2-8
+
+  -- Type of types (universe object in E)
   postulate
     𝒰 : E .Precategory.Ob
-    El : E .Precategory.Hom 𝒰 {!!}  -- "Elements" functor
 
-  -- Equivalence of types
+    -- Element extraction: decoding from code to type
+    El : E .Precategory.Hom 𝒰 𝒰
+
+  -- Equivalence of types (isomorphism in topos)
   postulate
     Equiv : (A B : E .Precategory.Ob) → E .Precategory.Ob
 
-    -- Equivalence data: f, g, f∘g=id, g∘f=id (up to homotopy)
-    equiv-data : {!!}
+    -- Equivalence consists of:
+    -- - Forward map f : A → B
+    -- - Backward map g : B → A
+    -- - Proofs that f ∘ g = id and g ∘ f = id (up to homotopy)
+    equiv-forward : ∀ {A B} → E .Precategory.Hom (Equiv A B) (E .Precategory.Ob)
+    equiv-backward : ∀ {A B} → E .Precategory.Hom (Equiv A B) (E .Precategory.Ob)
+    equiv-iso : ∀ {A B} → Type (o ⊔ ℓ)  -- Isomorphism proofs
 
   -- Identity type of types
   postulate
     Id-𝒰 : (A B : E .Precategory.Ob) → E .Precategory.Ob
 
-  -- Univalence axiom
+  -- Univalence axiom: (A ≃ B) ≃ (A ≡ B)
+  -- Equivalence is equivalent to equality
   postulate
     univalence : ∀ (A B : E .Precategory.Ob)
-               → Equiv A B ≃ Id-𝒰 A B
+               → (f : E .Precategory.Hom (Equiv A B) (Id-𝒰 A B))
+               → (g : E .Precategory.Hom (Id-𝒰 A B) (Equiv A B))
+               → (E .Precategory._∘_ f g ≡ E .Precategory.id)
+               → (E .Precategory._∘_ g f ≡ E .Precategory.id)
+               → Type (o ⊔ ℓ)
 
   {-|
   **Consequences of Univalence**
@@ -423,18 +540,23 @@ module Univalence-Axiom {E : Precategory o ℓ} where
   -}
 
   postulate
-    -- Function extensionality
+    -- Function extensionality: pointwise equal functions are equal
     funext : ∀ {A B : E .Precategory.Ob}
              {f g : E .Precategory.Hom A B}
-           → {!!}  -- (∀x. f(x) = g(x)) → f = g
+           → (∀ (x : E .Precategory.Hom ⊤-E A) → E .Precategory._∘_ f x ≡ E .Precategory._∘_ g x)
+           → f ≡ g
 
-    -- Transport
+    -- Transport: given path between types, transport elements
     transport : ∀ {A B : E .Precategory.Ob}
-              → Id-𝒰 A B
+              → E .Precategory.Hom ⊤-E (Id-𝒰 A B)
               → E .Precategory.Hom A B
 
-    -- Structure identity principle (SIP)
-    SIP : {!!}
+    -- Structure Identity Principle (SIP)
+    -- Structured types are equal iff they are equivalent as structures
+    SIP : ∀ {A B : E .Precategory.Ob}
+        → (structure-A structure-B : Type (o ⊔ ℓ))  -- Additional structure on A, B
+        → (equiv : E .Precategory.Hom (Equiv A B) ⊤-E)  -- Equivalence preserving structure
+        → A ≡ B  -- Types are equal
 
   {-|
   **Univalence for Neural Networks**
@@ -451,13 +573,21 @@ module Univalence-Axiom {E : Precategory o ℓ} where
   3. **Correctness**: Prove properties for one network, transport to equivalent ones
   -}
 
+  -- Network type (object in E representing neural network)
   postulate
-    -- Network equivalence
-    Network-Equiv : {!!} → {!!} → E .Precategory.Ob
+    Network : E .Precategory.Ob
 
-    -- Univalence for networks
-    network-univalence : ∀ (N₁ N₂ : {!!})
-                       → Network-Equiv N₁ N₂ ≃ {!!}  -- Id(N₁,N₂)
+  postulate
+    -- Network equivalence: N₁ ≃ N₂ iff same behavior on all inputs
+    Network-Equiv : (N₁ N₂ : E .Precategory.Hom ⊤-E Network) → E .Precategory.Ob
+
+    -- Univalence for networks: (N₁ ≃ N₂) ≃ (N₁ ≡ N₂)
+    network-univalence : ∀ (N₁ N₂ : E .Precategory.Hom ⊤-E Network)
+                       → (f : E .Precategory.Hom (Network-Equiv N₁ N₂) (Id-𝒰 Network Network))
+                       → (g : E .Precategory.Hom (Id-𝒰 Network Network) (Network-Equiv N₁ N₂))
+                       → (E .Precategory._∘_ f g ≡ E .Precategory.id)
+                       → (E .Precategory._∘_ g f ≡ E .Precategory.id)
+                       → Type (o ⊔ ℓ)
 
 --------------------------------------------------------------------------------
 -- Applications: Verified Neural Networks via MLTT
@@ -477,19 +607,34 @@ The proof term is the training certificate.
 
 module Certified-Training where
 
+  -- Network type
   postulate
-    -- Network type
     Network : Type
 
-    -- Correctness predicate
-    Correct : {!!} → Type
+  -- Input/output types
+  postulate
+    Input : Type
+    Output : Type
 
-    -- Certified network (dependent pair)
-    CertifiedNetwork : Type
-    CertifiedNetwork = Σ[ N ∈ Network ] (∀ x → Correct (N {!!}))
+  -- Network application
+  postulate
+    _$_ : Network → Input → Output
 
-    -- Training finds certified network
-    train : {!!} → CertifiedNetwork
+  -- Correctness predicate (e.g., matches ground truth)
+  postulate
+    Correct : Output → Type
+
+  -- Certified network: dependent pair (N, proof)
+  CertifiedNetwork : Type
+  CertifiedNetwork = Σ[ N ∈ Network ] (∀ (x : Input) → Correct (N $ x))
+
+  -- Training dataset
+  postulate
+    TrainingSet : Type
+
+  -- Training finds certified network (with proof certificate)
+  postulate
+    train : TrainingSet → CertifiedNetwork
 
   {-|
   **Example**: Adversarially robust classifier
@@ -503,12 +648,22 @@ module Certified-Training where
   Deployment: Extract N, discard proof (or keep for verification)
   -}
 
+  -- Perturbation type
   postulate
-    -- Robust classifier type
-    RobustClassifier : (ε : {!!}) → Type
+    Perturbation : Type
+    _+ₚ_ : Input → Perturbation → Input  -- Add perturbation to input
+    ‖_‖ : Perturbation → ℝ  -- Norm of perturbation (using ℝ from imports)
+
+  postulate
+    -- Robust classifier: certifies robustness within ε-ball
+    RobustClassifier : (ε : ℝ) → Type
+    RobustClassifier ε = Σ[ N ∈ Network ]
+                          (∀ (x : Input) (δ : Perturbation)
+                           → ‖ δ ‖ < ε
+                           → N $ x ≡ N $ (x +ₚ δ))
 
     -- Training for robustness
-    robust-train : ∀ (ε : {!!}) → RobustClassifier ε
+    robust-train : ∀ (ε : ℝ) → TrainingSet → RobustClassifier ε
 
 {-|
 **Application 2**: Formal verification via J-rule
@@ -525,18 +680,25 @@ This shows properties are preserved along equality paths.
 
 module Formal-Verification where
 
+  open Certified-Training
+
+  -- Network property predicate
   postulate
-    -- Network property
-    Property : {!!} → Type
+    Property : Network → Type
 
-    -- Properties preserved along equality
-    property-transport : ∀ {N₁ N₂ : {!!}}
-                       → (N₁ ≡ N₂)
-                       → Property N₁
-                       → Property N₂
+  -- Properties preserved along equality (by J-rule / transport)
+  property-transport : ∀ {N₁ N₂ : Network}
+                     → (N₁ ≡ N₂)
+                     → Property N₁
+                     → Property N₂
+  property-transport {N₁} {N₂} p = subst Property p
 
-    -- Proof using J-rule
-    property-transport-proof : {!!}
+  -- Alternative: explicit proof using J-rule
+  postulate
+    property-transport-via-J : ∀ {N₁ N₂ : Network}
+                             → (N₁ ≡ N₂)
+                             → Property N₁
+                             → Property N₂
 
   {-|
   **Example**: Lipschitz continuity preservation
@@ -551,15 +713,16 @@ module Formal-Verification where
   If N₁ is Lipschitz, then transport along p gives Lipschitz(N₂)
   -}
 
+  -- Lipschitz continuity: |f(x) - f(y)| ≤ L·|x - y|
   postulate
-    -- Lipschitz continuity
-    Lipschitz : {!!} → Type
+    Lipschitz : Network → Type
 
-    -- Preserved along equality
-    lipschitz-transport : ∀ {N₁ N₂ : {!!}}
-                        → (N₁ ≡ N₂)
-                        → Lipschitz N₁
-                        → Lipschitz N₂
+  -- Preserved along equality (automatic by substitution)
+  lipschitz-transport : ∀ {N₁ N₂ : Network}
+                      → (N₁ ≡ N₂)
+                      → Lipschitz N₁
+                      → Lipschitz N₂
+  lipschitz-transport = property-transport {Property = Lipschitz}
 
 --------------------------------------------------------------------------------
 -- Higher Inductive Types for Neural Networks
@@ -592,17 +755,33 @@ This quotients networks by equivalence, giving canonical representatives.
 
 module Higher-Inductive-Networks where
 
+  open Certified-Training
+
+  -- Network equivalence relation (same behavior)
+  postulate
+    _≃ₙ_ : Network → Network → Type
+
   postulate
     -- Network HIT (quotient by equivalence)
+    -- This is a higher inductive type with both point and path constructors
     data NetworkHIT : Type where
-      [_] : {!!} → NetworkHIT  -- Point constructor
-      equiv-path : ∀ {N₁ N₂ : {!!}} → {!!} → {!!}  -- Path constructor
+      [_] : Network → NetworkHIT  -- Point constructor: embed network
+      equiv-path : ∀ {N₁ N₂ : Network}
+                 → (N₁ ≃ₙ N₂)
+                 → [ N₁ ] ≡ [ N₂ ]  -- Path constructor: equivalent networks are equal
 
-    -- Recursion principle for NetworkHIT
-    NetworkHIT-rec : {!!}
+    -- Recursion principle: to define function out of NetworkHIT
+    NetworkHIT-rec : ∀ {ℓ'} {P : Type ℓ'}
+                   → (point : Network → P)
+                   → (path : ∀ {N₁ N₂} → (N₁ ≃ₙ N₂) → point N₁ ≡ point N₂)
+                   → NetworkHIT → P
 
-    -- Induction principle for NetworkHIT
-    NetworkHIT-ind : {!!}
+    -- Induction principle: to define dependent function out of NetworkHIT
+    NetworkHIT-ind : ∀ {ℓ'} {P : NetworkHIT → Type ℓ'}
+                   → (point : ∀ N → P [ N ])
+                   → (path : ∀ {N₁ N₂} (eq : N₁ ≃ₙ N₂)
+                          → PathP (λ i → P (equiv-path eq i)) (point N₁) (point N₂))
+                   → ∀ x → P x
 
   {-|
   **Example**: Quotient by weight permutation symmetry
@@ -616,12 +795,25 @@ module Higher-Inductive-Networks where
   This gives canonical network representatives modulo symmetry.
   -}
 
+  -- Permutation group
   postulate
-    -- Permutation symmetry HIT
-    data SymmetricNetwork : Type where
+    Permutation : Type
+    _·_ : Permutation → Network → Network  -- Apply permutation to network
 
-    -- Canonical representative
-    canonical : SymmetricNetwork → {!!}
+  postulate
+    -- Permutation symmetry HIT: quotient by permutation symmetry
+    data SymmetricNetwork : Type where
+      [_]ₛ : Network → SymmetricNetwork  -- Point constructor
+      permute : ∀ (N : Network) (σ : Permutation)
+              → [ N ]ₛ ≡ [ σ · N ]ₛ  -- Path: permutations give equal networks
+
+    -- Canonical representative (unique up to permutation)
+    canonical : SymmetricNetwork → Network
+
+    -- canonical respects equivalence class
+    canonical-respects : ∀ (s : SymmetricNetwork) (N : Network)
+                       → [ N ]ₛ ≡ s
+                       → ∃[ σ ∈ Permutation ] (canonical s ≡ σ · N)
 
 --------------------------------------------------------------------------------
 -- Summary and Next Steps

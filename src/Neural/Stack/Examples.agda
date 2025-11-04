@@ -103,13 +103,18 @@ module CNN-Fibration where
       F_CNN : Stack Spatial-Groupoid o' ℓ'
 
       -- Weight sharing (translation equivariance)
-      weight-sharing : ∀ {x y : Spatial-Grid} (γ : {!!})  -- Translation γ: x → y
-                     → {!!}  -- F(γ) = id (same weights everywhere)
+      -- Translation γ is a morphism in Spatial-Groupoid
+      -- F(γ) should be identity (same weights everywhere)
+      weight-sharing : ∀ {x y : Spatial-Grid}
+                       (γ : Spatial-Groupoid .Precategory.Hom _ _)
+                     → F_CNN .Functor.F₁ γ ≡ {!!}  -- Should be identity functor
 
   -- Lemma 2.5: CNN is a fibration
+  -- The stack F_CNN satisfies Grothendieck fibration properties
+  -- This should be proved by showing cartesian liftings exist
   postulate
     lemma-2-5 : ∀ (cnn : CNN-Structure)
-              → {!!}  -- cnn.F_CNN satisfies fibration properties
+              → {!!}  -- TODO: is-fibration (cnn .CNN-Structure.F_CNN)
 
   {-|
   **Example**: 2D Convolution
@@ -134,8 +139,11 @@ module CNN-Fibration where
            → CNN-Structure
 
     -- Translation equivariance (Equation 2.1)
-    conv-equivariance : ∀ (conv : CNN-Structure) {x y : Spatial-Grid} (γ : {!!})
-                      → {!!}  -- F_output(γ) ∘ Conv = Conv ∘ F_input(γ)
+    -- For a translation γ, output features transform the same way as input features
+    conv-equivariance : ∀ (conv : CNN-Structure) {x y : Spatial-Grid}
+                          (γ : Spatial-Groupoid .Precategory.Hom _ _)
+                      → {!!}  -- TODO: F_output(γ) ∘ Conv = Conv ∘ F_input(γ)
+                              -- Needs: Conv as natural transformation between stacks
 
 --------------------------------------------------------------------------------
 -- Lemma 2.6: Residual Networks (ResNets)
@@ -172,22 +180,28 @@ a fibration-preserving transformation."
 module ResNet-Composition where
 
   -- Residual block structure
-  record Residual-Block (F : Stack {!!} o' ℓ') : Type (lsuc o ⊔ ℓ ⊔ o' ⊔ ℓ') where
+  -- F is a stack over some base category C (network architecture)
+  postulate C-base : Precategory o ℓ
+
+  record Residual-Block (F : Stack {C = C-base} o' ℓ') : Type (lsuc o ⊔ ℓ ⊔ o' ⊔ ℓ') where
     field
-      -- Layer transformation
-      f_k : {!!}  -- Transformation functor
+      -- Layer transformation (functor between fibers)
+      -- This should be a natural transformation or geometric functor
+      f_k : {!!}  -- TODO: Geometric functor type from Geometric module
 
       -- Residual connection: res(x) = x + f(x)
-      residual : {!!}  -- res = id + f_k
+      -- In category theory: coproduct of identity and f_k
+      residual : {!!}  -- TODO: Natural transformation expressing Id + f_k
 
-      -- Is geometric
-      is-geometric-res : {!!}
+      -- Is geometric (preserves topos structure)
+      is-geometric-res : {!!}  -- TODO: is-geometric residual
 
   -- Lemma 2.6: Composition of residual blocks is geometric
   postulate
-    lemma-2-6 : ∀ {F : Stack {!!} o' ℓ'}
+    lemma-2-6 : ∀ {F : Stack {C = C-base} o' ℓ'}
                   (blocks : List (Residual-Block F))
-              → {!!}  -- Composition is geometric morphism
+              → {!!}  -- TODO: Composition of blocks is geometric
+                      -- Type should be: is-geometric (compose-residual-blocks blocks)
 
   {-|
   **Proof Details**
@@ -207,12 +221,13 @@ module ResNet-Composition where
 
   postulate
     -- Residual as natural transformation
-    res-as-nat-trans : ∀ {F : Stack {!!} o' ℓ'} (rb : Residual-Block F)
-                     → {!!}  -- η: Id → Id ⊕ f
+    res-as-nat-trans : ∀ {F : Stack {C = C-base} o' ℓ'} (rb : Residual-Block F)
+                     → {!!}  -- TODO: Natural transformation type Id → Id ⊕ f
+                             -- Needs coproduct in category of stacks
 
     -- Residual is geometric
-    res-geometric : ∀ {F : Stack {!!} o' ℓ'} (rb : Residual-Block F)
-                  → {!!}  -- rb.residual is geometric
+    res-geometric : ∀ {F : Stack {C = C-base} o' ℓ'} (rb : Residual-Block F)
+                  → {!!}  -- TODO: is-geometric (rb .Residual-Block.residual)
 
   {-|
   **Example**: ResNet-50
@@ -230,11 +245,13 @@ module ResNet-Composition where
   -}
 
   postulate
-    -- ResNet-50 example
-    ResNet-50 : {!!}
+    -- ResNet-50 example (16 residual blocks)
+    ResNet-50 : {!!}  -- TODO: Stack or network type for ResNet-50
+                      -- Should be composition of 16 Residual-Block values
 
-    -- Is geometric
-    resnet50-geometric : {!!}  -- ResNet-50 is geometric morphism
+    -- Is geometric (follows from Lemma 2.6)
+    resnet50-geometric : {!!}  -- TODO: is-geometric ResNet-50
+                               -- Proof uses lemma-2-6
 
 --------------------------------------------------------------------------------
 -- Lemma 2.7: Attention Mechanisms
@@ -282,16 +299,21 @@ module Attention-Geometric where
       d_k : Nat      -- Key/Query dimension
       d_v : Nat      -- Value dimension
 
-      -- Projections
-      W_Q W_K W_V W_O : {!!}  -- Weight matrices
+      -- Projections (linear transformations)
+      -- These should be linear functors (geometric)
+      W_Q W_K W_V W_O : {!!}  -- TODO: Type for weight matrices
+                              -- Should be functors or matrices d_model → d_k, d_v, etc.
 
-      -- Attention function
-      attention : {!!}  -- Q, K, V → Att(Q,K,V)
+      -- Attention function: Att(Q,K,V) = softmax(QK^T/√d_k) V
+      -- This is a composition of geometric operations
+      attention : {!!}  -- TODO: Type for attention functor
+                        -- (Q, K, V) → Output
 
   -- Lemma 2.7: Attention is geometric
   postulate
     lemma-2-7 : ∀ (attn : Attention-Layer)
-              → {!!}  -- attn.attention is geometric morphism
+              → {!!}  -- TODO: is-geometric (attn .Attention-Layer.attention)
+                      -- Proof: composition of geometric functors (linear, softmax, etc.)
 
   {-|
   **Proof Structure**
@@ -318,20 +340,25 @@ module Attention-Geometric where
 
   postulate
     -- Step 1: Linear projections are geometric
-    linear-geometric : {!!}
+    linear-geometric : {!!}  -- TODO: ∀ (W : Matrix) → is-geometric (linear-map W)
+                             -- Linear maps preserve limits (via tensor product)
 
-    -- Step 2: Similarity is geometric
-    similarity-geometric : {!!}
+    -- Step 2: Similarity is geometric (matrix multiplication + scaling)
+    similarity-geometric : {!!}  -- TODO: is-geometric similarity-computation
+                                 -- QK^T/√d_k is composition of geometric ops
 
     -- Step 3: Softmax is geometric (has left adjoint)
-    softmax-geometric : {!!}
-    softmax-left-adjoint : {!!}  -- log-sum-exp
+    softmax-geometric : {!!}  -- TODO: is-geometric softmax
+    softmax-left-adjoint : {!!}  -- TODO: softmax ⊣ log-sum-exp
+                                 -- Adjunction witnesses softmax is geometric
 
     -- Step 4: Weighted combination is geometric
-    weighted-combination-geometric : {!!}
+    weighted-combination-geometric : {!!}  -- TODO: is-geometric weighted-sum
+                                           -- Convex combinations preserve structure
 
     -- Step 5: Composition gives attention
-    attention-composition : {!!}
+    attention-composition : {!!}  -- TODO: attention ≡ W_O ∘ weighted-sum ∘ softmax ∘ similarity ∘ projections
+                                  -- Composition of geometric is geometric
 
   {-|
   **Example**: Multi-Head Attention (Transformer)
@@ -355,15 +382,20 @@ module Attention-Geometric where
   postulate
     -- Multi-head attention
     Multi-Head-Attention : (num-heads : Nat) → Attention-Layer → {!!}
+                           -- TODO: Type for MHA functor
+                           -- MHA = Concat(head₁, ..., head_h) ∘ W_O
 
-    -- MHA is geometric
-    mha-geometric : {!!}
+    -- MHA is geometric (each head is geometric, concatenation is coproduct)
+    mha-geometric : {!!}  -- TODO: ∀ (n : Nat) (attn : Attention-Layer)
+                          --       → is-geometric (Multi-Head-Attention n attn)
 
-    -- Transformer block
-    Transformer-Block : {!!}
+    -- Transformer block (MHA + FFN + LayerNorm)
+    Transformer-Block : {!!}  -- TODO: Type for Transformer block
+                              -- Composition of attention, feed-forward, and normalization
 
-    -- Transformer is approximately geometric
-    transformer-approx-geometric : {!!}
+    -- Transformer is approximately geometric (LayerNorm breaks exactness)
+    transformer-approx-geometric : {!!}  -- TODO: Approximate geometric property
+                                         -- MHA and FFN are geometric, LayerNorm approximated
 
 --------------------------------------------------------------------------------
 -- Additional Examples: Autoencoders, VAEs, GANs
@@ -391,23 +423,27 @@ module Autoencoder-Example where
   record Autoencoder : Type (lsuc o ⊔ ℓ) where
     field
       latent-dim : Nat
-      encoder : {!!}
-      decoder : {!!}
+      encoder : {!!}  -- TODO: Functor Input-Space → Latent-Space
+      decoder : {!!}  -- TODO: Functor Latent-Space → Reconstruction-Space
 
-      -- Adjunction
-      enc-dec-adj : {!!}  -- encoder ⊣ decoder
+      -- Adjunction: Encoder ⊣ Decoder
+      enc-dec-adj : {!!}  -- TODO: encoder ⊣ decoder
+                          -- Unit: η: Id → D ∘ E (input → reconstruction)
+                          -- Counit: ε: E ∘ D → Id (latent → compressed)
 
       -- Quillen adjunction (from ModelCategory module)
-      quillen : {!!}
+      -- E preserves cofibrations, D preserves fibrations
+      quillen : {!!}  -- TODO: is-quillen-adjunction enc-dec-adj
 
   postulate
     -- Reconstruction loss = counit of adjunction
     reconstruction-loss : ∀ (ae : Autoencoder)
-                        → {!!}  -- ‖x - D(E(x))‖² = ‖ε(x)‖²
+                        → {!!}  -- TODO: loss(x) ≡ norm-squared (ε x)
+                                -- where ε is counit: x - D(E(x))
 
     -- Perfect autoencoder = Quillen equivalence
     perfect-autoencoder : ∀ (ae : Autoencoder)
-                        → {!!}  -- If loss = 0, then Quillen equivalence
+                        → {!!}  -- TODO: (∀ x → loss(x) ≡ 0) → is-quillen-equivalence (ae .enc-dec-adj)
 
 {-|
 **Example 5**: VAE as probabilistic fibration
@@ -428,22 +464,30 @@ module VAE-Example where
     field
       latent-dim : Nat
 
-      -- Encoder: x → q(z|x) (mean, variance)
-      encoder-mean encoder-var : {!!}
+      -- Encoder: x → q(z|x) produces distribution parameters
+      encoder-mean encoder-var : {!!}  -- TODO: Functors Input → ℝ^latent-dim
+                                       -- Mean and variance of q(z|x)
 
-      -- Decoder: z → p(x|z)
-      decoder-mean decoder-var : {!!}
+      -- Decoder: z → p(x|z) produces reconstruction distribution
+      decoder-mean decoder-var : {!!}  -- TODO: Functors Latent → ℝ^input-dim
+                                       -- Mean and variance of p(x|z)
 
       -- Reparameterization trick: z = μ + σε where ε ~ N(0,1)
-      reparameterize : {!!}
+      -- Allows backpropagation through sampling
+      reparameterize : {!!}  -- TODO: (μ σ ε : Vector) → Vector
+                             -- z = μ + σ ⊙ ε
 
   postulate
-    -- VAE as probabilistic fibration
-    vae-fibration : ∀ (vae : VAE) → {!!}
+    -- VAE as probabilistic fibration over distribution space
+    vae-fibration : ∀ (vae : VAE) → {!!}  -- TODO: Fibration over Prob category
+                                          -- Base: Probability distributions
+                                          -- Fiber: Samples from distribution
 
     -- ELBO = Evidence Lower Bound (optimization objective)
-    ELBO : ∀ (vae : VAE) → {!!}
-    ELBO-equals-adjoint-unit : {!!}  -- ELBO is unit of adjunction
+    -- ELBO = E_q[log p(x|z)] - KL(q(z|x) || p(z))
+    ELBO : ∀ (vae : VAE) → {!!}  -- TODO: Type for ELBO computation
+    ELBO-equals-adjoint-unit : {!!}  -- TODO: ELBO ≡ unit-of-adjunction
+                                     -- Connects to categorical structure
 
 {-|
 **Example 6**: GANs as game-theoretic fibration
@@ -466,24 +510,32 @@ module GAN-Example where
       data-dim : Nat
 
       -- Generator: noise → fake data
-      generator : {!!}
+      generator : {!!}  -- TODO: Functor Noise-Space → Data-Space
+                        -- G: ℝ^noise-dim → ℝ^data-dim
 
       -- Discriminator: data → [0,1] (real probability)
-      discriminator : {!!}
+      discriminator : {!!}  -- TODO: Functor Data-Space → [0,1]
+                            -- D: ℝ^data-dim → ℝ
 
-      -- Adversarial loss
-      generator-loss : {!!}  -- log(1 - D(G(z)))
-      discriminator-loss : {!!}  -- -[log D(x) + log(1 - D(G(z)))]
+      -- Adversarial loss functions
+      generator-loss : {!!}  -- TODO: Type for log(1 - D(G(z)))
+                             -- G tries to minimize (fool D)
+      discriminator-loss : {!!}  -- TODO: Type for -[log D(x) + log(1 - D(G(z)))]
+                                 -- D tries to maximize (distinguish real vs fake)
 
   postulate
-    -- GAN as 2-player game
-    gan-game : ∀ (gan : GAN) → {!!}
+    -- GAN as 2-player game in the topos
+    gan-game : ∀ (gan : GAN) → {!!}  -- TODO: Game-theoretic structure
+                                     -- Objects: Probability distributions
+                                     -- Morphisms: G and D strategies
 
-    -- Nash equilibrium = optimal GAN
-    nash-equilibrium : ∀ (gan : GAN) → {!!}
+    -- Nash equilibrium = optimal GAN (G and D at equilibrium)
+    nash-equilibrium : ∀ (gan : GAN) → {!!}  -- TODO: Fixed-point characterization
+                                             -- G* and D* such that neither can improve
 
     -- Nash equilibrium is geometric morphism
-    nash-geometric : {!!}
+    nash-geometric : {!!}  -- TODO: is-geometric nash-equilibrium-morphism
+                           -- Equilibrium preserves topos structure
 
 --------------------------------------------------------------------------------
 -- Computational Examples: Forward and Backward Pass
@@ -502,18 +554,21 @@ This is literally applying the functor to a morphism x: 1 → Input.
 module Forward-Pass-Computation where
 
   postulate
-    -- Network as functor
-    Network : {!!}
+    -- Network as functor (stack over layer architecture)
+    Network : {!!}  -- TODO: Type for network functor
+                    -- Should be Stack or Functor between categories
 
-    -- Input data
+    -- Input data (element of input space)
     Input-Data : Type
 
-    -- Forward pass
-    forward : ∀ (net : Network) (x : Input-Data) → {!!}
+    -- Forward pass: apply network functor to input
+    forward : ∀ (net : Network) (x : Input-Data) → {!!}  -- TODO: Output-Data type
+                                                         -- Apply net to x
 
-    -- Forward is functor application
+    -- Forward is functor application F₁
     forward-is-F₁ : ∀ (net : Network) (x : Input-Data)
-                  → forward net x ≡ {!!}  -- net.F₁(x)
+                  → forward net x ≡ {!!}  -- TODO: net .Functor.F₁ (embed x)
+                                          -- where embed: Input-Data → morphism
 
 {-|
 **Computational Example 2**: Backpropagation as left adjoint
@@ -530,19 +585,24 @@ Gradient ∇L = F!(∂L/∂output) where L is loss.
 module Backprop-Computation where
 
   postulate
-    -- Forward functor
-    Forward : {!!}
+    -- Forward functor (network forward pass)
+    Forward : {!!}  -- TODO: Functor Input-Cat → Output-Cat
 
-    -- Backward functor (left adjoint)
-    Backward : {!!}
+    -- Backward functor (left adjoint - gradient flow)
+    Backward : {!!}  -- TODO: Functor Output-Cat → Input-Cat
+                     -- Computes gradients via adjunction
 
-    -- Adjunction
-    forward-backward-adj : {!!}  -- Forward ⊣ Backward
+    -- Adjunction: Backward ⊣ Forward
+    -- This says: Hom(Backward(Y), X) ≅ Hom(Y, Forward(X))
+    forward-backward-adj : {!!}  -- TODO: Backward ⊣ Forward
+                                 -- Unit: η: Id → Forward ∘ Backward
+                                 -- Counit: ε: Backward ∘ Forward → Id
 
     -- Backpropagation = apply left adjoint to loss gradient
-    backprop : ∀ (loss-grad : {!!}) → {!!}
-    backprop-is-adjoint : ∀ (loss-grad : {!!})
-                        → backprop loss-grad ≡ {!!}  -- Backward(loss-grad)
+    backprop : ∀ (loss-grad : {!!})  -- TODO: Gradient at output
+             → {!!}  -- TODO: Gradient at input
+    backprop-is-adjoint : ∀ (loss-grad : {!!})  -- TODO: Output gradient type
+                        → backprop loss-grad ≡ {!!}  -- TODO: Backward .Functor.F₁ loss-grad
 
   {-|
   **Chain Rule as Functoriality**
@@ -554,8 +614,11 @@ module Backprop-Computation where
   -}
 
   postulate
-    chain-rule : ∀ {X Y Z} (f : {!!}) (g : {!!})
-               → {!!}  -- Backward(g ∘ f) = Backward(f) ∘ Backward(g)
+    chain-rule : ∀ {X Y Z} (f : {!!})  -- TODO: Morphism or functor X → Y
+                           (g : {!!})  -- TODO: Morphism or functor Y → Z
+               → {!!}  -- TODO: Backward .Functor.F₁ (g ∘ f) ≡ Backward .Functor.F₁ f ∘ Backward .Functor.F₁ g
+                       -- This is just functoriality of Backward!
+                       -- Chain rule is automatic from categorical structure
 
 --------------------------------------------------------------------------------
 -- Summary and Next Steps

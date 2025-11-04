@@ -161,12 +161,15 @@ postulate
   -- Free abelian group on simplices
   Chain : DirectedGraph → Nat → Type
 
+  -- Zero element in chain complex
+  zero-chain : ∀ {G n} → Chain G n
+
   -- Boundary operator
   ∂ : ∀ {G n} → Chain G (suc n) → Chain G n
 
   -- ∂ ∘ ∂ = 0
   ∂-∂ : ∀ {G n} (c : Chain G (suc (suc n)))
-      → ∂ {G} {n} (∂ {G} {suc n} c) ≡ {!!}  -- zero in Chain G n
+      → ∂ {G} {n} (∂ {G} {suc n} c) ≡ zero-chain  -- zero in Chain G n
 
 {-|
 ## Definition 3.22: Cochain Complex (Dual)
@@ -199,12 +202,15 @@ postulate
   -- Cochain = ℤ-valued functions on chains
   Cochain : DirectedGraph → Nat → Type
 
+  -- Zero element in cochain complex
+  zero-cochain : ∀ {G n} → Cochain G n
+
   -- Coboundary operator
   δ : ∀ {G n} → Cochain G n → Cochain G (suc n)
 
   -- δ ∘ δ = 0
   δ-δ : ∀ {G n} (α : Cochain G n)
-      → {!!}  -- δ (δ α) ≡ zero
+      → δ (δ α) ≡ zero-cochain  -- δ (δ α) ≡ zero
 
   -- Duality
   cochain-hom : ∀ {G n} → Cochain G n ≃ (Chain G n → Type)
@@ -240,7 +246,7 @@ postulate
   -- Cycles: kernel of boundary
   is-cycle : ∀ {G n} → Chain G n → Type
   cycle-def : ∀ {G n} {c : Chain G n}
-            → is-cycle c ≃ (∂ c ≡ {!!})  -- zero
+            → is-cycle c ≃ (∂ c ≡ zero-chain)  -- zero
 
   -- Boundaries: image of boundary
   is-boundary : ∀ {G n} → Chain G n → Type
@@ -293,8 +299,10 @@ This topological invariant characterizes feedforward structure!
 -}
 
 postulate
+  IsAcyclic : DirectedGraph → Type
+
   example-feedforward-homology : ∀ (G : DirectedGraph)
-                                → {!!}  -- Acyclic ⇒ H₁ = 0
+                                → IsAcyclic G → Homology G 1 ≃ ⊤  -- Acyclic ⇒ H₁ = 0
 
 {-|
 ## Example 3.21: Recurrent Network Homology
@@ -309,8 +317,11 @@ This is crucial for understanding recurrent dynamics.
 -}
 
 postulate
+  num-loops : DirectedGraph → Nat
+  rank-homology : ∀ {G n} → Homology G n → Nat
+
   example-recurrent-homology : ∀ (G : DirectedGraph)
-                             → {!!}  -- rank(H₁) = number of loops
+                             → rank-homology (Homology G 1) ≡ num-loops G  -- rank(H₁) = number of loops
 
 --------------------------------------------------------------------------------
 -- § 3.4.4: Persistent Homology and Feature Emergence
@@ -376,8 +387,14 @@ Uses stability theorem from persistent homology theory.
 -}
 
 postulate
-  proposition-3-4 : ∀ {G : DirectedGraph} {W W' : {!!}}
-                  → {!!}  -- d_B(D(W), D(W')) ≤ ||W - W'||
+  Weights : DirectedGraph → Type
+  PersistenceDiagram : ∀ {G} → Weights G → Type
+  bottleneck-distance : ∀ {G} {W W' : Weights G} → PersistenceDiagram W → PersistenceDiagram W' → ℝ
+  weight-norm : ∀ {G} → Weights G → Weights G → ℝ
+
+  proposition-3-4 : ∀ {G : DirectedGraph} (W W' : Weights G)
+                  → (D : PersistenceDiagram W) (D' : PersistenceDiagram W')
+                  → bottleneck-distance D D' ≤ weight-norm W W'  -- d_B(D(W), D(W')) ≤ ||W - W'||
 
 {-|
 ## Example 3.22: Convolutional Network Persistence
@@ -392,8 +409,12 @@ Long persistence ⇒ fundamental feature (edges are essential for vision).
 -}
 
 postulate
-  example-conv-persistence : ∀ (G : DirectedGraph)
-                           → {!!}  -- Edge features have high persistence
+  EdgeFeature : DirectedGraph → Type
+  persistence : ∀ {G} → EdgeFeature G → ℝ
+  high-persistence-threshold : ℝ
+
+  example-conv-persistence : ∀ (G : DirectedGraph) (ef : EdgeFeature G)
+                           → persistence ef ≥ high-persistence-threshold  -- Edge features have high persistence
 
 --------------------------------------------------------------------------------
 -- § 3.4.5: Semantic Information Measures
@@ -422,16 +443,20 @@ Homological information generalizes integrated information Φ:
 -}
 
 postulate
+  -- Abelian group structure for homology
+  HomologyGroup : DirectedGraph → Nat → Type
+
   -- Rank of abelian group
-  rank : ∀ {A : Type} → {!!} → Nat  -- Rank of homology group
+  rank : ∀ {G n} → HomologyGroup G n → Nat
 
   -- Torsion subgroup size
-  torsion-size : ∀ {A : Type} → {!!} → Nat
+  torsion-size : ∀ {G n} → HomologyGroup G n → Nat
 
   -- Semantic information
   Semantic-Information : DirectedGraph → Type
   I-sem : (G : DirectedGraph) → Semantic-Information G
-  I-sem-def : ∀ G → {!!}  -- Σ_n rank(H_n) · log(|torsion(H_n)|)
+  -- TODO: Requires sum over all dimensions
+  I-sem-def : ∀ G → {!!}  -- Σ_n rank(H_n(G)) · log(torsion-size(H_n(G)))
 
 {-|
 ## Example 3.23: Information Growth During Training
@@ -452,8 +477,10 @@ This explains why networks develop interpretable structure.
 -}
 
 postulate
+  _>-sem_ : ∀ {G G'} → Semantic-Information G → Semantic-Information G' → Type
+
   example-training-increases-info : ∀ {G_init G_trained : DirectedGraph}
-                                  → {!!}  -- I_sem(G_trained) > I_sem(G_init)
+                                  → I-sem G_trained >-sem I-sem G_init  -- I_sem(G_trained) > I_sem(G_init)
 
 --------------------------------------------------------------------------------
 -- § 3.4.6: Integrated Information (IIT Connection)
@@ -489,6 +516,7 @@ postulate
 
   -- Integrated information
   Φ : DirectedGraph → Type
+  -- TODO: Requires minimum over partitions and sum over subgraphs
   Φ-def : ∀ G → {!!}  -- min_π [I_sem(G) - Σ I_sem(Gᵢ)]
 
 {-|
@@ -510,8 +538,10 @@ postulate
 -}
 
 postulate
+  zero-Φ : ∀ {G} → Φ G
+
   proposition-3-5 : ∀ (G : DirectedGraph)
-                  → {!!}  -- Acyclic ⇒ Φ(G) = 0
+                  → IsAcyclic G → Φ G ≡ zero-Φ  -- Acyclic ⇒ Φ(G) = 0
 
 {-|
 ## Example 3.24: Recurrent Network Φ
@@ -525,8 +555,11 @@ The homological measure captures information flow through time!
 -}
 
 postulate
-  example-lstm-phi : ∀ (G : DirectedGraph) (t : {!!})
-                   → {!!}  -- Φ varies with gate states
+  Time : Type
+  GateState : DirectedGraph → Time → Type
+
+  example-lstm-phi : ∀ (G : DirectedGraph) (t : Time) (gs : GateState G t)
+                   → Φ G  -- Φ varies with gate states (TODO: express variation)
 
 --------------------------------------------------------------------------------
 -- § 3.4.7: Cup Product and Feature Interaction
@@ -558,9 +591,12 @@ postulate
   ⌣-assoc : ∀ {G p q r} (α : Cohomology G p) (β : Cohomology G q) (γ : Cohomology G r)
           → (α ⌣ β) ⌣ γ ≡ α ⌣ (β ⌣ γ)
 
-  -- Graded commutativity
+  -- Scalar multiplication by sign
+  _·-coh_ : ∀ {G n} → ℤ → Cohomology G n → Cohomology G n
+
+  -- Graded commutativity: TODO: need to express (-1)^{pq}
   ⌣-comm : ∀ {G p q} (α : Cohomology G p) (β : Cohomology G q)
-         → α ⌣ β ≡ {!!}  -- (-1)^{pq} · β ⌣ α
+         → {!!}  -- α ⌣ β ≡ (-1)^{pq} · (β ⌣ α)
 
 {-|
 ## Example 3.25: Compositional Object Recognition
@@ -580,8 +616,11 @@ This explains hierarchical feature learning.
 -}
 
 postulate
+  ObjectPart : DirectedGraph → Type
+  from-cup-product : ∀ {G p q} → Cohomology G p → Cohomology G q → ObjectPart G
+
   example-car-composition : ∀ {G : DirectedGraph}
-                          → {!!}  -- Cup products give object parts
+                          → {!!}  -- TODO: Express that cup products compose to give object parts
 
 --------------------------------------------------------------------------------
 -- § 3.4.8: Spectral Sequences and Layer-wise Information
@@ -612,9 +651,9 @@ postulate
   -- Differential d_r: E_r^{p,q} → E_r^{p+r,q-r+1}
   d : ∀ {G r p q} → Spectral-Page G r p q → Spectral-Page G r (p + r) (q - r + suc 0)
 
-  -- Convergence to cohomology
+  -- Convergence to cohomology (TODO: requires notion of infinity and convergence)
   converges-to : ∀ {G p q}
-               → {!!}  -- E_∞^{p,q} ⇒ H^{p+q}(G)
+               → {!!}  -- Spectral-Page G ∞ p q ⇒ Cohomology G (p + q)
 
 {-|
 ## Example 3.26: Layer-wise Feature Emergence in ResNet
@@ -635,7 +674,7 @@ This is a complete topological description of deep learning!
 
 postulate
   example-resnet-spectral : ∀ (G : DirectedGraph)
-                          → {!!}  -- Spectral sequence for ResNet
+                          → {!!}  -- TODO: Type for spectral sequence computation
 
 --------------------------------------------------------------------------------
 -- § 3.4.9: Summary and Connections
@@ -750,9 +789,12 @@ module _ (K : Type) where  -- Ring of coefficients
     -- Free module B'_n at each degree
     B' : Nat → Type
 
+  postulate
+    Proposition : Type
+
   -- Generators [P_1 | ... | P_n]
   data BarGenerator (n : Nat) : Type where
-    bar-gen : {!!} → BarGenerator n  -- List of n propositions
+    bar-gen : List Proposition → BarGenerator n  -- List of n propositions
 
   {-|
   ## Equation 3.27: Hochschild Boundary Operator
@@ -770,12 +812,15 @@ module _ (K : Type) where  -- Ring of coefficients
   -}
 
   postulate
+    -- Zero element in bar complex
+    zero-B' : ∀ {n} → B' n
+
     -- Boundary operator ∂_n: B'_n → B'_{n-1}
     ∂ : ∀ {n} → B' (suc n) → B' n
 
     -- ∂ ∘ ∂ = 0 (fundamental property)
     ∂-∂-zero : ∀ {n} (c : B' (suc (suc n)))
-             → ∂ (∂ c) ≡ {!!}  -- zero in B' n
+             → ∂ (∂ c) ≡ zero-B'  -- zero in B' n
 
   {-|
   ## Equation 3.28: Coboundary Operator
@@ -795,12 +840,15 @@ module _ (K : Type) where  -- Ring of coefficients
     -- Cochain complex Hom(B'_★, Φ)
     Cochain : Nat → Type
 
+    -- Zero cochain
+    zero-Cochain : ∀ {n} → Cochain n
+
     -- Coboundary δ^n: Cochain n → Cochain (n+1)
     δ : ∀ {n} → Cochain n → Cochain (suc n)
 
     -- δ ∘ δ = 0
     δ-δ-zero : ∀ {n} (f : Cochain n)
-             → δ (δ f) ≡ {!!}  -- zero in Cochain (n+2)
+             → δ (δ f) ≡ zero-Cochain  -- zero in Cochain (n+2)
 
   {-|
   ## Ext Cohomology Groups
@@ -812,9 +860,16 @@ module _ (K : Type) where  -- Ring of coefficients
   These measure semantic information at different levels.
   -}
 
-  -- Ext cohomology
+  postulate
+    -- Kernel of coboundary
+    ker-δ : ∀ n → Type  -- {f : Cochain n | δ f = zero-Cochain}
+
+    -- Image of previous coboundary
+    im-δ : ∀ n → Type  -- {δ g | g : Cochain (n-1)}
+
+  -- Ext cohomology (quotient of ker by im)
   Ext : Nat → Type
-  Ext n = {!!}  -- H^n of cochain complex = ker(δ^n) / im(δ^{n-1})
+  Ext n = {!!}  -- ker-δ n / im-δ n (requires quotient type)
 
   {-|
   ## Proposition 3.4: Ext^0 Counts Output Propositions
@@ -837,7 +892,11 @@ module _ (K : Type) where  -- Ring of coefficients
   This connects to cat's manifolds from Section 3.1.
   -}
 
-  proposition-3-4 : Ext 0 ≃ {!!}  -- K^{π_0(A'_strict)}
+  postulate
+    π₀ : Type → Type  -- Connected components
+    _^_ : Type → Type → Type  -- Function type (K^X = X → K)
+
+  proposition-3-4 : Ext 0 ≃ (π₀ A'-Cat ^ K)  -- K^{π_0(A'_strict)}
   proposition-3-4 = {!!}
 
   {-|
@@ -860,7 +919,7 @@ module _ (K : Type) where  -- Ring of coefficients
   Therefore every 1-cocycle is exact (coboundary of ψ).
   -}
 
-  proposition-3-5 : Ext 1 ≃ {!!}  -- Unit type (trivial group)
+  proposition-3-5 : Ext 1 ≃ ⊤  -- Unit type (trivial group)
   proposition-3-5 = {!!}
 
   {-|
@@ -884,7 +943,7 @@ module _ (K : Type) where  -- Ring of coefficients
   structure of the conditioning action.
   -}
 
-  proposition-3-6 : ∀ (n : Nat) → (n ≥ 1) → Ext n ≃ {!!}  -- Unit
+  proposition-3-6 : ∀ (n : Nat) → (n ≥ 1) → Ext n ≃ ⊤  -- Unit
   proposition-3-6 = {!!}
 
 {-|
@@ -936,16 +995,22 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} (K : Type) where
     -- Degree-1 cochain: conditional semantic function
     φ : {λ : A-Ob} → {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)} → Θ λ → K
 
+    -- Pullback of theory
+    π★-theory : ∀ {λ λ'} → A'-strict-Hom λ λ' → Θ λ' → Θ λ
+
     -- Equation 3.41: Transfer naturality for ψ
     ψ-transfer : ∀ {λ λ' : A-Ob} (f : A'-strict-Hom λ λ')
                → (T' : Θ λ')
-               → ψ {λ} {!!} ≡ ψ {λ'} T'  -- ψ_λ(π★ T') = ψ_λ'(T')
+               → ψ {λ} (π★-theory f T') ≡ ψ {λ'} T'  -- ψ_λ(π★ T') = ψ_λ'(T')
+
+    -- Pullback of proposition
+    f★-prop : ∀ {λ λ'} → A'-strict-Hom λ λ' → Ω (λ' .A-Ob.layer) (λ' .A-Ob.context) → Ω (λ .A-Ob.layer) (λ .A-Ob.context)
 
     -- Equation 3.42: Transfer naturality for φ
     φ-transfer : ∀ {λ λ' : A-Ob} (f : A'-strict-Hom λ λ')
                → {Q' : Ω (λ' .A-Ob.layer) (λ' .A-Ob.context)}
                → (S' : Θ λ')
-               → φ {λ} {!!} ≡ φ {λ'} {Q'} S'  -- φ^{f★Q'}_λ(π★ S') = φ^{Q'}_λ'(S')
+               → φ {λ} {f★-prop f Q'} (π★-theory f S') ≡ φ {λ'} {Q'} S'  -- φ^{f★Q'}_λ(π★ S') = φ^{Q'}_λ'(S')
 
   {-|
   ## Equations 3.43-3.45: Mutual Information Interpretation
@@ -975,23 +1040,35 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} (K : Type) where
   -}
 
   postulate
+    -- Implication (Q implies S)
+    _⇒_ : ∀ {U ξ} → Ω U ξ → Θ {U} {ξ} → Θ {U} {ξ}
+
+    -- Subtraction in K
+    _-K_ : K → K → K
+
+    -- Zero element in K
+    zero-K : K
+
     -- Equation 3.43: Mutual information definition
     mutual-info-def : ∀ {λ : A-Ob}
                     → {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)}
                     → (S : Θ λ)
-                    → φ {λ} {Q} S ≡ {!!}  -- ψ_λ(Q ⇒ S) - ψ_λ(S)
+                    → φ {λ} {Q} S ≡ (ψ {λ} (Q ⇒ S) -K ψ {λ} S)  -- ψ_λ(Q ⇒ S) - ψ_λ(S)
 
     -- Non-negativity (when K = ℝ with ordering)
     mutual-info-nonneg : ∀ {λ : A-Ob}
                        → {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)}
                        → (S : Θ λ)
-                       → {!!}  -- φ^Q_λ(S) ≥ 0
+                       → φ {λ} {Q} S ≥ zero-K  -- φ^Q_λ(S) ≥ 0
+
+    -- Independence predicate
+    IsIndependent : ∀ {λ : A-Ob} → Ω (λ .A-Ob.layer) (λ .A-Ob.context) → Θ λ → Type
 
     -- Independence condition
     mutual-info-zero-independence : ∀ {λ : A-Ob}
                                   → {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)}
                                   → (S : Θ λ)
-                                  → {!!}  -- If Q indep S, then φ^Q_λ(S) = 0
+                                  → IsIndependent Q S → φ {λ} {Q} S ≡ zero-K  -- 0
 
   {-|
   ## Equation 3.46: Von Neumann Entropy Analogy
@@ -1031,10 +1108,13 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} (K : Type) where
     -- Shannon entropy (for probability distributions)
     Shannon-H : {X : Type} → (X → K) → K  -- -Σ p(x) log p(x)
 
-    -- Von Neumann entropy (for density matrices)
-    VonNeumann-S : {H : Type} → {!!} → K  -- -Tr(ρ log ρ)
+    -- Density matrix type
+    DensityMatrix : Type → Type
 
-    -- Semantic entropy satisfies analogous properties
+    -- Von Neumann entropy (for density matrices)
+    VonNeumann-S : {H : Type} → DensityMatrix H → K  -- -Tr(ρ log ρ)
+
+    -- Semantic entropy satisfies analogous properties (TODO: formalize entropy axioms)
     ψ-entropy-analogy : ∀ {λ : A-Ob} → (T : Θ λ) → {!!}  -- ψ behaves like entropy
 
   {-|
@@ -1082,14 +1162,17 @@ module _ {C : Precategory o ℓ} {F : Stack C o' ℓ'} (K : Type) where
   -}
 
   postulate
-    -- Equation 3.47: Semantic functioning
+    -- Top element (always true proposition)
+    ⊤-prop : ∀ {U ξ} → Ω U ξ
+
+    -- Equation 3.47: Semantic functioning (TODO: requires sum over Θ_λ)
     ℱ : (λ : A-Ob) → K
     ℱ-def : ∀ (λ : A-Ob) → ℱ λ ≡ {!!}  -- Σ_{T ∈ Θ_λ} ψ_λ(T)
 
     -- Equation 3.48: Semantic ambiguity
     𝒜 : (λ : A-Ob) → {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)} → K
     𝒜-def : ∀ (λ : A-Ob) {Q : Ω (λ .A-Ob.layer) (λ .A-Ob.context)}
-          → 𝒜 λ {Q} ≡ {!!}  -- ψ_λ(⊤) - ψ_λ(Q)
+          → 𝒜 λ {Q} ≡ (ψ {λ} (⊤-prop ⇒ {!!}) -K ψ {λ} (Q ⇒ {!!}))  -- ψ_λ(⊤) - ψ_λ(Q) (need top theory)
 
     -- Equation 3.49: Functioning equals ambiguity
     functioning-ambiguity : ∀ (λ : A-Ob)
