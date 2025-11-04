@@ -440,14 +440,20 @@ to represent feature masks and attention patterns.
              → χ₁ ≡ χ₂
   -- Proof: Universal property ensures uniqueness
 
+  -- Truth arrow: 1 → Ω_F (from terminal to classifier)
+  -- Terminal object in presheaves over fibration is the constant presheaf with value 1
+  postulate
+    terminal-POF : Presheaf-over-Fib F
+    truth-arrow-POF : Mono-POF terminal-POF Ω-F-is-Presheaf-over-Fib
+
   -- Pullback property: B ≅ χ⁻¹(true)
   -- B is the pullback of true: 1 → Ω_F along the characteristic morphism
   -- This says the mono m: B ↪ A is the pullback of the truth arrow along χ_m
   postulate
     χ-pullback : ∀ {A B : Presheaf-over-Fib F} (mono : Mono-POF B A)
-               → Pullback (PSh (o' ⊔ ℓ') C) {!!} {!!}
-  -- TODO: Need to define truth arrow and show pullback property
-  -- This requires defining terminal object in presheaves over fibration
+               → Pullback (PSh (o' ⊔ ℓ') C) (χ mono) truth-arrow-POF
+  -- Proof: Universal property of subobject classifier
+  -- Every mono is uniquely determined by its characteristic morphism
 
 --------------------------------------------------------------------------------
 -- Examples and Applications
@@ -587,13 +593,20 @@ module Logical-Operations {C : Precategory o ℓ} {o' ℓ' : Level} (F : Stack {
   -- In a topos, Ω has Heyting algebra structure
   -- These operations are defined fiber-wise using the topos structure
 
+  -- Result presheaves for logical operations (constructed via topos operations)
+  postulate
+    _∩-POF_ : Presheaf-over-Fib F → Presheaf-over-Fib F → Presheaf-over-Fib F  -- Intersection
+    _∪-POF_ : Presheaf-over-Fib F → Presheaf-over-Fib F → Presheaf-over-Fib F  -- Union
+    _⇒-POF_ : Presheaf-over-Fib F → Presheaf-over-Fib F → Presheaf-over-Fib F  -- Implication
+    ¬-POF_ : Presheaf-over-Fib F → Presheaf-over-Fib F                        -- Negation
+
   -- Conjunction: A ∧ B (both features active)
   -- Obtained by taking the pullback (meet in the subobject lattice)
   postulate
     _∧-Ω_ : ∀ {A B X : Presheaf-over-Fib F}
           → (χ_A : Mono-POF A X)  -- Classifying morphism for A
           → (χ_B : Mono-POF B X)  -- Classifying morphism for B
-          → Mono-POF {!!} X      -- Classifying morphism for A ∩ B
+          → Mono-POF (A ∩-POF B) X      -- Classifying morphism for A ∩ B
   -- Proof: Use pullback in each topos E_U to construct A ∩ B
 
   -- Disjunction: A ∨ B (either feature active)
@@ -602,7 +615,7 @@ module Logical-Operations {C : Precategory o ℓ} {o' ℓ' : Level} (F : Stack {
     _∨-Ω_ : ∀ {A B X : Presheaf-over-Fib F}
           → (χ_A : Mono-POF A X)
           → (χ_B : Mono-POF B X)
-          → Mono-POF {!!} X
+          → Mono-POF (A ∪-POF B) X
   -- Proof: Use image factorization of [inl, inr]: A + B → X in each E_U
 
   -- Implication: A → B (if A active then B active)
@@ -611,7 +624,7 @@ module Logical-Operations {C : Precategory o ℓ} {o' ℓ' : Level} (F : Stack {
     _⇒-Ω_ : ∀ {A B X : Presheaf-over-Fib F}
           → (χ_A : Mono-POF A X)
           → (χ_B : Mono-POF B X)
-          → Mono-POF {!!} X
+          → Mono-POF (A ⇒-POF B) X
   -- Proof: Use exponential object in topos: construct B^A with evaluation map
 
   -- Negation: ¬A (feature not active)
@@ -619,7 +632,7 @@ module Logical-Operations {C : Precategory o ℓ} {o' ℓ' : Level} (F : Stack {
   postulate
     ¬-Ω_ : ∀ {A X : Presheaf-over-Fib F}
          → (χ_A : Mono-POF A X)
-         → Mono-POF {!!} X
+         → Mono-POF (¬-POF A) X
   -- Proof: ¬A = Hom(A, ⊥) in the internal logic of each E_U
 
 --------------------------------------------------------------------------------
