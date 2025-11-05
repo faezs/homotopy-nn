@@ -20,8 +20,24 @@
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [ haskell-flake.flakeModule ];
 
-      perSystem = { self', pkgs, system, ... }:
+      perSystem = { self', system, ... }:
       let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            (final: prev: {
+              haskellPackages = prev.haskellPackages.override {
+                overrides = hself: hsuper: {
+                  Agda = (hself.callCabal2nix "Agda" agda {}).overrideAttrs (oldAttrs: oldAttrs // {
+                    meta = oldAttrs.meta // {
+                      mainProgram = "agda";
+                    };
+                  });
+                };
+              };
+            })
+          ];
+        };
         # Python with ML/AI stack
         pythonEnv = pkgs.python312.withPackages (ps: with ps; [
           numpy
@@ -63,33 +79,44 @@
       in
       {
         # Haskell project for einsum-bridge
-        haskellProjects.default = {
-          basePackages = pkgs.haskell.packages.ghc910;
+        haskellProjects.einsum-bridge = {
+          # basePackages = pkgs.haskell.packages.ghc910;
 
           # hask/ directory will be auto-discovered as local package
           packages = {
-            # Override Agda package to use our custom version
-            Agda.source = agda;
           };
 
           settings = {
-            einsum-bridge = {
+            # einsum-bridge = {
               # Package-specific settings if needed
-            };
+            # };
           };
+          # default is all autowires
+          autoWire = [ "apps" "devShells" "packages" ];
 
           devShell = {
             tools = hp: {
               hlint = null; # Disable hlint due to GHC 9.10 incompatibility
               haskell-language-server = null; # Disable HLS
             };
+
+            mkShellArgs = {
+              packages = [ pythonEnv ];
+              shellHook = ''
+                export EINSUM_PYTHON=${pythonEnv}/bin/python3
+                echo "Einsum Bridge Development Environment"
+                echo "====================================="
+                echo "Python with ML packages: $EINSUM_PYTHON"
+                echo "Run: cd hask && cabal run einsum-repl"
+              '';
+            };
           };
         };
 
-        # Override devShell to include Agda + Python
+        # Combine Haskell + Agda + Python into unified devShell
         devShells.default = pkgs.mkShell {
           inputsFrom = [
-            self'.devShells.default  # Haskell tools from haskell-flake
+            self'.devShells.einsum-bridge
           ];
 
           packages = [
@@ -99,12 +126,14 @@
 
           shellHook = ''
             export AGDA_DIR="$(pwd)"
+            export EINSUM_PYTHON=${pythonEnv}/bin/python3
             echo "Homotopy Neural Networks Dev Environment"
             echo "========================================"
             echo "Agda: $(agda --version)"
             echo "GHC: $(ghc --version)"
             echo "Cabal: $(cabal --version | head -1)"
             echo "Python: $(python3 --version)"
+            echo "Python with ML packages: $EINSUM_PYTHON"
             echo ""
             echo "Available commands:"
             echo "  cabal run einsum-repl  - Interactive Haskell/Python bridge"
@@ -115,62 +144,50 @@
           '';
         };
 
-        # Test suite for topos categorical structure
-        checks.topos-tests = pkgs.stdenv.mkDerivation {
-          name = "topos-property-tests";
-          src = ./neural_compiler/topos;
-          buildInputs = [
-            (pkgs.python312.withPackages (ps: with ps; [
-              pytest
-              hypothesis
-              torch
-              numpy
-            ]))
-          ];
-          buildPhase = ''
-            export PYTHONPATH="${./neural_compiler}:$PYTHONPATH"
-            python3 -m pytest test_topos_laws.py -v --tb=short
-          '';
-          installPhase = ''
-            mkdir -p $out
-            echo "Topos tests passed" > $out/result
-          '';
-        };
+      #   # Test suite for topos categorical structure
+      #   checks.topos-tests = pkgs.stdenv.mkDerivation {
+      #     name = "topos-property-tests";
+      #     src = ./neural_compiler/topos;
+      #     buildInputs = [
+      #       (pkgs.python312.withPackages (ps: with ps; [
+      #         pytest
+      #         hypothesis
+      #         torch
+      #         numpy
+      #       ]))
+      #     ];
+      #     buildPhase = ''
+      #       export PYTHONPATH="${./neural_compiler}:$PYTHONPATH"
+      #       python3 -m pytest test_topos_laws.py -v --tb=short
+      #     '';
+      #     installPhase = ''
+      #       mkdir -p $out
+      #       echo "Topos tests passed" > $out/result
+      #     '';
+      #   };
 
-        # Run all tests
-        checks.all-tests = pkgs.stdenv.mkDerivation {
-          name = "all-topos-tests";
-          src = ./neural_compiler/topos;
-          buildInputs = [
-            (pkgs.python312.withPackages (ps: with ps; [
-              pytest
-              hypothesis
-              torch
-              numpy
-            ]))
-          ];
-          buildPhase = ''
-            export PYTHONPATH="${./neural_compiler}:$PYTHONPATH"
-            python3 -m pytest test_topos_laws.py test_topos_properties.py -v --hypothesis-show-statistics --tb=short
-          '';
-          installPhase = ''
-            mkdir -p $out
-            echo "All topos tests passed" > $out/result
-          '';
-        };
-      };
-
-      # Apply Haskell package overlay for Agda from GitHub
-      flake.overlays.default = final: prev: {
-        haskellPackages = prev.haskellPackages.override {
-          overrides = hself: hsuper: {
-            Agda = (hself.callCabal2nix "Agda" agda {}).overrideAttrs (oldAttrs: oldAttrs // {
-              meta = oldAttrs.meta // {
-                mainProgram = "agda";
-              };
-            });
-          };
-        };
+      #   # Run all tests
+      #   checks.all-tests = pkgs.stdenv.mkDerivation {
+      #     name = "all-topos-tests";
+      #     src = ./neural_compiler/topos;
+      #     buildInputs = [
+      #       (pkgs.python312.withPackages (ps: with ps; [
+      #         pytest
+      #         hypothesis
+      #         torch
+      #         numpy
+      #       ]))
+      #     ];
+      #     buildPhase = ''
+      #       export PYTHONPATH="${./neural_compiler}:$PYTHONPATH"
+      #       python3 -m pytest test_topos_laws.py test_topos_properties.py -v --hypothesis-show-statistics --tb=short
+      #     '';
+      #     installPhase = ''
+      #       mkdir -p $out
+      #       echo "All topos tests passed" > $out/result
+      #     '';
+      #   };
+      # };
       };
     };
 }
