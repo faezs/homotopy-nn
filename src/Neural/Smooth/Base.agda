@@ -578,6 +578,54 @@ postulate
     Σ ℝ (λ b → b ·ℝ b ≡ a)
 
 --------------------------------------------------------------------------------
+-- § 4.5: Helper Functions for MUP and Numeric Literals
+
+{-|
+## ℝ-from-nat: Natural Number Conversion
+
+Converts natural numbers to real numbers via iterated addition.
+-}
+
+ℝ-from-nat : Nat → ℝ
+ℝ-from-nat zero = 0ℝ
+ℝ-from-nat (suc n) = 1ℝ +ℝ ℝ-from-nat n
+
+{-|
+## sqrtℝ: Square Root Function
+
+Extracts the square root from the geometric construction.
+Uses the circle construction from Figure 1.3.
+-}
+
+postulate
+  sqrtℝ : ℝ → ℝ
+  sqrtℝ-spec : ∀ (a : ℝ) → (0ℝ <ℝ a) → (sqrtℝ a) ·ℝ (sqrtℝ a) ≡ a
+
+{-# COMPILE GHC sqrtℝ = \x -> sqrt x #-}
+
+{-|
+## Fraction Helper: Create ℝ from Rationals
+
+For convenience in defining MUP hyperparameters like 0.1 = 1/10.
+Note: Requires proof that denominator ≠ 0.
+-}
+
+-- Helper to convert fraction to ℝ
+postulate
+  0≠1-lemma : ¬ (0ℝ ≡ 1ℝ)
+
+-- Proof that ℝ-from-nat (suc n) ≠ 0
+postulate
+  from-nat-suc-nonzero : ∀ (n : Nat) → ℝ-from-nat (suc n) ≠ 0ℝ
+
+-- Convenient infix operator for fractions (only defined for non-zero denom)
+_/ₙ_ : (num : Nat) → (denom : Nat) → ℝ
+num /ₙ zero = 0ℝ  -- undefined case, should never be called
+num /ₙ (suc d) = ((ℝ-from-nat num) /ℝ (ℝ-from-nat (suc d))) (from-nat-suc-nonzero d)
+
+infixl 30 _/ₙ_
+
+--------------------------------------------------------------------------------
 -- § 5: Summary and Exports
 
 {-|

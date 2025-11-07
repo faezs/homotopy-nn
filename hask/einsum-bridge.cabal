@@ -14,6 +14,7 @@ library
   exposed-modules:
     Einsum.PythonBridge
     Attention.Bridge
+    MLP.Compiler
   build-depends:
     base >= 4.14 && < 5,
     aeson >= 2.0,

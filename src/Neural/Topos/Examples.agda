@@ -68,6 +68,117 @@ module SimpleMLP where
   -- This is a totally ordered poset (a chain), which is the simplest case.
 
 {-|
+## Example 1b: SimpleMLP with MUP (Maximal Update Parameterization)
+
+Extends SimpleMLP with MUP scaling rules (Yang et al. 2022).
+
+**MUP ensures**: Feature learning stays O(1) across widths, enabling
+hyperparameter transfer from small to large models.
+
+**Architecture** (same chain):
+```
+input(784) → h₁(w) → h₂(w) → output(10)
+```
+
+**MUP Scaling** (w = hidden width):
+- Hidden layers: init_std = base_std / √w, lr = base_lr
+- Output layer:  init_std = base_std / w,  lr = base_lr / w
+
+This allows testing at w=64, then transferring hyperparameters to w=1024!
+-}
+module SimpleMLP-MUP where
+  open SimpleMLP public
+
+  -- Import MUP infrastructure
+  open import Neural.Stack.MUP
+  open import Data.Nat using (_*_)
+  open import Neural.Smooth.Base using (ℝ; _/ₙ_)
+
+  -- Width function: hidden layers have variable width
+  mlp-width : Fin 4 → Nat
+  mlp-width fzero = 28 * 28  -- input (MNIST: 784)
+  mlp-width (fsuc fzero) = 64       -- h₁ (variable for MUP test!)
+  mlp-width (fsuc (fsuc fzero)) = 64 -- h₂ (variable for MUP test!)
+  mlp-width (fsuc (fsuc (fsuc fzero))) = 10 -- output (10 classes)
+
+  -- MUP base hyperparameters (width-independent)
+  mlp-mup-base : MUPBase
+  mlp-mup-base = record
+    { base-lr      = 1 /ₙ 10  -- 0.1 (ℝ)
+    ; base-std     = 1 /ₙ 50  -- 0.02 (ℝ)
+    ; hidden-depth = 2     -- Two hidden layers
+    }
+
+  -- MUP config at specific width w
+  mlp-mup-config : (w : Nat) → MUPConfig w
+  mlp-mup-config w = mk-mup-config mlp-mup-base w
+
+  -- Example: Small model (width=64)
+  mlp-config-64 : MUPConfig 64
+  mlp-config-64 = mlp-mup-config 64
+
+  -- Example: Large model (width=1024)
+  mlp-config-1024 : MUPConfig 1024
+  mlp-config-1024 = mlp-mup-config 1024
+
+  {-|
+  ### Weight Spaces with MUP Scaling
+
+  For each layer, the weight initialization follows MUP rules:
+  - Input  → h₁:  σ = base_std / √64  = 0.025  (at width 64)
+  - h₁     → h₂:  σ = base_std / √64  = 0.025
+  - h₂     → out: σ = base_std / 64   = 0.00031 (stronger scaling!)
+
+  At width 1024:
+  - Input  → h₁:  σ = base_std / √1024 = 0.000625
+  - h₁     → h₂:  σ = base_std / √1024 = 0.000625
+  - h₂     → out: σ = base_std / 1024  = 0.0000195
+  -}
+
+  -- Matrix type for weights: m×n matrix with initialization std σ
+  record Matrix (m n : Nat) (σ : ℝ) : Type where
+    field
+      entries : Fin m → Fin n → ℝ
+
+  {-# COMPILE GHC Matrix = data Matrix #-}
+
+  -- Weight space for each edge in the chain
+  WeightSpace-MUP : (w : Nat) → Fin 4 → Type
+  WeightSpace-MUP w fzero =
+    -- Input → h₁: use hidden std
+    let config = mlp-mup-config w
+    in Matrix (mlp-width fzero) w (MUPConfig.hidden-std config)
+
+  WeightSpace-MUP w (fsuc fzero) =
+    -- h₁ → h₂: use hidden std
+    let config = mlp-mup-config w
+    in Matrix w w (MUPConfig.hidden-std config)
+
+  WeightSpace-MUP w (fsuc (fsuc fzero)) =
+    -- h₂ → output: use output std (stronger scaling!)
+    let config = mlp-mup-config w
+    in Matrix w (mlp-width (fsuc (fsuc (fsuc fzero))))
+               (MUPConfig.output-std config)
+
+  WeightSpace-MUP w (fsuc (fsuc (fsuc fzero))) =
+    -- Output layer (no outgoing edges)
+    Lift _ ⊤
+
+  {-|
+  ### Learning Rates with MUP Scaling
+
+  - Hidden layers: lr = base_lr (no scaling)
+  - Output layer:  lr = base_lr / width (scaled down)
+  -}
+  LearningRate-MUP : (w : Nat) → Fin 4 → ℝ
+  LearningRate-MUP w fzero = MUPBase.base-lr mlp-mup-base
+  LearningRate-MUP w (fsuc fzero) = MUPBase.base-lr mlp-mup-base
+  LearningRate-MUP w (fsuc (fsuc fzero)) =
+    MUPConfig.output-lr (mlp-mup-config w)  -- base_lr / w
+  LearningRate-MUP w (fsuc (fsuc (fsuc fzero))) =
+    MUPConfig.output-lr (mlp-mup-config w)
+
+{-|
 ## Example 2: Convergent Network (ResNet-like)
 
 Two input branches converging to a single layer:
