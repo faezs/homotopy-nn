@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <style>
+    .node { fill: #6666ff; stroke: #1a1a1a; stroke-width: 2; }
+    .label { font-family: monospace; font-size: 14px; text-anchor: middle; fill: white; }
+    .arrow { stroke: #1a1a1a; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1a1a1a"/>
+    </marker>
+  </defs>
+
+  <!-- Nodes -->
+  <circle cx="140" cy="50" r="30" class="node"/>
+  <text x="140" y="55" class="label">x₀,₁</text>
+
+  <circle cx="260" cy="50" r="30" class="node"/>
+  <text x="260" y="55" class="label">x₀,₂</text>
+
+  <circle cx="200" cy="200" r="30" class="node"/>
+  <text x="200" y="205" class="label">h</text>
+
+  <circle cx="200" cy="350" r="30" class="node"/>
+  <text x="200" y="355" class="label">y</text>
+
+  <!-- Edges -->
+  <path d="M 150 75 L 190 175" class="arrow"/>
+  <path d="M 250 75 L 210 175" class="arrow"/>
+  <path d="M 200 230 L 200 320" class="arrow"/>
+</svg>

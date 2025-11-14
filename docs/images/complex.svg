@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="500" viewBox="0 0 600 500">
+  <style>
+    .node { fill: #6666ff; stroke: #1a1a1a; stroke-width: 2; }
+    .label { font-family: monospace; font-size: 12px; text-anchor: middle; fill: white; }
+    .arrow { stroke: #1a1a1a; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1a1a1a"/>
+    </marker>
+  </defs>
+
+  <!-- Top layer -->
+  <circle cx="150" cy="50" r="25" class="node"/>
+  <text x="150" y="55" class="label">x₀,₁</text>
+
+  <circle cx="450" cy="50" r="25" class="node"/>
+  <text x="450" y="55" class="label">x₀,₂</text>
+
+  <!-- Middle layer -->
+  <circle cx="200" cy="180" r="25" class="node"/>
+  <text x="200" y="185" class="label">c₁</text>
+
+  <circle cx="400" cy="180" r="25" class="node"/>
+  <text x="400" y="185" class="label">c₂</text>
+
+  <circle cx="300" cy="280" r="25" class="node"/>
+  <text x="300" y="285" class="label">c₃</text>
+
+  <!-- Output layer -->
+  <circle cx="100" cy="420" r="20" class="node"/>
+  <text x="100" y="425" class="label" style="font-size: 10px;">xₙ,₁</text>
+
+  <circle cx="200" cy="420" r="20" class="node"/>
+  <text x="200" y="425" class="label" style="font-size: 10px;">xₙ,₂</text>
+
+  <circle cx="300" cy="420" r="20" class="node"/>
+  <text x="300" y="425" class="label" style="font-size: 10px;">xₙ,₃</text>
+
+  <circle cx="400" cy="420" r="20" class="node"/>
+  <text x="400" y="425" class="label" style="font-size: 10px;">xₙ,₄</text>
+
+  <circle cx="500" cy="420" r="20" class="node"/>
+  <text x="500" y="425" class="label" style="font-size: 10px;">xₙ,₅</text>
+
+  <!-- Edges -->
+  <path d="M 155 72 L 195 158" class="arrow"/>
+  <path d="M 445 72 L 405 158" class="arrow"/>
+  <path d="M 215 200 L 285 265" class="arrow"/>
+  <path d="M 385 200 L 315 265" class="arrow"/>
+  <path d="M 380 190 L 220 170" class="arrow"/>
+  <path d="M 285 295 L 110 405" class="arrow"/>
+  <path d="M 290 300 L 205 405" class="arrow"/>
+  <path d="M 300 305 L 300 395" class="arrow"/>
+  <path d="M 310 300 L 395 405" class="arrow"/>
+  <path d="M 315 295 L 490 405" class="arrow"/>
+</svg>

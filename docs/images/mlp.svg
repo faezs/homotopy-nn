@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="150" viewBox="0 0 600 150">
+  <style>
+    .node { fill: #6666ff; stroke: #1a1a1a; stroke-width: 2; }
+    .label { font-family: monospace; font-size: 14px; text-anchor: middle; fill: white; }
+    .arrow { stroke: #1a1a1a; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1a1a1a"/>
+    </marker>
+  </defs>
+
+  <!-- Nodes -->
+  <circle cx="75" cy="75" r="30" class="node"/>
+  <text x="75" y="80" class="label">x₀</text>
+
+  <circle cx="225" cy="75" r="30" class="node"/>
+  <text x="225" y="80" class="label">h₁</text>
+
+  <circle cx="375" cy="75" r="30" class="node"/>
+  <text x="375" y="80" class="label">h₂</text>
+
+  <circle cx="525" cy="75" r="30" class="node"/>
+  <text x="525" y="80" class="label">y</text>
+
+  <!-- Edges -->
+  <path d="M 105 75 L 195 75" class="arrow"/>
+  <path d="M 255 75 L 345 75" class="arrow"/>
+  <path d="M 405 75 L 495 75" class="arrow"/>
+
+  <!-- Label -->
+  <text x="300" y="130" style="font-family: serif; font-size: 12px; text-anchor: middle; fill: #666;">
+    Poset X: y ≤ h₂ ≤ h₁ ≤ x₀
+  </text>
+</svg>

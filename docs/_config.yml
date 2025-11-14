@@ -1,0 +1,22 @@
+# GitHub Pages Configuration
+title: "Homotopy Neural Networks"
+description: "Categorical and Homotopy-Theoretic Foundations for Deep Learning"
+author: "Faez Shakil"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+# Theme (optional, using default)
+theme: null
+
+# Exclude from processing
+exclude:
+  - diagrams/
+  - README.md
+  - Makefile
+
+# Include in site
+include:
+  - css/
+  - images/

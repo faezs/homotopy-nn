@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Networks Are Functors | Homotopy-NN</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <article class="post">
+        <header>
+            <h1>Neural Networks Are Functors</h1>
+            <p class="subtitle">A Categorical Foundation for Deep Learning</p>
+            <p class="author">Faez Shakil</p>
+        </header>
+
+        <section id="intro">
+            <p>Following Marcolli & Manin, a <strong>directed finite graph</strong> is a functor:</p>
+
+            <pre><code>DirectedGraph : Type
+DirectedGraph = Functor ·⇉· FinSets</code></pre>
+
+            <p>The parallel arrows category <code>·⇉·</code> has:</p>
+            <ul>
+                <li>Two objects: <code>false</code> (edges), <code>true</code> (vertices)</li>
+                <li>Two non-identity morphisms: <code>source : false → true</code>, <code>target : false → true</code></li>
+            </ul>
+
+            <p>A functor <code>G : ·⇉· → FinSets</code> maps this to:</p>
+            <pre><code>vertices : DirectedGraph → Nat
+vertices G = G.F₀ true
+
+edges : DirectedGraph → Nat
+edges G = G.F₀ false
+
+source : (G : DirectedGraph) → Fin (edges G) → Fin (vertices G)
+source G = G.F₁ true
+
+target : (G : DirectedGraph) → Fin (edges G) → Fin (vertices G)
+target G = G.F₁ false</code></pre>
+
+            <p>This is the complete data of a directed graph: vertices, edges, and their incidence relations.</p>
+        </section>
+
+        <section id="why-functors">
+            <h2>Why Functors?</h2>
+
+            <p>Category theory provides the right language for composition. Neural networks compose:</p>
+
+            <ol>
+                <li><strong>Sequentially</strong>: Chain layers end-to-end</li>
+                <li><strong>In parallel</strong>: Process multiple branches</li>
+                <li><strong>With feedback</strong>: Recurrent connections</li>
+            </ol>
+
+            <p>The functor perspective makes this precise. Given graphs \(G_1, G_2\), we want to <em>graft</em> them together. But naive concatenation breaks—what if they share vertex labels?</p>
+
+            <p><strong>Solution</strong>: <em>Network summing functors</em> \(\Sigma_C(G)\) (Marcolli & Manin, Section 2).</p>
+        </section>
+
+        <section id="summing-functors">
+            <h2>Network Summing Functors</h2>
+
+            <p>The category \(\Sigma_C(G)\) has:</p>
+            <ul>
+                <li><strong>Objects</strong>: Subsets \(S \subseteq V(G)\) of vertices</li>
+                <li><strong>Morphisms</strong>: \(S \to T\) iff \(S \subseteq T\) and connections respect the graph structure</li>
+            </ul>
+
+            <p>This captures the <em>conservation laws</em> of neural computation:</p>
+
+            <blockquote>
+                <p><strong>Proposition 2.10 (Kirchhoff's Law)</strong>: Network summing functors arise as equalizers:</p>
+                <p>\[
+                \Sigma_C(G) = \text{Eq}\left( \prod_{v \in V} C(v) \rightrightarrows \prod_{e \in E} C(e) \right)
+                \]</p>
+                <p>The two arrows are:</p>
+                <ul>
+                    <li>\(s^* : \prod_v C(v) \to \prod_e C(e)\): Pull back along source</li>
+                    <li>\(t_* : \prod_v C(v) \to \prod_e C(e)\): Push forward along target</li>
+                </ul>
+                <p>Equalizing means: incoming = outgoing (conservation).</p>
+            </blockquote>
+        </section>
+
+        <section id="semiring-homomorphism">
+            <h2>Semiring Homomorphisms and Evaluation</h2>
+
+            <p>Neural networks form a <em>categorical algebra</em>. Since we have:</p>
+            <ul>
+                <li><strong>Sequential composition</strong>: A monoidal structure \((G_1, G_2) \mapsto G_1 \circ G_2\)</li>
+                <li><strong>Parallel composition</strong>: A tensor \((G_1, G_2) \mapsto G_1 \otimes G_2\)</li>
+                <li><strong>Identity networks</strong>: Units for composition</li>
+            </ul>
+
+            <p>This gives a <strong>semiring</strong> structure on network architectures.</p>
+
+            <p><strong>Key insight</strong>: Any semiring homomorphism</p>
+            <p>\[
+            \phi : \text{Networks} \to \mathbb{R}
+            \]</p>
+            <p>provides an <em>evaluation semantics</em>.</p>
+
+            <p><strong>Examples</strong>:</p>
+            <ol>
+                <li><strong>Parameter count</strong>:
+                    <pre><code>params(G₁ ∘ G₂) = params(G₁) × params(G₂)
+params(G₁ ⊗ G₂) = params(G₁) + params(G₂)</code></pre>
+                </li>
+                <li><strong>Computational cost</strong> (FLOPs)</li>
+                <li><strong>Information flow</strong> (mutual information)</li>
+                <li><strong>Resource consumption</strong> (energy, memory)</li>
+            </ol>
+
+            <p>Because these are homomorphisms, they:</p>
+            <ul>
+                <li>Compose correctly: \(\phi(G_1 \circ G_2) = \phi(G_1) * \phi(G_2)\)</li>
+                <li>Scale linearly: \(\phi(G_1 \oplus G_2) = \phi(G_1) + \phi(G_2)\)</li>
+                <li>Preserve units: \(\phi(\text{id}) = 1\)</li>
+            </ul>
+        </section>
+
+        <section id="examples">
+            <h2>Example Architectures</h2>
+
+            <h3>1. Simple MLP (Chain)</h3>
+            <img src="images/mlp.svg" alt="Simple MLP diagram" />
+
+            <pre><code>-- Chain network: x₀ → h₁ → h₂ → y
+-- No convergence, no forks needed
+-- Poset X: y ≤ h₂ ≤ h₁ ≤ x₀ (total order)</code></pre>
+
+            <p>The summing functor \(\Sigma_C(G)\) has objects:</p>
+            <ul>
+                <li>\(\emptyset, \{x_0\}, \{h_1\}, \{h_2\}, \{y\}\)</li>
+                <li>All subsets respecting the order</li>
+            </ul>
+
+            <h3>2. Convergent Network (ResNet-like)</h3>
+            <img src="images/convergent.svg" alt="Convergent network diagram" />
+
+            <pre><code>-- Two branches converging:
+--   x₀,₁    x₀,₂
+--     ↓      ↓
+--     └──→ h ←──┘  (convergence!)
+--          ↓
+--          y</code></pre>
+
+            <p><strong>Fork construction</strong> (Belfiore & Bennequin, Section 1.3):</p>
+            <p>Hidden layer \(h\) has 2 inputs → add fork:</p>
+            <ul>
+                <li><strong>Fork star</strong> \(A^★\): Join point for incoming edges</li>
+                <li><strong>Fork tang</strong> \(A\): Transmission point</li>
+                <li>Edges: \(x_{0,1} \to A^★ \leftarrow x_{0,2}\), then \(A^★ \to A \to h\)</li>
+            </ul>
+
+            <p>After removing \(A^★\), the poset \(X\) has structure:</p>
+            <pre><code>x₀,₁ ← A → x₀,₂   (tang A is the join)
+       ↓
+       h
+       ↓
+       y</code></pre>
+
+            <p>Ordering:</p>
+            <ul>
+                <li>\(y \leq h \leq A \leq x_{0,1}\)</li>
+                <li>\(y \leq h \leq A \leq x_{0,2}\)</li>
+            </ul>
+
+            <p>This is a <strong>diamond poset</strong>—the archetypal residual connection.</p>
+
+            <h3>3. Complex Multi-Path Network</h3>
+            <img src="images/complex.svg" alt="Complex network diagram" />
+
+            <p>Multiple convergence points → multiple forks. The poset \(X\) becomes a <em>tree forest</em>:</p>
+
+            <blockquote>
+                <p><strong>Theorem 1.2 (Belfiore & Bennequin)</strong>: The poset \(X\) of a DNN is made by a finite number of trees, rooted in the maximal points (inputs/tangs) and joined at the minimal points (outputs/tips).</p>
+            </blockquote>
+        </section>
+
+        <section id="topos">
+            <h2>The DNN Topos</h2>
+
+            <p>Each architecture defines a <em>Grothendieck topos</em>:</p>
+            <p>\[
+            \text{DNN-Topos} = \text{Sh}[X, \text{Alexandrov}]
+            \]</p>
+
+            <p>Where:</p>
+            <ul>
+                <li>\(X\) is the fork poset (from the architecture)</li>
+                <li>Alexandrov coverage: each \(x \in X\) has one covering sieve (maximal sieve \(\{y \mid y \leq x\}\))</li>
+                <li>Sheaves \(F : X^{op} \to \text{Sets}\) assign data to layers, with restriction maps</li>
+            </ul>
+
+            <p><strong>Sheaf condition at convergent vertex</strong> \(A^★\):</p>
+            <p>\[
+            F(A^★) \cong \prod_{a' \to A^★} F(a')
+            \]</p>
+
+            <p>This encodes the <em>independence</em> of incoming branches—states at \(A^★\) are products of states at tips.</p>
+
+            <p><strong>Backpropagation</strong> becomes flow of natural transformations \(W \to W\) (weight update):</p>
+
+            <blockquote>
+                <p><strong>Theorem 1.1</strong>: Backpropagation is the cooperative sum over directed paths:</p>
+                <p>\[
+                \frac{\partial L}{\partial w_a} = \bigoplus_{\gamma_a \in \Omega_a} \phi_{\gamma_a}
+                \]</p>
+                <p>where \(\Omega_a\) is the set of directed paths from vertex \(a\) to outputs.</p>
+            </blockquote>
+        </section>
+
+        <section id="hit-technique">
+            <h2>Technical Note: HITs Without K</h2>
+
+            <p>In cubical Agda, proving path uniqueness for indexed types requires the K axiom (disabled by default).</p>
+
+            <p><strong>Standard approach</strong>: Define paths, then prove uniqueness separately.</p>
+
+            <p><strong>Problem</strong>: Pattern matching on indexed constructors triggers:</p>
+            <pre><code>Cannot eliminate reflexive equation x = x of type X-Vertex
+because K has been disabled.</code></pre>
+
+            <p><strong>Our solution</strong>: Encode uniqueness as a <em>path constructor</em> (HIT):</p>
+
+            <pre><code>data _≤ˣ_ : X-Vertex → X-Vertex → Type where
+  ≤ˣ-refl : ∀ {x} → x ≤ˣ x
+  ≤ˣ-edge : ∀ {x y} → Edge x y → x ≤ˣ y
+  ≤ˣ-trans : ∀ {x y z} → x ≤ˣ y → y ≤ˣ z → x ≤ˣ z
+
+  -- PATH CONSTRUCTOR: thinness built-in!
+  ≤ˣ-thin : ∀ {x y} (p q : x ≤ˣ y) → p ≡ q</code></pre>
+
+            <p>Consequence: category laws are <em>immediate</em>:</p>
+            <pre><code>idl : ∀ {x y} (f : x ≤ y) → id ∘ f ≡ f
+idl f = ≤ˣ-thin (id ∘ f) f
+
+assoc : ∀ {x y z w} (f : x ≤ y) (g : y ≤ z) (h : z ≤ w)
+      → (f ∘ g) ∘ h ≡ f ∘ (g ∘ h)
+assoc f g h = ≤ˣ-thin ((f ∘ g) ∘ h) (f ∘ (g ∘ h))</code></pre>
+
+            <p>This technique generalizes: any thin category in cubical type theory can use this pattern.</p>
+        </section>
+
+        <section id="code">
+            <h2>Formalization Status</h2>
+
+            <p>The <a href="https://github.com/faezs/homotopy-nn">homotopy-nn</a> repository contains ~13,000 lines of type-checked Agda:</p>
+
+            <ul>
+                <li><strong>Neural.Base</strong>: DirectedGraph ≃ Functor ·⇉· FinSets (Definition 2.6)</li>
+                <li><strong>Neural.SummingFunctor</strong>: Σ_C(G) construction (Lemma 2.3, Proposition 2.4)</li>
+                <li><strong>Neural.Network.Conservation</strong>: Kirchhoff laws via equalizers (Proposition 2.10)</li>
+                <li><strong>Neural.Network.Grafting</strong>: Properad-constrained grafting (Lemma 2.19)</li>
+                <li><strong>Neural.Topos.*</strong>: Complete formalization of Belfiore & Bennequin Sections 1-3 (27 modules)</li>
+                <li><strong>Neural.Semantics.*</strong>: Linear logic framework for semantic information (8 modules)</li>
+                <li><strong>Neural.Resources.*</strong>: Resource theory with conversion rates (3 modules)</li>
+            </ul>
+
+            <p>All definitions are constructive and type-check with:</p>
+            <pre><code>agda --cubical --library-file=./libraries src/Everything.agda</code></pre>
+        </section>
+
+        <section id="references">
+            <h2>References</h2>
+
+            <ol>
+                <li>Marcolli, M., & Manin, Y. (2020). <em>Homotopy theoretic and categorical models of neural information networks</em>. arXiv:2006.15136</li>
+                <li>Belfiore, A., & Bennequin, D. (2022). <em>Topos and Stacks of Deep Neural Networks</em>. arXiv:2106.14587v3</li>
+                <li>Curto, C., & Itskov, V. (2008). <em>Cell groups reveal structure of stimulus space</em>. PLoS Computational Biology</li>
+                <li>Tononi, G., et al. (2016). <em>Integrated information theory: from consciousness to its physical substrate</em>. Nature Reviews Neuroscience</li>
+            </ol>
+        </section>
+
+        <footer>
+            <p>Faez Shakil | <a href="https://github.com/faezs/homotopy-nn">GitHub</a> | 2025</p>
+        </footer>
+    </article>
+</body>
+</html>
