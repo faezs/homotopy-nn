@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparse Attention as a Graph Problem | Homotopy-NN</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <article class="post">
+        <header>
+            <h1>Sparse Attention as a Graph Problem</h1>
+            <p class="subtitle">One Forward Pass with a Summing Functor</p>
+            <p class="author"><a href="index.html">← Back to Neural Networks Are Functors</a></p>
+        </header>
+
+        <section id="intro">
+            <h2>Attention IS a Graph</h2>
+
+            <p>Not matrix multiplication—a <strong>directed graph</strong>:</p>
+
+            <ul>
+                <li><strong>Vertices</strong>: Token positions [0, n)</li>
+                <li><strong>Edges</strong>: Attention weights from softmax(QK<sup>T</sup>)</li>
+                <li><strong>Sparse</strong>: Only top-k connections per query</li>
+            </ul>
+
+            <p>This is <code>DirectedGraph = Functor ·⇉· → FinSets</code> in executable form.</p>
+        </section>
+
+        <section id="graph-structure">
+            <h2>The Graph Structure</h2>
+
+            <p>Given Query, Key, Value matrices (n × d), we construct:</p>
+
+            <pre><code>DirectedGraph = Functor ·⇉· → FinSets:
+  F₀(vertices) = n           -- sequence length
+  F₀(edges) = k × n          -- top-k per query
+  F₁(source): edges → vertices
+  F₁(target): edges → vertices</code></pre>
+
+            <p><strong>Sparse attention</strong> means each query attends to only k tokens (not all n).</p>
+
+            <p>For n = 16 tokens, k = 4 connections:</p>
+            <ul>
+                <li>Dense edges: 16² = 256</li>
+                <li>Sparse edges: 16 × 4 = 64</li>
+                <li><strong>Reduction: 75%</strong></li>
+            </ul>
+        </section>
+
+        <section id="summing-functor">
+            <h2>Network Summing Functor Σ<sub>C</sub>(G)</h2>
+
+            <p>The attention graph defines a category:</p>
+
+            <ul>
+                <li><strong>Objects</strong>: Subsets S ⊆ {0, 1, ..., n-1} (token subsets)</li>
+                <li><strong>Morphisms</strong>: S → T if S ⊆ T and graph-compatible</li>
+                <li><strong>Composition</strong>: Follow graph edges</li>
+            </ul>
+
+            <blockquote>
+                <p><strong>Conservation law (Kirchhoff)</strong>:</p>
+                <p>At each vertex v:</p>
+                <p>\[
+                \sum_{\text{edges into } v} \text{flow} = \sum_{\text{edges out of } v} \text{flow}
+                \]</p>
+            </blockquote>
+
+            <p>For attention: incoming attention sums to 1 (softmax normalization).</p>
+        </section>
+
+        <section id="forward-pass">
+            <h2>One Forward Pass</h2>
+
+            <p>The forward pass is <em>composition</em> in Σ<sub>C</sub>(G):</p>
+
+            <pre><code>output[i] = Σ_{j ∈ top-k(i)} weights[i,j] × values[j]</code></pre>
+
+            <p>This is a morphism:</p>
+            <p>\[
+            \text{input} \xrightarrow{G} \text{output}
+            \]</p>
+
+            <p>in the summing functor category.</p>
+        </section>
+
+        <section id="executable-demo">
+            <h2>Executable Demo</h2>
+
+            <p>We have a <strong>pure Python implementation</strong> (no dependencies):</p>
+
+            <pre><code># Run the demo
+python3 docs/sparse-attention-demo.py</code></pre>
+
+            <h3>Sample Output</h3>
+
+            <pre><code>======================================================================
+SPARSE ATTENTION AS A GRAPH PROBLEM (Pure Python)
+======================================================================
+
+Configuration:
+  Sequence length (n): 16
+  Model dimension (d): 32
+  Sparsity (k): 4
+  Total possible edges: 256 = 16²
+  Sparse edges: 64 = 16 × 4
+  Sparsity ratio: 25.0%
+
+DirectedGraph = Functor ·⇉· → FinSets:
+  F₀(vertices) = 16
+  F₀(edges) = 64
+  F₁(source): edges → vertices
+  F₁(target): edges → vertices
+
+Sample edges (source → target, weight):
+  Query 0:
+    0 → 5: 0.252
+    0 → 6: 0.250
+    0 → 9: 0.249
+    0 → 1: 0.249
+
+Executing ONE forward pass...
+  Forward pass complete
+  Output shape: (16, 32)
+
+Network Summing Functor Σ_C(G):
+  Conservation law (Kirchhoff): ✓ PASS
+  Morphism {0,...,2} → {0,...,15}: ✓ exists
+
+Adjacency Pattern (first 8×8):
+    0   1   2   3   4   5   6   7
+ 0   . 0.2   .   .   . 0.3 0.3   .
+ 1   .   . 0.2   .   .   .   .   .
+ 2 0.2   .   .   .   .   .   .   .
+ 3 0.2   .   .   . 0.2   .   . 0.2
+ 4   .   .   . 0.2   .   .   . 0.3
+ 5   .   . 0.2   .   .   .   .   .
+ 6   . 0.2 0.3 0.2   .   .   .   .
+ 7   .   .   .   .   .   .   .   .</code></pre>
+
+            <h3>Key Results</h3>
+
+            <ul>
+                <li><strong>Graph structure</strong>: 16 vertices, 64 sparse edges</li>
+                <li><strong>Memory savings</strong>: 75% reduction vs dense attention</li>
+                <li><strong>Conservation</strong>: Verified ✓</li>
+                <li><strong>Execution</strong>: Pure Python on CPU (no GPU needed!)</li>
+            </ul>
+        </section>
+
+        <section id="graph-visualization">
+            <h2>Graph Structure</h2>
+
+            <p>The adjacency pattern shows sparsity:</p>
+            <ul>
+                <li>Each row has exactly k = 4 non-zero entries (out-degree)</li>
+                <li>Columns have variable in-degree (2-8 in this example)</li>
+                <li>Most entries are zero (sparse)</li>
+            </ul>
+
+            <p>This is fundamentally different from dense attention where every token attends to every other token.</p>
+        </section>
+
+        <section id="categorical-interpretation">
+            <h2>Categorical Interpretation</h2>
+
+            <h3>1. DirectedGraph Functor</h3>
+            <p>Parallel arrows category <code>·⇉·</code> has:</p>
+            <ul>
+                <li>Two objects: <code>false</code> (edges), <code>true</code> (vertices)</li>
+                <li>Two non-identity morphisms: <code>source</code>, <code>target</code></li>
+            </ul>
+
+            <p>The functor maps:</p>
+            <pre><code>F₀(false) = k × n     -- edge set
+F₀(true) = n          -- vertex set
+F₁(source)(e) = i     -- edge e from query i
+F₁(target)(e) = j     -- edge e to key j</code></pre>
+
+            <h3>2. Summing Functor</h3>
+            <p>Category Σ<sub>C</sub>(G) has:</p>
+            <ul>
+                <li><strong>Objects</strong>: Subsets of vertices</li>
+                <li><strong>Morphisms</strong>: Inclusion maps respecting graph flow</li>
+                <li><strong>Composition</strong>: Transitive closure along edges</li>
+            </ul>
+
+            <h3>3. Forward Pass = Composition</h3>
+            <p>Each forward pass is a morphism:</p>
+            <p>\[
+            f : V_{\text{in}} \to V_{\text{out}}
+            \]</p>
+            <p>defined by weighted sum along graph edges.</p>
+
+            <p><strong>Composition law</strong>: Stacking multiple attention layers corresponds to composing morphisms in Σ<sub>C</sub>(G).</p>
+        </section>
+
+        <section id="why-graphs">
+            <h2>Why This Matters</h2>
+
+            <h3>1. Principled, Not Ad-Hoc</h3>
+            <p>Sparse attention isn't a hack—it's the <em>natural</em> structure:</p>
+            <ul>
+                <li>DirectedGraph from category theory</li>
+                <li>Conservation laws from physics (Kirchhoff)</li>
+                <li>Composition from functors</li>
+            </ul>
+
+            <h3>2. Executable on CPU</h3>
+            <p>No large matrix allocation:</p>
+            <ul>
+                <li>Store only k × n edges (not n × n)</li>
+                <li>Iterate over sparse structure</li>
+                <li>Memory: O(nk) vs O(n²)</li>
+            </ul>
+
+            <h3>3. Scales to Long Sequences</h3>
+            <p>For n = 4096 tokens, k = 64:</p>
+            <ul>
+                <li>Dense: 16M edges</li>
+                <li>Sparse: 262K edges</li>
+                <li><strong>98.4% reduction!</strong></li>
+            </ul>
+
+            <h3>4. Literal Graph Problem</h3>
+            <p>This enables:</p>
+            <ul>
+                <li>Graph algorithms (shortest paths, connectivity)</li>
+                <li>Graph neural networks (message passing)</li>
+                <li>Sparse linear algebra (CSR format)</li>
+                <li>Hardware optimization (graph accelerators)</li>
+            </ul>
+        </section>
+
+        <section id="code">
+            <h2>Source Code</h2>
+
+            <p>Two versions available:</p>
+
+            <h3>Pure Python (No Dependencies)</h3>
+            <pre><code>python3 docs/sparse-attention-demo.py</code></pre>
+            <p><a href="https://github.com/faezs/homotopy-nn/blob/main/docs/sparse-attention-demo.py">View source →</a></p>
+
+            <h3>NumPy/Matplotlib (Full Features)</h3>
+            <pre><code>python3 docs/sparse-attention-graph.py</code></pre>
+            <p><a href="https://github.com/faezs/homotopy-nn/blob/main/docs/sparse-attention-graph.py">View source →</a></p>
+
+            <p>Both implement:</p>
+            <ul>
+                <li><code>AttentionGraph</code>: DirectedGraph functor</li>
+                <li><code>SummingFunctor</code>: Σ<sub>C</sub>(G) category</li>
+                <li><code>forward()</code>: One forward pass</li>
+                <li><code>check_conservation()</code>: Kirchhoff's law verification</li>
+            </ul>
+        </section>
+
+        <section id="extensions">
+            <h2>Extensions</h2>
+
+            <h3>Multi-Layer Composition</h3>
+            <p>Stack multiple sparse attention layers:</p>
+            <pre><code>G₁ : Input → Hidden₁  (sparse graph)
+G₂ : Hidden₁ → Hidden₂  (sparse graph)
+G₃ : Hidden₂ → Output  (sparse graph)
+
+Composed: G₃ ∘ G₂ ∘ G₁ : Input → Output</code></pre>
+
+            <p>Each G<sub>i</sub> is a morphism in its own Σ<sub>C</sub>(G<sub>i</sub>).</p>
+
+            <h3>Multi-Head Attention</h3>
+            <p>Parallel composition (tensor product):</p>
+            <pre><code>MultiHead = Head₁ ⊗ Head₂ ⊗ ... ⊗ Headₕ</code></pre>
+
+            <p>Each head is an independent graph.</p>
+
+            <h3>Causal Masking</h3>
+            <p>Restrict edges to respect causality:</p>
+            <pre><code>edge (i → j) allowed only if j ≤ i</code></pre>
+
+            <p>This makes the graph a <strong>DAG</strong> (directed acyclic graph).</p>
+        </section>
+
+        <section id="connection-to-formalization">
+            <h2>Connection to Agda Formalization</h2>
+
+            <p>This demo is an executable instance of:</p>
+
+            <pre><code>-- src/Neural/Base.agda
+DirectedGraph : Type
+DirectedGraph = Functor ·⇉· FinSets
+
+vertices : DirectedGraph → Nat
+edges : DirectedGraph → Nat
+source : (G : DirectedGraph) → Fin (edges G) → Fin (vertices G)
+target : (G : DirectedGraph) → Fin (edges G) → Fin (vertices G)</code></pre>
+
+            <p>The Python code is a <strong>computational interpretation</strong> of the Agda types.</p>
+
+            <p>Proving properties in Agda → guarantees in Python implementation!</p>
+        </section>
+
+        <footer>
+            <p><a href="index.html">← Back to main blog post</a></p>
+            <p><a href="https://github.com/faezs/homotopy-nn">GitHub Repository</a></p>
+        </footer>
+    </article>
+</body>
+</html>
